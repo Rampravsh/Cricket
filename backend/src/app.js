@@ -50,7 +50,7 @@ if (config.env === 'development') {
 app.use('/api/v1', routes);
 
 // Handle undefined routes
-app.all('*', (req, res, next) => {
+app.use((req, res, next) => {
   res.status(404).json(sendResponse(false, `Can't find ${req.originalUrl} on this server!`));
 });
 
