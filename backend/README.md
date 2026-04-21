@@ -52,3 +52,55 @@ npm run dev     # Runs with nodemon for hot-reloading
 ### Health Check Endpoint
 To ensure the backend is active, ping the health route:
 `GET http://localhost:5000/api/v1/matches/health`
+
+## 📡 Match Flow Endpoints
+
+All endpoints respond with the standardized format: `{ success: boolean, message: string, data: object }`.
+
+### 1. Create a Match
+- **Route:** `POST /api/v1/matches/create`
+- **Headers Needed:**
+  - `x-device-id`: Your unique device ID (used to identify host/scorer).
+- **Body Example:**
+  ```json
+  {
+    "matchId": "M123",
+    "teams": [
+      { "name": "Team A", "players": [{ "id": "p1", "name": "Player 1" }] },
+      { "name": "Team B", "players": [{ "id": "p2", "name": "Player 2" }] }
+    ],
+    "isPublic": true,
+    "toss": { "winner": "Team A", "decision": "bat" }
+  }
+  ```
+
+### 2. Process a New Ball
+- **Route:** `POST /api/v1/matches/:matchId/ball`
+- **Headers Needed:**
+  - `x-device-id`: Must match the `activeScorer` ID of the live match.
+- **Body Example:**
+  ```json
+  {
+    "runs": 2,
+    "extra": null,
+    "wicket": false,
+    "strikerId": "p1",
+    "bowlerId": "p2"
+  }
+  ```
+
+### 3. Get Public Matches
+- **Route:** `GET /api/v1/matches/public`
+- **Query Params:** `?page=1&limit=10`
+- **Description:** Returns paginated live/waiting matches flagged as `isPublic: true`.
+
+### 4. Fetch a Specific Match
+- **Route:** `GET /api/v1/matches/:matchId`
+- **Description:** Returns the full comprehensive state of a match (score, ball logs, status).
+
+## 🔌 WebSockets / Socket.IO
+- **Connect:** Connect your socket instance to the server URL.
+- **Join Room:** Emit `'join-match'` with `matchId` to get updates for that match.
+- **Events Received:**
+  - `'match-created'`: Triggers when a new match is generated.
+  - `'score-updated'`: Triggers immediately after a new ball is processed successfully.
