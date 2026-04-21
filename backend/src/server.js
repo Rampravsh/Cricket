@@ -26,6 +26,9 @@ const io = new Server(server, {
   },
 });
 
+// Set io to app for access in controllers
+app.set('io', io);
+
 // Setup sockets
 socketHandler(io);
 
