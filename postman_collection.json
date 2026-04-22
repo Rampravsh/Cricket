@@ -44,7 +44,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"matchId\": \"match-101\",\n  \"teams\": [\n    {\n      \"name\": \"India\",\n      \"players\": [\n        { \"id\": \"p1\", \"name\": \"Virat Kohli\" }\n      ]\n    },\n    {\n      \"name\": \"Australia\",\n      \"players\": [\n        { \"id\": \"p2\", \"name\": \"Steve Smith\" }\n      ]\n    }\n  ],\n  \"isPublic\": true,\n  \"toss\": {\n    \"winner\": \"India\",\n    \"decision\": \"bat\"\n  }\n}"
+          "raw": "{\n  \"matchId\": \"match-101\",\n  \"teams\": [\n    {\n      \"name\": \"India\",\n      \"players\": [\n        { \"id\": \"p1\", \"name\": \"Virat Kohli\" },\n        { \"id\": \"p3\", \"name\": \"Rohit Sharma\" }\n      ]\n    },\n    {\n      \"name\": \"Australia\",\n      \"players\": [\n        { \"id\": \"p2\", \"name\": \"Steve Smith\" },\n        { \"id\": \"p4\", \"name\": \"Pat Cummins\" }\n      ]\n    }\n  ],\n  \"isPublic\": true,\n  \"toss\": {\n    \"winner\": \"India\",\n    \"decision\": \"bat\"\n  }\n}"
         },
         "url": {
           "raw": "http://localhost:5000/api/v1/matches/create",
