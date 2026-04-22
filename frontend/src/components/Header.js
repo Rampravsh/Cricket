@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '~/hooks/useTheme';
 
 /**
- * Header — Screen-level header bar
+ * Header — Glassmorphic screen-level header bar
  *
  * @param {string}         title          - Header title
  * @param {boolean}        showBack       - Show back button (chevron ‹)
@@ -21,9 +21,9 @@ function Header({
   transparent = false,
   style,
 }) {
-  const { colors, spacing, borderRadius } = useTheme();
+  const { colors, spacing, borderRadius, isDark } = useTheme();
   const insets = useSafeAreaInsets();
-  const styles = createStyles(colors, spacing, borderRadius, insets, transparent);
+  const styles = createStyles(colors, spacing, borderRadius, insets, transparent, isDark);
 
   return (
     <View style={[styles.container, style]}>
@@ -54,7 +54,7 @@ function Header({
   );
 }
 
-function createStyles(colors, spacing, borderRadius, insets, transparent) {
+function createStyles(colors, spacing, borderRadius, insets, transparent, isDark) {
   return StyleSheet.create({
     container: {
       flexDirection: 'row',
@@ -63,18 +63,18 @@ function createStyles(colors, spacing, borderRadius, insets, transparent) {
       paddingTop: insets.top + spacing[2],
       paddingBottom: spacing[3],
       paddingHorizontal: spacing[4],
-      backgroundColor: transparent ? 'transparent' : colors.surface,
-      borderBottomWidth: transparent ? 0 : StyleSheet.hairlineWidth,
-      borderBottomColor: colors.border,
+      backgroundColor: transparent ? 'transparent' : colors.glassBg,
+      borderBottomWidth: transparent ? 0 : 1,
+      borderBottomColor: colors.glassBorder,
       ...Platform.select({
         ios: {
-          shadowColor: colors.shadowColor,
-          shadowOffset: { width: 0, height: 1 },
-          shadowOpacity: 0.08,
-          shadowRadius: 4,
+          shadowColor: isDark ? colors.primary : colors.shadowColor,
+          shadowOffset: { width: 0, height: isDark ? 0 : 1 },
+          shadowOpacity: isDark ? 0.08 : 0.06,
+          shadowRadius: isDark ? 12 : 4,
         },
         android: {
-          elevation: transparent ? 0 : 2,
+          elevation: transparent ? 0 : 3,
         },
       }),
     },
@@ -90,14 +90,16 @@ function createStyles(colors, spacing, borderRadius, insets, transparent) {
       width: 36,
       height: 36,
       borderRadius: borderRadius.md,
-      backgroundColor: colors.surfaceVariant,
+      backgroundColor: colors.glassBg,
+      borderWidth: 1,
+      borderColor: colors.glassBorder,
       alignItems: 'center',
       justifyContent: 'center',
     },
     backIcon: {
       fontSize: 28,
       lineHeight: 32,
-      color: colors.textPrimary,
+      color: colors.primary,
       fontWeight: '400',
       marginTop: -2,
     },
@@ -105,9 +107,9 @@ function createStyles(colors, spacing, borderRadius, insets, transparent) {
       flex: 1,
       textAlign: 'center',
       fontSize: 17,
-      fontWeight: '600',
+      fontWeight: '700',
       color: colors.textPrimary,
-      letterSpacing: 0.2,
+      letterSpacing: 0.3,
     },
   });
 }

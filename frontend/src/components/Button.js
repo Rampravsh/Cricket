@@ -3,7 +3,7 @@ import { TouchableOpacity, Text, ActivityIndicator, StyleSheet, View } from 'rea
 import { useTheme } from '~/hooks/useTheme';
 
 /**
- * Button — Multi-variant reusable button component
+ * Button — Multi-variant reusable button component with neon glow
  *
  * @param {string}   title       - Button label text
  * @param {function} onPress     - Press handler
@@ -28,9 +28,9 @@ function Button({
   leftIcon,
   rightIcon,
 }) {
-  const { colors, borderRadius, spacing } = useTheme();
+  const { colors, borderRadius, spacing, isDark } = useTheme();
 
-  const styles = createStyles(colors, borderRadius, spacing);
+  const styles = createStyles(colors, borderRadius, spacing, isDark);
 
   const isDisabled = disabled || loading;
 
@@ -84,7 +84,7 @@ function getSpinnerColor(variant, colors) {
   }
 }
 
-function createStyles(colors, borderRadius, spacing) {
+function createStyles(colors, borderRadius, spacing, isDark) {
   return StyleSheet.create({
     // ── Base ──────────────────────────────────────────────────────────────────
     base: {
@@ -124,18 +124,33 @@ function createStyles(colors, borderRadius, spacing) {
       minHeight: 56,
     },
 
-    // ── Variants ──────────────────────────────────────────────────────────────
+    // ── Variants — Neon Glow ──────────────────────────────────────────────────
     variant_primary: {
       backgroundColor: colors.primary,
       borderColor: colors.primary,
+      shadowColor: colors.primary,
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: isDark ? 0.4 : 0.2,
+      shadowRadius: isDark ? 12 : 6,
+      elevation: 6,
     },
     variant_secondary: {
-      backgroundColor: colors.surface,
+      backgroundColor: colors.glassBg,
       borderColor: colors.primary,
+      shadowColor: colors.primary,
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: isDark ? 0.2 : 0.05,
+      shadowRadius: isDark ? 8 : 4,
+      elevation: 3,
     },
     variant_danger: {
       backgroundColor: colors.danger,
       borderColor: colors.danger,
+      shadowColor: colors.danger,
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: isDark ? 0.4 : 0.2,
+      shadowRadius: isDark ? 12 : 6,
+      elevation: 6,
     },
     variant_ghost: {
       backgroundColor: 'transparent',
@@ -149,8 +164,8 @@ function createStyles(colors, borderRadius, spacing) {
 
     // ── Text base ─────────────────────────────────────────────────────────────
     text: {
-      fontWeight: '600',
-      letterSpacing: 0.3,
+      fontWeight: '700',
+      letterSpacing: 0.5,
     },
     text_sm: {
       fontSize: 13,

@@ -1,11 +1,10 @@
 import React, { useRef } from 'react';
 import { TouchableOpacity, Text, StyleSheet, View, Animated } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { playSound } from '~/utils/audio';
 import { useTheme } from '~/hooks/useTheme';
 
 /**
- * ScoreButton — Cricket scoring button
+ * ScoreButton — Cricket scoring button with neon glow effects
  * Used in the live scoring grid for every possible delivery outcome.
  *
  * @param {string|number} score    - The value to display (0,1,2,3,4,6,'W','WD','NB','LB','B')
@@ -16,8 +15,8 @@ import { useTheme } from '~/hooks/useTheme';
  * @param {object}        style    - Additional container overrides
  */
 function ScoreButton({ score, label, onPress, isActive = false, disabled = false, style }) {
-  const { colors, borderRadius, spacing } = useTheme();
-  const styles = createStyles(colors, borderRadius, spacing);
+  const { colors, borderRadius, spacing, isDark } = useTheme();
+  const styles = createStyles(colors, borderRadius, spacing, isDark);
 
   const scaleValue = useRef(new Animated.Value(1)).current;
 
@@ -26,7 +25,7 @@ function ScoreButton({ score, label, onPress, isActive = false, disabled = false
 
   const handlePressIn = () => {
     Animated.spring(scaleValue, {
-      toValue: 0.95,
+      toValue: 0.92,
       useNativeDriver: true,
       speed: 50,
       bounciness: 10,
@@ -44,16 +43,13 @@ function ScoreButton({ score, label, onPress, isActive = false, disabled = false
   const handlePress = () => {
     if (disabled) return;
 
-    // Haptic and Sound feedback
+    // Haptic feedback only (sound removed for now)
     if (score === 'W') {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      playSound('wicket');
     } else if (score === 4) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      playSound('four');
     } else if (score === 6) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-      playSound('six');
     } else {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
@@ -106,12 +102,12 @@ function getTextStyle(score, isActive, styles) {
   }
 }
 
-function createStyles(colors, borderRadius, spacing) {
+function createStyles(colors, borderRadius, spacing, isDark) {
   return StyleSheet.create({
     base: {
-      width: 64,
-      height: 64,
-      borderRadius: borderRadius.lg,
+      width: 68,
+      height: 68,
+      borderRadius: borderRadius.xl,
       alignItems: 'center',
       justifyContent: 'center',
       borderWidth: 1.5,
@@ -120,30 +116,50 @@ function createStyles(colors, borderRadius, spacing) {
       position: 'relative',
     },
 
-    // ── Variants ──────────────────────────────────────────────────────────────
+    // ── Variants — Neon Glow ──────────────────────────────────────────────────
     variantDefault: {
       backgroundColor: colors.scoreDefault,
-      borderColor: colors.border,
+      borderColor: colors.glassBorder,
     },
     variantFour: {
       backgroundColor: colors.scoreFour,
-      borderColor: colors.primary,
+      borderColor: isDark ? 'rgba(57, 255, 20, 0.35)' : 'rgba(46, 204, 64, 0.30)',
+      shadowColor: isDark ? '#39FF14' : '#2ECC40',
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: isDark ? 0.3 : 0.1,
+      shadowRadius: 10,
+      elevation: 4,
     },
     variantSix: {
       backgroundColor: colors.scoreSix,
-      borderColor: colors.accent,
+      borderColor: isDark ? 'rgba(255, 214, 0, 0.35)' : 'rgba(255, 193, 7, 0.30)',
+      shadowColor: isDark ? '#FFD600' : '#FFC107',
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: isDark ? 0.3 : 0.1,
+      shadowRadius: 10,
+      elevation: 4,
     },
     variantWicket: {
       backgroundColor: colors.scoreWicket,
-      borderColor: colors.danger,
+      borderColor: isDark ? 'rgba(255, 59, 92, 0.40)' : 'rgba(229, 57, 80, 0.30)',
+      shadowColor: isDark ? '#FF3B5C' : '#E53950',
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: isDark ? 0.35 : 0.15,
+      shadowRadius: 10,
+      elevation: 4,
     },
     variantExtra: {
       backgroundColor: colors.scoreExtra,
-      borderColor: colors.border,
+      borderColor: colors.glassBorder,
     },
     active: {
       backgroundColor: colors.primary,
       borderColor: colors.primaryDark,
+      shadowColor: colors.primary,
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.5,
+      shadowRadius: 12,
+      elevation: 6,
     },
     disabled: {
       opacity: 0.4,
@@ -152,7 +168,7 @@ function createStyles(colors, borderRadius, spacing) {
     // ── Text ──────────────────────────────────────────────────────────────────
     text: {
       fontSize: 18,
-      fontWeight: '700',
+      fontWeight: '800',
     },
     textDefault: {
       color: colors.scoreDefaultText,

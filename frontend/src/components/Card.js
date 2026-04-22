@@ -3,7 +3,7 @@ import { View, StyleSheet, Platform } from 'react-native';
 import { useTheme } from '~/hooks/useTheme';
 
 /**
- * Card — Themed container with optional elevation/shadow
+ * Card — Glassmorphic themed container with neon glow
  *
  * @param {React.ReactNode} children  - Card content
  * @param {boolean}         elevated  - Add shadow/elevation (default: true)
@@ -11,8 +11,8 @@ import { useTheme } from '~/hooks/useTheme';
  * @param {object}          style     - Additional container overrides
  */
 function Card({ children, elevated = true, padding = 'md', style }) {
-  const { colors, spacing, borderRadius } = useTheme();
-  const styles = createStyles(colors, spacing, borderRadius);
+  const { colors, spacing, borderRadius, isDark } = useTheme();
+  const styles = createStyles(colors, spacing, borderRadius, isDark);
 
   return (
     <View
@@ -28,13 +28,13 @@ function Card({ children, elevated = true, padding = 'md', style }) {
   );
 }
 
-function createStyles(colors, spacing, borderRadius) {
+function createStyles(colors, spacing, borderRadius, isDark) {
   return StyleSheet.create({
     base: {
-      backgroundColor: colors.card,
+      backgroundColor: colors.glassBg,
       borderRadius: borderRadius.xl,
-      borderWidth: StyleSheet.hairlineWidth,
-      borderColor: colors.border,
+      borderWidth: 1,
+      borderColor: colors.glassBorder,
       overflow: 'hidden',
     },
 
@@ -49,17 +49,17 @@ function createStyles(colors, spacing, borderRadius) {
       padding: spacing[6],
     },
 
-    // ── Shadow ────────────────────────────────────────────────────────────────
+    // ── Shadow — Neon glow ────────────────────────────────────────────────────
     elevated: {
       ...Platform.select({
         ios: {
-          shadowColor: colors.shadowColor,
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.08,
-          shadowRadius: 8,
+          shadowColor: isDark ? colors.primary : colors.shadowColor,
+          shadowOffset: { width: 0, height: isDark ? 0 : 2 },
+          shadowOpacity: isDark ? 0.15 : 0.08,
+          shadowRadius: isDark ? 16 : 8,
         },
         android: {
-          elevation: 4,
+          elevation: isDark ? 6 : 4,
         },
       }),
     },
