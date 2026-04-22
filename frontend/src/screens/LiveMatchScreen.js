@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,10 +7,11 @@ import {
   StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
-import { useSelector } from 'react-redux';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { useSelector, useDispatch } from 'react-redux';
 import { useTheme } from '~/hooks/useTheme';
-import { selectScore, selectCurrentOver, selectTarget } from '~/store/matchSlice';
+import useSocket from '~/hooks/useSocket';
+import { selectScore, selectCurrentOver, selectTarget, fetchMatchThunk, addBallThunk, selectCurrentMatch, selectIsLoading } from '~/store/matchSlice';
 import { formatOvers, calculateRunRate } from '~/utils/helpers';
 import { SCORE_VALUES } from '~/constants';
 import Header from '~/components/Header';
@@ -24,18 +25,55 @@ import ScoreButton from '~/components/ScoreButton';
 function LiveMatchScreen() {
   const { colors, spacing, borderRadius } = useTheme();
   const navigation = useNavigation();
+  const route = useRoute();
+  const dispatch = useDispatch();
+  
   const score = useSelector(selectScore);
   const currentOver = useSelector(selectCurrentOver);
   const target = useSelector(selectTarget);
+  const currentMatch = useSelector(selectCurrentMatch);
+  const isLoading = useSelector(selectIsLoading);
   const styles = createStyles(colors, spacing, borderRadius);
+
+  const matchId = route.params?.matchId || currentMatch?.matchId;
+
+  // Setup real-time socket connection
+  useSocket(matchId);
 
   // Local state for demo — last pressed button
   const [lastPressed, setLastPressed] = useState(null);
 
+  useEffect(() => {
+    if (matchId) {
+      dispatch(fetchMatchThunk(matchId));
+    }
+  }, [matchId, dispatch]);
+
   const handleScorePress = (value) => {
     setLastPressed(value);
-    // TODO: dispatch addDelivery({ value }) to Redux + emit to socket
-    console.log('[LiveMatch] Score button pressed:', value);
+    
+    let runs = 0;
+    let extra = null;
+    let wicket = false;
+
+    if (value === SCORE_VALUES.WICKET) {
+      wicket = true;
+    } else if (value === SCORE_VALUES.WIDE) {
+      extra = 'wide';
+      runs = 1;
+    } else if (value === SCORE_VALUES.NO_BALL) {
+      extra = 'noBall';
+      runs = 1;
+    } else if (typeof value === 'number') {
+      runs = value;
+    } else if (value === SCORE_VALUES.LEG_BYE || value === SCORE_VALUES.BYE) {
+       // Typically just tracking it as runs and extras, mock it out simply here:
+       runs = 1; // Assuming +1 by default for this mock tap, we can prompt for runs later
+    }
+
+    if (matchId) {
+      dispatch(addBallThunk({ matchId, payload: { runs, extra, wicket } }));
+    }
   };
 
   const battingTeamScore = score.teamA;
@@ -178,6 +216,7 @@ function LiveMatchScreen() {
                 key={String(btn.score)}
                 score={btn.score}
                 onPress={handleScorePress}
+                disabled={isLoading}
               />
             ))}
           </View>
