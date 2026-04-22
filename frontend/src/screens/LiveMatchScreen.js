@@ -8,6 +8,7 @@ import {
   Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSelector, useDispatch } from 'react-redux';
 import { useTheme } from '~/hooks/useTheme';
@@ -20,11 +21,10 @@ import Card from '~/components/Card';
 import ScoreButton from '~/components/ScoreButton';
 
 /**
- * LiveMatchScreen — Live cricket match scoring UI
- * Layout only — no backend wiring yet
+ * LiveMatchScreen — Live cricket match scoring UI (Neon Glassy)
  */
 function LiveMatchScreen() {
-  const { colors, spacing, borderRadius } = useTheme();
+  const { colors, spacing, borderRadius, isDark } = useTheme();
   const navigation = useNavigation();
   const route = useRoute();
   const dispatch = useDispatch();
@@ -46,7 +46,7 @@ function LiveMatchScreen() {
   const target = useSelector(selectTarget);
   const currentMatch = useSelector(selectCurrentMatch);
   const isLoading = useSelector(selectIsLoading);
-  const styles = createStyles(colors, spacing, borderRadius);
+  const styles = createStyles(colors, spacing, borderRadius, isDark);
 
   const matchId = route.params?.matchId || currentMatch?.matchId;
 
@@ -80,8 +80,7 @@ function LiveMatchScreen() {
     } else if (typeof value === 'number') {
       runs = value;
     } else if (value === SCORE_VALUES.LEG_BYE || value === SCORE_VALUES.BYE) {
-       // Typically just tracking it as runs and extras, mock it out simply here:
-       runs = 1; // Assuming +1 by default for this mock tap, we can prompt for runs later
+       runs = 1;
     }
 
     if (matchId) {
@@ -112,7 +111,8 @@ function LiveMatchScreen() {
     <SafeAreaView style={styles.safeArea} edges={['bottom']}>
       <StatusBar
         barStyle={colors.statusBar === 'dark' ? 'dark-content' : 'light-content'}
-        backgroundColor={colors.surface}
+        backgroundColor="transparent"
+        translucent
       />
 
       {/* Header */}
@@ -134,71 +134,87 @@ function LiveMatchScreen() {
         showsVerticalScrollIndicator={false}
       >
 
-        {/* Scoreboard */}
-        <Card style={styles.scoreboard} padding="lg">
-          {/* Teams Row */}
-          <View style={styles.teamsRow}>
-            {/* Batting Team */}
-            <View style={styles.teamBlock}>
-              <Text style={styles.teamName}>{battingTeamScore.name || 'Team A'}</Text>
-              <Text style={styles.teamShort}>{battingTeamScore.shortName || 'TMA'}</Text>
-              <View style={styles.scoreAnimWrapper}>
-                <AnimatedScore value={battingTeamScore.runs} textStyle={styles.scoreMain} />
-                <AnimatedScore value={`/${battingTeamScore.wickets}`} textStyle={styles.scoreWickets} />
+        {/* Scoreboard — Gradient Card */}
+        <View style={styles.scoreboardWrapper}>
+          <LinearGradient
+            colors={isDark
+              ? ['rgba(0, 240, 255, 0.08)', 'rgba(191, 90, 242, 0.06)', 'rgba(255, 45, 120, 0.04)']
+              : ['rgba(0, 180, 216, 0.06)', 'rgba(123, 47, 240, 0.04)', 'rgba(255, 45, 120, 0.02)']
+            }
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.scoreboardGradient}
+          >
+            {/* Teams Row */}
+            <View style={styles.teamsRow}>
+              {/* Batting Team */}
+              <View style={styles.teamBlock}>
+                <Text style={styles.teamName}>{battingTeamScore.name || 'Team A'}</Text>
+                <Text style={styles.teamShort}>{battingTeamScore.shortName || 'TMA'}</Text>
+                <View style={styles.scoreAnimWrapper}>
+                  <AnimatedScore value={battingTeamScore.runs} textStyle={styles.scoreMain} />
+                  <AnimatedScore value={`/${battingTeamScore.wickets}`} textStyle={styles.scoreWickets} />
+                </View>
+                <Text style={styles.scoreOvers}>
+                  {formatOvers(battingTeamScore.balls)}
+                </Text>
               </View>
-              <Text style={styles.scoreOvers}>
-                {formatOvers(battingTeamScore.balls)}
-              </Text>
+
+              {/* VS Divider */}
+              <View style={styles.vsDivider}>
+                <View style={styles.vsCircle}>
+                  <Text style={styles.vsText}>vs</Text>
+                </View>
+                {target ? (
+                  <Text style={styles.targetText}>Target: {target}</Text>
+                ) : null}
+              </View>
+
+              {/* Bowling Team */}
+              <View style={[styles.teamBlock, styles.teamBlockRight]}>
+                <Text style={[styles.teamName, styles.textRight]}>{bowlingTeamScore.name || 'Team B'}</Text>
+                <Text style={[styles.teamShort, styles.textRight]}>{bowlingTeamScore.shortName || 'TMB'}</Text>
+                <Text style={[styles.scoreMain, styles.textRight, styles.scoreSecondary]}>
+                  {bowlingTeamScore.runs > 0
+                    ? `${bowlingTeamScore.runs}/${bowlingTeamScore.wickets}`
+                    : '—'}
+                </Text>
+                <Text style={[styles.scoreOvers, styles.textRight]}>
+                  {bowlingTeamScore.balls > 0 ? formatOvers(bowlingTeamScore.balls) : 'Yet to bat'}
+                </Text>
+              </View>
             </View>
 
-            {/* VS Divider */}
-            <View style={styles.vsDivider}>
-              <Text style={styles.vsText}>vs</Text>
-              {target ? (
-                <Text style={styles.targetText}>Target: {target}</Text>
-              ) : null}
+            {/* Stats Row */}
+            <View style={styles.statsRow}>
+              <StatChip label="CRR" value={runRate} colors={colors} spacing={spacing} borderRadius={borderRadius} isDark={isDark} />
+              <StatChip label="Over" value={formatOvers(battingTeamScore.balls)} colors={colors} spacing={spacing} borderRadius={borderRadius} isDark={isDark} />
+              {target && (
+                <StatChip
+                  label="Need"
+                  value={`${target - battingTeamScore.runs} off ${Math.max(0, 120 - battingTeamScore.balls)} balls`}
+                  colors={colors}
+                  spacing={spacing}
+                  borderRadius={borderRadius}
+                  isDark={isDark}
+                />
+              )}
             </View>
-
-            {/* Bowling Team */}
-            <View style={[styles.teamBlock, styles.teamBlockRight]}>
-              <Text style={[styles.teamName, styles.textRight]}>{bowlingTeamScore.name || 'Team B'}</Text>
-              <Text style={[styles.teamShort, styles.textRight]}>{bowlingTeamScore.shortName || 'TMB'}</Text>
-              <Text style={[styles.scoreMain, styles.textRight, styles.scoreSecondary]}>
-                {bowlingTeamScore.runs > 0
-                  ? `${bowlingTeamScore.runs}/${bowlingTeamScore.wickets}`
-                  : '—'}
-              </Text>
-              <Text style={[styles.scoreOvers, styles.textRight]}>
-                {bowlingTeamScore.balls > 0 ? formatOvers(bowlingTeamScore.balls) : 'Yet to bat'}
-              </Text>
-            </View>
-          </View>
-
-          {/* Stats Row */}
-          <View style={styles.statsRow}>
-            <StatChip label="CRR" value={runRate} colors={colors} spacing={spacing} borderRadius={borderRadius} />
-            <StatChip label="Over" value={formatOvers(battingTeamScore.balls)} colors={colors} spacing={spacing} borderRadius={borderRadius} />
-            {target && (
-              <StatChip
-                label="Need"
-                value={`${target - battingTeamScore.runs} off ${Math.max(0, 120 - battingTeamScore.balls)} balls`}
-                colors={colors}
-                spacing={spacing}
-                borderRadius={borderRadius}
-              />
-            )}
-          </View>
-        </Card>
+          </LinearGradient>
+        </View>
 
         {/* Current Over Tracker */}
         <Card style={styles.overCard} padding="md">
-          <Text style={styles.overLabel}>Current Over</Text>
+          <View style={styles.overHeader}>
+            <Text style={styles.overLabel}>Current Over</Text>
+            <Text style={styles.overCount}>{currentOver.length}/6</Text>
+          </View>
           <View style={styles.overBalls}>
             {currentOver.length === 0 ? (
               <Text style={styles.overEmpty}>No deliveries yet</Text>
             ) : (
               currentOver.map((delivery, index) => (
-                <View key={index} style={[styles.ball, getBallStyle(delivery, colors, borderRadius)]}>
+                <View key={index} style={[styles.ball, getBallStyle(delivery, colors, borderRadius, isDark)]}>
                   <Text style={[styles.ballText, getBallTextStyle(delivery, colors)]}>
                     {String(delivery)}
                   </Text>
@@ -235,18 +251,24 @@ function LiveMatchScreen() {
           </View>
         </Card>
 
-        {/* Batter / Bowler Info Placeholder */}
+        {/* Batter / Bowler Info */}
         <View style={styles.playersRow}>
           <Card style={[styles.playerCard, styles.activeGlow]} padding="sm">
-            <Text style={styles.playerRole}>Batting</Text>
+            <View style={styles.playerRoleRow}>
+              <Text style={styles.playerRoleIcon}>🏏</Text>
+              <Text style={styles.playerRole}>Batting</Text>
+            </View>
             <Text style={[styles.playerName, { color: colors.primary }]}>Batter 1 (Striker)</Text>
             <Text style={styles.playerStat}>42 (38)</Text>
             <Text style={styles.playerName}>Batter 2</Text>
             <Text style={styles.playerStat}>18 (14)</Text>
           </Card>
           <Card style={[styles.playerCard, styles.activeGlow]} padding="sm">
-            <Text style={styles.playerRole}>Bowling</Text>
-            <Text style={[styles.playerName, { color: colors.primary }]}>Bowler 1</Text>
+            <View style={styles.playerRoleRow}>
+              <Text style={styles.playerRoleIcon}>⚾</Text>
+              <Text style={styles.playerRole}>Bowling</Text>
+            </View>
+            <Text style={[styles.playerName, { color: colors.accent }]}>Bowler 1</Text>
             <Text style={styles.playerStat}>2-24 (3.2)</Text>
           </Card>
         </View>
@@ -279,17 +301,19 @@ function AnimatedScore({ value, textStyle }) {
   );
 }
 
-function StatChip({ label, value, colors, spacing, borderRadius }) {
+function StatChip({ label, value, colors, spacing, borderRadius, isDark }) {
   const s = StyleSheet.create({
     chip: {
-      backgroundColor: colors.primaryContainer,
-      borderRadius: borderRadius.md,
+      backgroundColor: colors.glassBg,
+      borderRadius: borderRadius.lg,
+      borderWidth: 1,
+      borderColor: colors.glassBorder,
       paddingHorizontal: spacing[3],
       paddingVertical: spacing[2],
       alignItems: 'center',
     },
-    label: { fontSize: 10, fontWeight: '700', color: colors.primary, letterSpacing: 0.8 },
-    value: { fontSize: 13, fontWeight: '600', color: colors.textPrimary, marginTop: 1 },
+    label: { fontSize: 10, fontWeight: '800', color: colors.primary, letterSpacing: 0.8 },
+    value: { fontSize: 13, fontWeight: '700', color: colors.textPrimary, marginTop: 1 },
   });
   return (
     <View style={s.chip}>
@@ -299,13 +323,37 @@ function StatChip({ label, value, colors, spacing, borderRadius }) {
   );
 }
 
-function getBallStyle(delivery, colors, borderRadius) {
+function getBallStyle(delivery, colors, borderRadius, isDark) {
   const base = { borderRadius: borderRadius.full };
-  if (delivery === 'W')  return { ...base, backgroundColor: colors.scoreWicket, borderColor: colors.danger };
-  if (delivery === 4)    return { ...base, backgroundColor: colors.scoreFour, borderColor: colors.primary };
-  if (delivery === 6)    return { ...base, backgroundColor: colors.scoreSix, borderColor: colors.accent };
-  if (delivery === 'WD' || delivery === 'NB') return { ...base, backgroundColor: colors.scoreExtra };
-  return { ...base, backgroundColor: colors.scoreDefault };
+  if (delivery === 'W') return {
+    ...base,
+    backgroundColor: colors.scoreWicket,
+    borderColor: isDark ? 'rgba(255, 59, 92, 0.50)' : 'rgba(229, 57, 80, 0.35)',
+    shadowColor: '#FF3B5C',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: isDark ? 0.4 : 0.1,
+    shadowRadius: 6,
+  };
+  if (delivery === 4) return {
+    ...base,
+    backgroundColor: colors.scoreFour,
+    borderColor: isDark ? 'rgba(57, 255, 20, 0.50)' : 'rgba(46, 204, 64, 0.35)',
+    shadowColor: '#39FF14',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: isDark ? 0.35 : 0.1,
+    shadowRadius: 6,
+  };
+  if (delivery === 6) return {
+    ...base,
+    backgroundColor: colors.scoreSix,
+    borderColor: isDark ? 'rgba(255, 214, 0, 0.50)' : 'rgba(255, 193, 7, 0.35)',
+    shadowColor: '#FFD600',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: isDark ? 0.35 : 0.1,
+    shadowRadius: 6,
+  };
+  if (delivery === 'WD' || delivery === 'NB') return { ...base, backgroundColor: colors.scoreExtra, borderColor: colors.glassBorder };
+  return { ...base, backgroundColor: colors.scoreDefault, borderColor: colors.glassBorder };
 }
 
 function getBallTextStyle(delivery, colors) {
@@ -316,7 +364,7 @@ function getBallTextStyle(delivery, colors) {
 }
 
 // ── Main styles ────────────────────────────────────────────────────────────────
-function createStyles(colors, spacing, borderRadius) {
+function createStyles(colors, spacing, borderRadius, isDark) {
   return StyleSheet.create({
     safeArea: {
       flex: 1,
@@ -336,7 +384,13 @@ function createStyles(colors, spacing, borderRadius) {
       paddingHorizontal: spacing[2],
       paddingVertical: spacing[1],
       borderRadius: borderRadius.full,
+      borderWidth: 1,
+      borderColor: isDark ? 'rgba(255, 59, 92, 0.30)' : 'rgba(229, 57, 80, 0.15)',
       gap: 4,
+      shadowColor: colors.danger,
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: isDark ? 0.4 : 0.1,
+      shadowRadius: 8,
     },
     liveDot: {
       width: 6,
@@ -346,14 +400,26 @@ function createStyles(colors, spacing, borderRadius) {
     },
     liveBadgeText: {
       fontSize: 11,
-      fontWeight: '700',
+      fontWeight: '800',
       color: colors.danger,
       letterSpacing: 0.8,
     },
 
     // ── Scoreboard ────────────────────────────────────────────────────────────
-    scoreboard: {
+    scoreboardWrapper: {
       marginBottom: spacing[3],
+      borderRadius: borderRadius.xl,
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: colors.glassBorder,
+      shadowColor: isDark ? colors.primary : colors.shadowColor,
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: isDark ? 0.15 : 0.08,
+      shadowRadius: 16,
+      elevation: 4,
+    },
+    scoreboardGradient: {
+      padding: spacing[5],
     },
     teamsRow: {
       flexDirection: 'row',
@@ -369,13 +435,15 @@ function createStyles(colors, spacing, borderRadius) {
     },
     teamName: {
       fontSize: 14,
-      fontWeight: '700',
+      fontWeight: '800',
       color: colors.textPrimary,
+      letterSpacing: 0.3,
     },
     teamShort: {
       fontSize: 11,
       color: colors.textSecondary,
       marginBottom: spacing[2],
+      fontWeight: '600',
     },
     scoreAnimWrapper: {
       flexDirection: 'row',
@@ -383,12 +451,12 @@ function createStyles(colors, spacing, borderRadius) {
     },
     scoreMain: {
       fontSize: 38,
-      fontWeight: '800',
+      fontWeight: '900',
       color: colors.primary,
       letterSpacing: -1,
-      textShadowColor: colors.primaryContainer,
-      textShadowOffset: { width: 0, height: 2 },
-      textShadowRadius: 8,
+      textShadowColor: isDark ? 'rgba(0, 240, 255, 0.3)' : 'rgba(0, 180, 216, 0.2)',
+      textShadowOffset: { width: 0, height: 0 },
+      textShadowRadius: isDark ? 12 : 4,
     },
     scoreSecondary: {
       color: colors.textSecondary,
@@ -396,12 +464,13 @@ function createStyles(colors, spacing, borderRadius) {
     },
     scoreWickets: {
       fontSize: 22,
-      fontWeight: '600',
+      fontWeight: '700',
       color: colors.textSecondary,
     },
     scoreOvers: {
       fontSize: 12,
       color: colors.textSecondary,
+      fontWeight: '500',
     },
     textRight: {
       textAlign: 'right',
@@ -411,15 +480,25 @@ function createStyles(colors, spacing, borderRadius) {
       alignItems: 'center',
       justifyContent: 'center',
     },
+    vsCircle: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: colors.glassBg,
+      borderWidth: 1,
+      borderColor: colors.glassBorder,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
     vsText: {
       fontSize: 13,
-      fontWeight: '600',
+      fontWeight: '700',
       color: colors.textDisabled,
     },
     targetText: {
       fontSize: 11,
       color: colors.accent,
-      fontWeight: '600',
+      fontWeight: '700',
       marginTop: spacing[1],
       textAlign: 'center',
     },
@@ -432,13 +511,23 @@ function createStyles(colors, spacing, borderRadius) {
     overCard: {
       marginBottom: spacing[3],
     },
+    overHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: spacing[3],
+    },
     overLabel: {
+      fontSize: 12,
+      fontWeight: '800',
+      color: colors.primary,
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+    },
+    overCount: {
       fontSize: 12,
       fontWeight: '700',
       color: colors.textSecondary,
-      letterSpacing: 0.8,
-      marginBottom: spacing[3],
-      textTransform: 'uppercase',
     },
     overBalls: {
       flexDirection: 'row',
@@ -446,21 +535,22 @@ function createStyles(colors, spacing, borderRadius) {
       gap: spacing[2],
     },
     ball: {
-      width: 36,
-      height: 36,
+      width: 38,
+      height: 38,
       alignItems: 'center',
       justifyContent: 'center',
       borderWidth: 1.5,
-      borderColor: colors.border,
+      borderColor: colors.glassBorder,
     },
     ballEmpty: {
-      borderRadius: 18,
+      borderRadius: 19,
       borderStyle: 'dashed',
       backgroundColor: colors.surfaceVariant,
+      borderColor: colors.glassBorder,
     },
     ballText: {
       fontSize: 13,
-      fontWeight: '700',
+      fontWeight: '800',
     },
     overEmpty: {
       fontSize: 13,
@@ -479,11 +569,15 @@ function createStyles(colors, spacing, borderRadius) {
     lastPressedLabel: {
       fontSize: 13,
       color: colors.textSecondary,
+      fontWeight: '600',
     },
     lastPressedValue: {
       fontSize: 20,
-      fontWeight: '700',
+      fontWeight: '800',
       color: colors.primary,
+      textShadowColor: isDark ? colors.neonGlow : 'transparent',
+      textShadowOffset: { width: 0, height: 0 },
+      textShadowRadius: isDark ? 8 : 0,
     },
 
     // ── Scoring grid ──────────────────────────────────────────────────────────
@@ -492,9 +586,9 @@ function createStyles(colors, spacing, borderRadius) {
     },
     scoringTitle: {
       fontSize: 12,
-      fontWeight: '700',
-      color: colors.textSecondary,
-      letterSpacing: 0.8,
+      fontWeight: '800',
+      color: colors.primary,
+      letterSpacing: 1,
       marginBottom: spacing[3],
       textTransform: 'uppercase',
     },
@@ -513,35 +607,44 @@ function createStyles(colors, spacing, borderRadius) {
     playerCard: {
       flex: 1,
     },
+    playerRoleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing[1],
+      marginBottom: spacing[2],
+    },
+    playerRoleIcon: {
+      fontSize: 14,
+    },
     playerRole: {
       fontSize: 10,
-      fontWeight: '700',
+      fontWeight: '800',
       color: colors.primary,
-      letterSpacing: 0.8,
+      letterSpacing: 1,
       textTransform: 'uppercase',
-      marginBottom: spacing[2],
     },
     playerName: {
       fontSize: 14,
-      fontWeight: '600',
+      fontWeight: '700',
       color: colors.textPrimary,
     },
     playerStat: {
       fontSize: 12,
       color: colors.textSecondary,
       marginBottom: spacing[2],
+      fontWeight: '500',
     },
     activeGlow: {
-      borderColor: colors.primary,
-      borderWidth: 1.5,
+      borderColor: isDark ? 'rgba(0, 240, 255, 0.20)' : 'rgba(0, 180, 216, 0.15)',
+      borderWidth: 1,
       shadowColor: colors.primary,
       shadowOffset: { width: 0, height: 0 },
-      shadowOpacity: 0.3,
-      shadowRadius: 8,
+      shadowOpacity: isDark ? 0.2 : 0.08,
+      shadowRadius: isDark ? 12 : 6,
       elevation: 4,
     },
 
-    bottomSpacer: { height: spacing[12] },
+    bottomSpacer: { height: 100 },
   });
 }
 
