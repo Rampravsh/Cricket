@@ -1,0 +1,177 @@
+{
+  "info": {
+    "name": "Cricket Backend API",
+    "description": "API endpoints for the Cricket Scoring Application",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5000/api/v1/matches/health",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "v1",
+            "matches",
+            "health"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Create Match",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-device-id",
+            "value": "scorer-device-123",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"matchId\": \"match-101\",\n  \"teams\": [\n    {\n      \"name\": \"India\",\n      \"players\": [\n        { \"id\": \"p1\", \"name\": \"Virat Kohli\" }\n      ]\n    },\n    {\n      \"name\": \"Australia\",\n      \"players\": [\n        { \"id\": \"p2\", \"name\": \"Steve Smith\" }\n      ]\n    }\n  ],\n  \"isPublic\": true,\n  \"toss\": {\n    \"winner\": \"India\",\n    \"decision\": \"bat\"\n  }\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/v1/matches/create",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "v1",
+            "matches",
+            "create"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Public Matches",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5000/api/v1/matches/public?page=1&limit=10",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "v1",
+            "matches",
+            "public"
+          ],
+          "query": [
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "limit",
+              "value": "10"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Match By ID",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5000/api/v1/matches/match-101",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "v1",
+            "matches",
+            "match-101"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Start Match",
+      "request": {
+        "method": "PATCH",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5000/api/v1/matches/match-101/start",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "v1",
+            "matches",
+            "match-101",
+            "start"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Add Ball (Score)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-device-id",
+            "value": "scorer-device-123",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"runs\": 4,\n  \"extra\": null,\n  \"wicket\": false,\n  \"strikerId\": \"player-bat-1\",\n  \"bowlerId\": \"player-bowl-1\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/v1/matches/match-101/ball",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "v1",
+            "matches",
+            "match-101",
+            "ball"
+          ]
+        }
+      }
+    }
+  ]
+}
