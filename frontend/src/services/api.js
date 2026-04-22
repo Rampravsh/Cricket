@@ -1,6 +1,8 @@
 import axios from 'axios';
 import { ENV } from '~/constants';
 
+const deviceId = 'device-' + Math.random().toString(36).substring(2, 10);
+
 // ─── Axios Instance ────────────────────────────────────────────────────────────
 const apiClient = axios.create({
   baseURL: ENV.API_BASE_URL,
@@ -8,6 +10,7 @@ const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json',
+    'x-device-id': deviceId,
   },
 });
 
@@ -44,24 +47,21 @@ apiClient.interceptors.response.use(
 
 // ─── Match API ─────────────────────────────────────────────────────────────────
 export const matchApi = {
-  /** Get list of all matches */
-  getMatches: () => apiClient.get('/matches'),
+  /** Get list of public matches */
+  getMatches: () => apiClient.get('/matches/public'),
 
   /** Get a single match by ID */
   getMatch: (matchId) => apiClient.get(`/matches/${matchId}`),
 
-  /** Get live match score */
-  getLiveScore: (matchId) => apiClient.get(`/matches/${matchId}/score`),
-
   /** Create a new match */
-  createMatch: (matchData) => apiClient.post('/matches', matchData),
+  createMatch: (matchData) => apiClient.post('/matches/create', matchData),
 
-  /** Update match (admin) */
-  updateMatch: (matchId, data) => apiClient.patch(`/matches/${matchId}`, data),
+  /** Start a match */
+  startMatch: (matchId) => apiClient.patch(`/matches/${matchId}/start`),
 
-  /** Add a delivery */
-  addDelivery: (matchId, delivery) =>
-    apiClient.post(`/matches/${matchId}/deliveries`, delivery),
+  /** Add a ball delivery */
+  addBall: (matchId, payload) =>
+    apiClient.post(`/matches/${matchId}/ball`, payload),
 };
 
 // ─── User API ──────────────────────────────────────────────────────────────────

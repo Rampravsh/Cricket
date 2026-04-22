@@ -44,16 +44,10 @@ export const joinMatch = (matchId) => {
   }
 };
 
-export const listenToEvents = (callbacks) => {
+export const listenToScoreUpdates = (callback) => {
   if (!socket) return;
-  
-  if (callbacks.onScoreUpdated) {
-    socket.on('score-updated', callbacks.onScoreUpdated);
-  }
-  
-  if (callbacks.onMatchStarted) {
-    socket.on('match-started', callbacks.onMatchStarted);
-  }
+  socket.on('score-updated', callback);
+  socket.on('match-started', callback);
 };
 
 export const removeEventListeners = () => {

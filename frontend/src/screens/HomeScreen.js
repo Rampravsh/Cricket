@@ -2,6 +2,8 @@ import React from 'react';
 import { View, Text, ScrollView, StyleSheet, StatusBar, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { useDispatch, useSelector } from 'react-redux';
+import { createMatchThunk, startMatchThunk, selectIsLoading } from '~/store/matchSlice';
 import { useTheme } from '~/hooks/useTheme';
 import { SCREENS } from '~/constants';
 import Button from '~/components/Button';
@@ -15,10 +17,30 @@ import Header from '~/components/Header';
 function HomeScreen() {
   const { colors, spacing, borderRadius } = useTheme();
   const navigation = useNavigation();
+  const dispatch = useDispatch();
+  const isLoading = useSelector(selectIsLoading);
   const styles = createStyles(colors, spacing, borderRadius);
 
-  const handleGoToLiveMatch = () => {
-    navigation.navigate(SCREENS.LIVE_MATCH);
+  const handleGoToLiveMatch = async () => {
+    try {
+      const matchId = 'match-' + Date.now();
+      const matchData = {
+        matchId,
+        teams: [
+          { name: 'India', players: [{ id: 'p1', name: 'Batter 1' }, { id: 'p2', name: 'Batter 2' }] },
+          { name: 'Australia', players: [{ id: 'p3', name: 'Bowler 1' }] }
+        ],
+        isPublic: true,
+        toss: { winner: 'India', decision: 'bat' }
+      };
+      
+      await dispatch(createMatchThunk(matchData)).unwrap();
+      await dispatch(startMatchThunk(matchId)).unwrap();
+      
+      navigation.navigate(SCREENS.LIVE_MATCH, { matchId });
+    } catch (error) {
+      console.error('[HomeScreen] Error starting live match:', error);
+    }
   };
 
   return (
@@ -52,8 +74,9 @@ function HomeScreen() {
         <Text style={styles.sectionTitle}>Quick Actions</Text>
         <View style={styles.actionRow}>
           <Button
-            title="Start Live Match"
+            title={isLoading ? "Starting..." : "Start Live Match"}
             onPress={handleGoToLiveMatch}
+            disabled={isLoading}
             variant="primary"
             size="lg"
             style={styles.primaryAction}
