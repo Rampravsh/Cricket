@@ -5,6 +5,7 @@ import {
   ScrollView,
   StyleSheet,
   StatusBar,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -27,6 +28,18 @@ function LiveMatchScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const dispatch = useDispatch();
+  
+  const blinkAnim = useRef(new Animated.Value(1)).current;
+
+  // Blinking dot animation
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(blinkAnim, { toValue: 0.2, duration: 600, useNativeDriver: true }),
+        Animated.timing(blinkAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
+      ])
+    ).start();
+  }, [blinkAnim]);
   
   const score = useSelector(selectScore);
   const currentOver = useSelector(selectCurrentOver);
@@ -109,7 +122,7 @@ function LiveMatchScreen() {
         onBack={() => navigation.goBack()}
         rightComponent={
           <View style={styles.liveBadge}>
-            <View style={styles.liveDot} />
+            <Animated.View style={[styles.liveDot, { opacity: blinkAnim }]} />
             <Text style={styles.liveBadgeText}>LIVE</Text>
           </View>
         }
@@ -129,10 +142,10 @@ function LiveMatchScreen() {
             <View style={styles.teamBlock}>
               <Text style={styles.teamName}>{battingTeamScore.name || 'Team A'}</Text>
               <Text style={styles.teamShort}>{battingTeamScore.shortName || 'TMA'}</Text>
-              <Text style={styles.scoreMain}>
-                {battingTeamScore.runs}
-                <Text style={styles.scoreWickets}>/{battingTeamScore.wickets}</Text>
-              </Text>
+              <View style={styles.scoreAnimWrapper}>
+                <AnimatedScore value={battingTeamScore.runs} textStyle={styles.scoreMain} />
+                <AnimatedScore value={`/${battingTeamScore.wickets}`} textStyle={styles.scoreWickets} />
+              </View>
               <Text style={styles.scoreOvers}>
                 {formatOvers(battingTeamScore.balls)}
               </Text>
@@ -224,16 +237,16 @@ function LiveMatchScreen() {
 
         {/* Batter / Bowler Info Placeholder */}
         <View style={styles.playersRow}>
-          <Card style={styles.playerCard} padding="sm">
+          <Card style={[styles.playerCard, styles.activeGlow]} padding="sm">
             <Text style={styles.playerRole}>Batting</Text>
-            <Text style={styles.playerName}>Batter 1</Text>
+            <Text style={[styles.playerName, { color: colors.primary }]}>Batter 1 (Striker)</Text>
             <Text style={styles.playerStat}>42 (38)</Text>
             <Text style={styles.playerName}>Batter 2</Text>
             <Text style={styles.playerStat}>18 (14)</Text>
           </Card>
-          <Card style={styles.playerCard} padding="sm">
+          <Card style={[styles.playerCard, styles.activeGlow]} padding="sm">
             <Text style={styles.playerRole}>Bowling</Text>
-            <Text style={styles.playerName}>Bowler</Text>
+            <Text style={[styles.playerName, { color: colors.primary }]}>Bowler 1</Text>
             <Text style={styles.playerStat}>2-24 (3.2)</Text>
           </Card>
         </View>
@@ -245,6 +258,27 @@ function LiveMatchScreen() {
 }
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
+function AnimatedScore({ value, textStyle }) {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const prevValue = useRef(value);
+
+  useEffect(() => {
+    if (prevValue.current !== value) {
+      Animated.sequence([
+        Animated.timing(scaleAnim, { toValue: 1.15, duration: 150, useNativeDriver: true }),
+        Animated.timing(scaleAnim, { toValue: 1, duration: 250, useNativeDriver: true })
+      ]).start();
+      prevValue.current = value;
+    }
+  }, [value]);
+
+  return (
+    <Animated.Text style={[textStyle, { transform: [{ scale: scaleAnim }] }]}>
+      {value}
+    </Animated.Text>
+  );
+}
+
 function StatChip({ label, value, colors, spacing, borderRadius }) {
   const s = StyleSheet.create({
     chip: {
@@ -343,11 +377,18 @@ function createStyles(colors, spacing, borderRadius) {
       color: colors.textSecondary,
       marginBottom: spacing[2],
     },
+    scoreAnimWrapper: {
+      flexDirection: 'row',
+      alignItems: 'baseline',
+    },
     scoreMain: {
-      fontSize: 36,
+      fontSize: 38,
       fontWeight: '800',
       color: colors.primary,
       letterSpacing: -1,
+      textShadowColor: colors.primaryContainer,
+      textShadowOffset: { width: 0, height: 2 },
+      textShadowRadius: 8,
     },
     scoreSecondary: {
       color: colors.textSecondary,
@@ -490,8 +531,17 @@ function createStyles(colors, spacing, borderRadius) {
       color: colors.textSecondary,
       marginBottom: spacing[2],
     },
+    activeGlow: {
+      borderColor: colors.primary,
+      borderWidth: 1.5,
+      shadowColor: colors.primary,
+      shadowOffset: { width: 0, height: 0 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+      elevation: 4,
+    },
 
-    bottomSpacer: { height: spacing[8] },
+    bottomSpacer: { height: spacing[12] },
   });
 }
 

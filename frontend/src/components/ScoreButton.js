@@ -1,5 +1,7 @@
-import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, View } from 'react-native';
+import React, { useRef } from 'react';
+import { TouchableOpacity, Text, StyleSheet, View, Animated } from 'react-native';
+import * as Haptics from 'expo-haptics';
+import { playSound } from '~/utils/audio';
 import { useTheme } from '~/hooks/useTheme';
 
 /**
@@ -17,19 +19,62 @@ function ScoreButton({ score, label, onPress, isActive = false, disabled = false
   const { colors, borderRadius, spacing } = useTheme();
   const styles = createStyles(colors, borderRadius, spacing);
 
+  const scaleValue = useRef(new Animated.Value(1)).current;
+
   const buttonStyle = getButtonStyle(score, isActive, styles);
   const textStyle = getTextStyle(score, isActive, styles);
 
+  const handlePressIn = () => {
+    Animated.spring(scaleValue, {
+      toValue: 0.95,
+      useNativeDriver: true,
+      speed: 50,
+      bounciness: 10,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleValue, {
+      toValue: 1,
+      useNativeDriver: true,
+      bounciness: 12,
+    }).start();
+  };
+
+  const handlePress = () => {
+    if (disabled) return;
+
+    // Haptic and Sound feedback
+    if (score === 'W') {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      playSound('wicket');
+    } else if (score === 4) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      playSound('four');
+    } else if (score === 6) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+      playSound('six');
+    } else {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+
+    if (onPress) onPress(score);
+  };
+
   return (
-    <TouchableOpacity
-      style={[styles.base, buttonStyle, isActive && styles.active, disabled && styles.disabled, style]}
-      onPress={() => onPress && onPress(score)}
-      disabled={disabled}
-      activeOpacity={0.7}
-    >
-      <Text style={[styles.text, textStyle]}>{label ?? String(score)}</Text>
-      {isActive && <View style={[styles.activeDot, { backgroundColor: textStyle.color }]} />}
-    </TouchableOpacity>
+    <Animated.View style={[{ transform: [{ scale: scaleValue }] }]} >
+      <TouchableOpacity
+        style={[styles.base, buttonStyle, isActive && styles.active, disabled && styles.disabled, style]}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        onPress={handlePress}
+        disabled={disabled}
+        activeOpacity={0.7}
+      >
+        <Text style={[styles.text, textStyle]}>{label ?? String(score)}</Text>
+        {isActive && <View style={[styles.activeDot, { backgroundColor: textStyle.color }]} />}
+      </TouchableOpacity>
+    </Animated.View>
   );
 }
 
