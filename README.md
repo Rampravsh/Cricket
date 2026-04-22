@@ -19,7 +19,7 @@ Cricket/
 │   │   └── constants/     # App-wide constants & env config
 │   ├── App.js
 │   └── package.json
-└── backend/           ← (coming soon)
+└── backend/           ← Node.js/Express API & Socket.IO WebSockets
 ```
 
 ## ⚡ Tech Stack
@@ -57,11 +57,11 @@ npm run web
 
 - ✅ **Light / Dark mode** — auto-detects system preference via `useColorScheme()`
 - ✅ **Reusable components** — Button (variants), ScoreButton, Header, Card, Input
-- ✅ **Redux Toolkit store** — `matchSlice` + `userSlice` with selectors
-- ✅ **API service layer** — Axios instance with interceptors (`src/services/api.js`)
+- ✅ **Redux Toolkit store** — `matchSlice` + `userSlice` with selectors + Async Thunks
+- ✅ **API service layer** — Active Axios integration connecting to `backend/` endpoints
 - ✅ **Absolute imports** — `~/` maps to `src/` via `babel-plugin-module-resolver`
 - ✅ **Stack navigation** — slide transition, custom Header per screen
-- ✅ **useSocket hook** — placeholder ready for Socket.IO backend
+- ✅ **useSocket hook** — Fully configured `Socket.IO` bridging live Redux actions real-time
 - ✅ **Cricket scoring UI** — ScoreButton grid, over tracker, scoreboard
 
 ## 🧩 Key Decisions
@@ -84,8 +84,9 @@ export const ENV = {
 
 ## 🔮 Roadmap
 
-- [ ] Backend Node.js/Express server in `backend/`
-- [ ] Socket.IO integration for real-time scoring
+- [x] Backend Node.js/Express server in `backend/`
+- [x] API Integration for Match lifecycle (Create, Start)
+- [x] Socket.IO integration for real-time scoring
 - [ ] Authentication flow (login/register screens)
 - [ ] Scorecard screen
 - [ ] Match history & stats
