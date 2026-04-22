@@ -3,8 +3,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { useTheme } from '~/hooks/useTheme';
 import { SCREENS } from '~/constants';
-import HomeScreen from '~/screens/HomeScreen';
-import LiveMatchScreen from '~/screens/LiveMatchScreen';
+import BottomTabs from './BottomTabs';
 
 const Stack = createStackNavigator();
 
@@ -31,11 +30,10 @@ function AppNavigator() {
       }}
     >
       <Stack.Navigator
-        initialRouteName={SCREENS.HOME}
+        initialRouteName={SCREENS.MAIN_TABS}
         screenOptions={{
-          headerShown: false, // Custom Header component used per screen
+          headerShown: false,
           cardStyle: { backgroundColor: colors.background },
-          // Smooth slide animation
           cardStyleInterpolator: ({ current, layouts }) => ({
             cardStyle: {
               transform: [
@@ -50,13 +48,7 @@ function AppNavigator() {
           }),
         }}
       >
-        <Stack.Screen name={SCREENS.HOME} component={HomeScreen} />
-        <Stack.Screen name={SCREENS.LIVE_MATCH} component={LiveMatchScreen} />
-        {/* Future screens — add here:
-          <Stack.Screen name={SCREENS.MATCH_LIST} component={MatchListScreen} />
-          <Stack.Screen name={SCREENS.SCORECARD}  component={ScorecardScreen} />
-          <Stack.Screen name={SCREENS.SETTINGS}   component={SettingsScreen} />
-        */}
+        <Stack.Screen name={SCREENS.MAIN_TABS} component={BottomTabs} />
       </Stack.Navigator>
     </NavigationContainer>
   );
