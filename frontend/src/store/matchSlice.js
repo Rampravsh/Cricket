@@ -1,4 +1,5 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { matchApi } from '~/services/api';
 
 /**
  * Match slice — manages live match state
@@ -50,6 +51,43 @@ const initialState = {
   isLoading: false,
   error: null,
 };
+
+// ─── Async Thunks ─────────────────────────────────────────────────────────────
+export const createMatchThunk = createAsyncThunk('match/create', async (matchData, { rejectWithValue }) => {
+  try {
+    const res = await matchApi.createMatch(matchData);
+    return res.data;
+  } catch (err) {
+    return rejectWithValue(err.message || 'Failed to create match');
+  }
+});
+
+export const fetchMatchThunk = createAsyncThunk('match/fetch', async (matchId, { rejectWithValue }) => {
+  try {
+    const res = await matchApi.getMatch(matchId);
+    return res.data;
+  } catch (err) {
+    return rejectWithValue(err.message || 'Failed to fetch match');
+  }
+});
+
+export const startMatchThunk = createAsyncThunk('match/start', async (matchId, { rejectWithValue }) => {
+  try {
+    const res = await matchApi.startMatch(matchId);
+    return res.data;
+  } catch (err) {
+    return rejectWithValue(err.message || 'Failed to start match');
+  }
+});
+
+export const addBallThunk = createAsyncThunk('match/addBall', async ({ matchId, payload }, { rejectWithValue }) => {
+  try {
+    const res = await matchApi.addBall(matchId, payload);
+    return res.data;
+  } catch (err) {
+    return rejectWithValue(err.message || 'Failed to add ball');
+  }
+});
 
 const matchSlice = createSlice({
   name: 'match',
@@ -117,6 +155,31 @@ const matchSlice = createSlice({
       }
     },
 
+    // Handle updates from socket
+    setMatchFromSocket: (state, action) => {
+      const matchData = action.payload;
+      if (!matchData?.matchId) return;
+
+      state.currentMatch = matchData;
+      
+      if (matchData.teams && matchData.teams.length > 0) {
+        state.score.teamA.name = matchData.teams[0]?.name || '';
+        state.score.teamB.name = matchData.teams[1]?.name || '';
+      }
+
+      if (matchData.score) {
+        state.score.teamA.runs = matchData.score.runs || 0;
+        state.score.teamA.wickets = matchData.score.wickets || 0;
+        state.score.teamA.balls = matchData.score.balls || 0;
+        state.score.teamA.overs = matchData.score.overs || 0;
+      }
+      
+      if (matchData.balls && matchData.balls.length > 0) {
+        const currentOverNumber = matchData.balls[matchData.balls.length - 1].over;
+        state.currentOver = matchData.balls.filter(b => b.over === currentOverNumber).map(b => b.runs + (b.wicket ? 'W' : ''));
+      }
+    },
+
     // Reset full match state
     resetMatch: () => initialState,
 
@@ -131,6 +194,57 @@ const matchSlice = createSlice({
       state.isLoading = false;
     },
   },
+  extraReducers: (builder) => {
+    // Shared pending/rejected/fulfilled states for match operations
+    builder
+      .addMatcher(
+        (action) => action.type.startsWith('match/') && action.type.endsWith('/pending'),
+        (state) => {
+          state.isLoading = true;
+          state.error = null;
+        }
+      )
+      .addMatcher(
+        (action) => action.type.startsWith('match/') && action.type.endsWith('/rejected'),
+        (state, action) => {
+          state.isLoading = false;
+          state.error = action.payload;
+        }
+      )
+      .addMatcher(
+        (action) => action.type.startsWith('match/') && action.type.endsWith('/fulfilled'),
+        (state, action) => {
+          state.isLoading = false;
+          // Support accessing standard res.data (if interceptor wrapped)
+          const matchData = action.payload?.data || action.payload; 
+          
+          if (matchData?.matchId) {
+            state.currentMatch = matchData;
+            
+            // Map backend simple `score` field to `score.teamA` (since currently single innings is supported)
+            if (matchData.teams && matchData.teams.length > 0) {
+              state.score.teamA.name = matchData.teams[0]?.name || '';
+              state.score.teamB.name = matchData.teams[1]?.name || '';
+            }
+
+            if (matchData.score) {
+              state.score.teamA.runs = matchData.score.runs || 0;
+              state.score.teamA.wickets = matchData.score.wickets || 0;
+              state.score.teamA.balls = matchData.score.balls || 0;
+              state.score.teamA.overs = matchData.score.overs || 0;
+            }
+            
+            if (matchData.balls) {
+               // Update currentOver by taking the most recent ball's over and finding all balls in that over
+               if (matchData.balls.length > 0) {
+                 const currentOverNumber = matchData.balls[matchData.balls.length - 1].over;
+                 state.currentOver = matchData.balls.filter(b => b.over === currentOverNumber).map(b => b.runs + (b.wicket ? 'W' : ''));
+               }
+            }
+          }
+        }
+      );
+  },
 });
 
 export const {
@@ -142,6 +256,7 @@ export const {
   switchInnings,
   setMatchStatus,
   setTeams,
+  setMatchFromSocket,
   resetMatch,
   setLoading,
   setError,
