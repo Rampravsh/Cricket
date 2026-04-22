@@ -45,4 +45,8 @@ export const SCREENS = {
   MATCH_LIST: 'MatchList',
   SCORECARD: 'Scorecard',
   SETTINGS: 'Settings',
+  QUICK_MATCH: 'QuickMatch',
+  HISTORY: 'History',
+  PROFILE: 'Profile',
+  MAIN_TABS: 'MainTabs',
 };
