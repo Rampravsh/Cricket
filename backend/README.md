@@ -74,7 +74,11 @@ All endpoints respond with the standardized format: `{ success: boolean, message
   }
   ```
 
-### 2. Process a New Ball
+### 2. Start a Match
+- **Route:** `PATCH /api/v1/matches/:matchId/start`
+- **Description:** Transitions a match status from `waiting` to `live` and initializes the current on-field players. Emits the `match-started` socket event.
+
+### 3. Process a New Ball
 - **Route:** `POST /api/v1/matches/:matchId/ball`
 - **Headers Needed:**
   - `x-device-id`: Must match the `activeScorer` ID of the live match.
@@ -89,12 +93,12 @@ All endpoints respond with the standardized format: `{ success: boolean, message
   }
   ```
 
-### 3. Get Public Matches
+### 4. Get Public Matches
 - **Route:** `GET /api/v1/matches/public`
 - **Query Params:** `?page=1&limit=10`
 - **Description:** Returns paginated live/waiting matches flagged as `isPublic: true`.
 
-### 4. Fetch a Specific Match
+### 5. Fetch a Specific Match
 - **Route:** `GET /api/v1/matches/:matchId`
 - **Description:** Returns the full comprehensive state of a match (score, ball logs, status).
 
@@ -103,4 +107,5 @@ All endpoints respond with the standardized format: `{ success: boolean, message
 - **Join Room:** Emit `'join-match'` with `matchId` to get updates for that match.
 - **Events Received:**
   - `'match-created'`: Triggers when a new match is generated.
+  - `'match-started'`: Triggers when a match transitions to live.
   - `'score-updated'`: Triggers immediately after a new ball is processed successfully.
