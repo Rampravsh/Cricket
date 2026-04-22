@@ -66,6 +66,66 @@ const getMatchById = catchAsync(async (req, res) => {
 });
 
 /**
+ * @desc    Start a match
+ * @route   PATCH /api/v1/matches/:matchId/start
+ * @access  Public
+ */
+const startMatch = catchAsync(async (req, res) => {
+  const { matchId } = req.params;
+  const match = await Match.findOne({ matchId });
+
+  if (!match) {
+    return res.status(404).json(sendResponse(false, 'Match not found'));
+  }
+
+  if (match.status === 'live') {
+    return res.status(400).json(sendResponse(false, 'Match is already live'));
+  }
+
+  if (!match.teams || match.teams.length < 2) {
+    return res.status(400).json(sendResponse(false, 'Both teams must exist to start the match'));
+  }
+
+  let battingTeam = match.teams[0];
+  let bowlingTeam = match.teams[1];
+
+  if (match.toss && match.toss.winner && match.toss.decision) {
+    const isWinnerBatting = match.toss.decision === 'bat';
+    if (match.teams[0].name === match.toss.winner) {
+      battingTeam = isWinnerBatting ? match.teams[0] : match.teams[1];
+      bowlingTeam = isWinnerBatting ? match.teams[1] : match.teams[0];
+    } else if (match.teams[1].name === match.toss.winner) {
+      battingTeam = isWinnerBatting ? match.teams[1] : match.teams[0];
+      bowlingTeam = isWinnerBatting ? match.teams[0] : match.teams[1];
+    }
+  }
+
+  if (!battingTeam.players || battingTeam.players.length < 2) {
+    return res.status(400).json(sendResponse(false, 'Batting team must have at least 2 players'));
+  }
+
+  if (!bowlingTeam.players || bowlingTeam.players.length < 1) {
+    return res.status(400).json(sendResponse(false, 'Bowling team must have at least 1 player'));
+  }
+
+  match.status = 'live';
+  match.current = {
+    strikerId: battingTeam.players[0].id,
+    nonStrikerId: battingTeam.players[1].id,
+    bowlerId: bowlingTeam.players[0].id,
+  };
+
+  await match.save();
+
+  const io = req.app.get('io');
+  if (io) {
+    io.to(match.matchId).emit('match-started', match);
+  }
+
+  res.status(200).json(sendResponse(true, 'Match started', match));
+});
+
+/**
  * @desc    Process a new ball
  * @route   POST /api/v1/matches/:matchId/ball
  * @access  Public
@@ -142,6 +202,7 @@ module.exports = {
   checkHealth,
   createMatch,
   getMatchById,
+  startMatch,
   addBall,
   getPublicMatches,
 };

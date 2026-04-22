@@ -3,6 +3,7 @@ const {
   checkHealth,
   createMatch,
   getMatchById,
+  startMatch,
   addBall,
   getPublicMatches,
 } = require('../controllers/matchController');
@@ -18,6 +19,7 @@ router.get('/public', getPublicMatches); // Must be before /:matchId
 
 // Match retrieval and updates
 router.get('/:matchId', getMatchById);
+router.patch('/:matchId/start', startMatch);
 router.post('/:matchId/ball', addBall);
 
 module.exports = router;
