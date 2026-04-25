@@ -13,6 +13,13 @@ export const ENV = {
 
   // Request timeout in milliseconds
   REQUEST_TIMEOUT: 10000,
+
+  // Google OAuth Client IDs (Publicly safe for frontend, but better centralized)
+  GOOGLE: {
+    ANDROID_CLIENT_ID: 'YOUR_ANDROID_CLIENT_ID.apps.googleusercontent.com',
+    IOS_CLIENT_ID: 'YOUR_IOS_CLIENT_ID.apps.googleusercontent.com',
+    WEB_CLIENT_ID: 'YOUR_WEB_CLIENT_ID.apps.googleusercontent.com',
+  },
 };
 
 // Cricket scoring constants

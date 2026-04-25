@@ -17,6 +17,7 @@ import * as Google from 'expo-auth-session/providers/google';
 
 import { useTheme } from '~/hooks/useTheme';
 import Header from '~/components/Header';
+import { ENV } from '~/constants';
 import {
   selectUser,
   selectIsLoggedIn,
@@ -25,12 +26,11 @@ import {
 } from '~/store/userSlice';
 import authService from '~/services/authService';
 
-// Client IDs - Replace with your actual IDs from Google Cloud Console
-// For Expo Go, use the webClientId or create an Expo client
+// Client IDs from central config
 const GOOGLE_CONFIG = {
-  androidClientId: 'YOUR_ANDROID_CLIENT_ID.apps.googleusercontent.com',
-  iosClientId: 'YOUR_IOS_CLIENT_ID.apps.googleusercontent.com',
-  webClientId: 'YOUR_WEB_CLIENT_ID.apps.googleusercontent.com',
+  androidClientId: ENV.GOOGLE.ANDROID_CLIENT_ID,
+  iosClientId: ENV.GOOGLE.IOS_CLIENT_ID,
+  webClientId: ENV.GOOGLE.WEB_CLIENT_ID,
 };
 
 function ProfileScreen() {
