@@ -17,9 +17,12 @@ const apiClient = axios.create({
 // ─── Request Interceptor ───────────────────────────────────────────────────────
 apiClient.interceptors.request.use(
   (config) => {
-    // TODO: Attach auth token from AsyncStorage / Redux store
-    // const token = store.getState().user.token;
-    // if (token) config.headers.Authorization = `Bearer ${token}`;
+    // Dynamically import store to avoid circular dependency
+    const store = require('../store').default;
+    const token = store.getState().user.token;
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
     return config;
   },
   (error) => Promise.reject(error)
@@ -33,8 +36,9 @@ apiClient.interceptors.response.use(
     const message = error.response?.data?.message || error.message;
 
     if (status === 401) {
-      // TODO: dispatch logout() from store
-      console.warn('[API] Unauthorized — should logout');
+      const store = require('../store').default;
+      store.dispatch({ type: 'user/logout' });
+      console.warn('[API] Unauthorized — logged out');
     }
 
     if (status === 500) {
@@ -66,20 +70,14 @@ export const matchApi = {
 
 // ─── User API ──────────────────────────────────────────────────────────────────
 export const userApi = {
-  /** Login */
-  login: (credentials) => apiClient.post('/auth/login', credentials),
-
-  /** Register */
-  register: (userData) => apiClient.post('/auth/register', userData),
+  /** Login with Google */
+  loginWithGoogle: (idToken) => apiClient.post('/auth/google', { idToken }),
 
   /** Get current user profile */
-  getProfile: () => apiClient.get('/auth/me'),
+  getProfile: () => apiClient.get('/users/me'),
 
   /** Update profile */
-  updateProfile: (data) => apiClient.patch('/auth/me', data),
-
-  /** Logout */
-  logout: () => apiClient.post('/auth/logout'),
+  updateProfile: (data) => apiClient.patch('/users/me', data),
 };
 
 export default apiClient;
