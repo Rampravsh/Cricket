@@ -1,12 +1,17 @@
-// App-wide constants and environment configuration
-// In production, use react-native-dotenv or expo-constants for .env support
+import {
+  API_BASE_URL,
+  SOCKET_URL,
+  GOOGLE_ANDROID_CLIENT_ID,
+  GOOGLE_IOS_CLIENT_ID,
+  GOOGLE_WEB_CLIENT_ID,
+} from '@env';
 
 export const ENV = {
-  // Base API URL — change this to your backend URL
-  API_BASE_URL: 'http://10.78.113.72:5000/api/v1',
+  // Base API URL
+  API_BASE_URL: API_BASE_URL || 'http://10.78.113.72:5000/api/v1',
 
   // WebSocket URL for live match updates
-  SOCKET_URL: 'ws://10.78.113.72:5000',
+  SOCKET_URL: SOCKET_URL || 'ws://10.78.113.72:5000',
 
   // App version
   APP_VERSION: '1.0.0',
@@ -14,11 +19,11 @@ export const ENV = {
   // Request timeout in milliseconds
   REQUEST_TIMEOUT: 10000,
 
-  // Google OAuth Client IDs (Publicly safe for frontend, but better centralized)
+  // Google OAuth Client IDs (Loaded from .env)
   GOOGLE: {
-    ANDROID_CLIENT_ID: 'YOUR_ANDROID_CLIENT_ID.apps.googleusercontent.com',
-    IOS_CLIENT_ID: 'YOUR_IOS_CLIENT_ID.apps.googleusercontent.com',
-    WEB_CLIENT_ID: 'YOUR_WEB_CLIENT_ID.apps.googleusercontent.com',
+    ANDROID_CLIENT_ID: GOOGLE_ANDROID_CLIENT_ID,
+    IOS_CLIENT_ID: GOOGLE_IOS_CLIENT_ID,
+    WEB_CLIENT_ID: GOOGLE_WEB_CLIENT_ID,
   },
 };
 
