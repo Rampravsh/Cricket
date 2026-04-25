@@ -8,7 +8,9 @@ const initialState = {
   user: null,
 
   // Auth state
+  token: null,
   isAuthenticated: false,
+  isLoggedIn: false, // Added for explicit login state
 
   // User preferences
   preferences: {
@@ -29,7 +31,18 @@ const userSlice = createSlice({
     // Set user after login
     setUser: (state, action) => {
       state.user = action.payload;
+      state.isAuthenticated = !!action.payload;
+      state.isLoggedIn = !!action.payload;
+      state.error = null;
+    },
+
+    // Login success
+    loginSuccess: (state, action) => {
+      state.user = action.payload.user;
+      state.token = action.payload.token;
       state.isAuthenticated = true;
+      state.isLoggedIn = true;
+      state.isLoading = false;
       state.error = null;
     },
 
@@ -48,7 +61,9 @@ const userSlice = createSlice({
     // Log out
     logout: (state) => {
       state.user = null;
+      state.token = null;
       state.isAuthenticated = false;
+      state.isLoggedIn = false;
       state.preferences = initialState.preferences;
     },
 
@@ -72,6 +87,7 @@ const userSlice = createSlice({
 
 export const {
   setUser,
+  loginSuccess,
   updateUserProfile,
   updatePreferences,
   logout,
@@ -83,7 +99,10 @@ export const {
 // ─── Selectors ────────────────────────────────────────────────────────────────
 export const selectUser = (state) => state.user.user;
 export const selectIsAuthenticated = (state) => state.user.isAuthenticated;
+export const selectIsLoggedIn = (state) => state.user.isLoggedIn;
+export const selectToken = (state) => state.user.token;
 export const selectPreferences = (state) => state.user.preferences;
 export const selectUserError = (state) => state.user.error;
+export const selectUserLoading = (state) => state.user.isLoading;
 
 export default userSlice.reducer;
