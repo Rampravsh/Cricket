@@ -11,66 +11,58 @@ const matchService = {
    * @returns {Object} updated match object
    */
   processBall: (match, ballData) => {
+    // 1. Validate match
     if (!match || match.status !== 'live') {
       throw new AppError('Match is not live or does not exist', 400);
     }
 
     const { runs = 0, extra = null, wicket = false, strikerId, bowlerId } = ballData;
 
-    // 1. Increment team score
-    match.score.runs += runs;
+    // Capture IDs before potential modifications
+    const currentStrikerId = strikerId || match.current.strikerId;
+    const currentBowlerId = bowlerId || match.current.bowlerId;
 
-    // 1a. Handle extras (wides/no balls usually add to team score but might not count as a formal ball)
-    // For simplicity, we just add run value directly assuming `runs` includes the extras value.
-    if (extra) {
-      // In professional cricket wide/noBall add 1 run padding + runs off bat. Use passed runs.
+    const isLegalDelivery = extra !== 'wide' && extra !== 'noBall';
+
+    // 2. Update score
+    if (!isLegalDelivery) {
+      match.score.runs += 1 + runs;
+    } else {
+      match.score.runs += runs;
     }
 
-    // 2. Handle wicket
+    // 3. Handle wicket
     if (wicket) {
       match.score.wickets += 1;
-    }
-
-    // 3. Handle ball count
-    // A wide or noBall usually doesn't count as a legal delivery, but keeping it simple as requested or we can handle it:
-    let isLegalDelivery = (extra !== 'wide' && extra !== 'noBall');
-    
-    if (isLegalDelivery) {
-      match.score.balls += 1;
-
-      if (match.score.balls === 6) {
-        match.score.overs += 1;
-        match.score.balls = 0;
+      match.current.strikerId = null;
+      if (match.score.wickets >= 10) {
+        match.status = 'completed';
       }
     }
 
-    // 4. Determine new ball ID/sequence
-    const newOver = match.score.overs;
-    const newBall = match.score.balls;
+    // 4. Update balls & overs
+    if (isLegalDelivery) {
+      match.score.balls += 1;
+    }
 
-    // 5. Push ball object to match.balls
-    const ballRecord = {
-      over: newOver,
-      ball: newBall,
-      strikerId: strikerId || match.current.strikerId,
-      bowlerId: bowlerId || match.current.bowlerId,
-      runs,
-      extra,
-      wicket,
-      ts: Date.now(),
-    };
+    const currentOver = match.score.overs;
+    const currentBall = match.score.balls;
 
-    match.balls.push(ballRecord);
+    let overCompleted = false;
+    if (match.score.balls === 6) {
+      match.score.overs += 1;
+      match.score.balls = 0;
+      overCompleted = true;
+    }
 
-    // 6. Basic strike change logic (rotate if runs are odd)
+    // 5. Handle strike rotation
     let rotateStrike = false;
-    if (runs % 2 !== 0) {
-      rotateStrike = !rotateStrike;
+    if (isLegalDelivery && runs % 2 !== 0) {
+      rotateStrike = true;
     }
     
-    // Rotate strike at the end of the over
-    if (isLegalDelivery && match.score.balls === 0) {
-       rotateStrike = !rotateStrike;
+    if (overCompleted) {
+      rotateStrike = !rotateStrike;
     }
 
     if (rotateStrike) {
@@ -78,9 +70,41 @@ const matchService = {
       match.current.strikerId = match.current.nonStrikerId;
       match.current.nonStrikerId = tempId;
     }
+
+    // 6. Push ball record
+    const ballRecord = {
+      over: currentOver,
+      ball: currentBall,
+      strikerId: currentStrikerId,
+      bowlerId: currentBowlerId,
+      runs,
+      extra,
+      wicket,
+      ts: Date.now(),
+    };
     
-    // 7. Update lastEventId
-    match.lastEventId += 1;
+    match.balls.push(ballRecord);
+
+    // 7. Update currentOver array
+    if (!match.currentOver) {
+      match.currentOver = [];
+    }
+    
+    if (wicket) {
+      match.currentOver.push('W');
+    } else if (extra) {
+      match.currentOver.push(extra);
+    } else {
+      match.currentOver.push(runs);
+    }
+
+    if (overCompleted) {
+      match.currentOver = [];
+    }
+
+    // 8. Increment lastEventId
+    match.lastEventId = (match.lastEventId || 0) + 1;
+    ballRecord.eventId = match.lastEventId;
 
     return match;
   },
