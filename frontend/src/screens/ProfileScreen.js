@@ -1,469 +1,464 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  StatusBar,
-  ScrollView,
-  Animated,
   TouchableOpacity,
-  ActivityIndicator,
   Image,
+  ScrollView,
+  StatusBar,
+  Dimensions,
+  ActivityIndicator,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Feather } from '@expo/vector-icons';
-import { useSelector } from 'react-redux';
-import * as Google from 'expo-auth-session/providers/google';
+import { useSelector, useDispatch } from 'react-redux';
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
+import { Ionicons } from '@expo/vector-icons';
+import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 
-import { useTheme } from '~/hooks/useTheme';
-import Header from '~/components/Header';
-import { ENV } from '~/constants';
+import { useTheme } from '~/hooks';
+import { authService } from '~/services/authService';
 import {
   selectUser,
   selectIsLoggedIn,
   selectUserLoading,
   selectUserError,
+  clearError
 } from '~/store/userSlice';
-import authService from '~/services/authService';
+import { ENV } from '~/constants';
 
-// Client IDs from central config
-const GOOGLE_CONFIG = {
-  androidClientId: ENV.GOOGLE.ANDROID_CLIENT_ID,
-  iosClientId: ENV.GOOGLE.IOS_CLIENT_ID,
+// Configure Google Sign-In
+GoogleSignin.configure({
   webClientId: ENV.GOOGLE.WEB_CLIENT_ID,
-};
+  offlineAccess: true,
+});
 
-function ProfileScreen() {
-  const { colors, spacing, borderRadius, isDark, toggleTheme } = useTheme();
+const { width } = Dimensions.get('window');
+
+/**
+ * ProfileScreen — Handles user profile display and Google Authentication
+ * Features: Neon Glassy UI, Google OAuth, Profile Stats, Settings links
+ */
+const ProfileScreen = () => {
+  const { colors, spacing, isDark } = useTheme();
   const user = useSelector(selectUser);
   const isLoggedIn = useSelector(selectIsLoggedIn);
   const isLoading = useSelector(selectUserLoading);
   const error = useSelector(selectUserError);
+  const dispatch = useDispatch();
 
-  const [request, response, promptAsync] = Google.useAuthRequest(GOOGLE_CONFIG);
-
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(20)).current;
-  const ringPulse = useRef(new Animated.Value(0.5)).current;
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
-      Animated.timing(slideAnim, { toValue: 0, duration: 700, useNativeDriver: true }),
-    ]).start();
-
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(ringPulse, { toValue: 1, duration: 2500, useNativeDriver: true }),
-        Animated.timing(ringPulse, { toValue: 0.5, duration: 2500, useNativeDriver: true }),
-      ])
-    ).start();
-  }, [isLoggedIn]); // Re-animate on login state change
-
-  useEffect(() => {
-    if (response?.type === 'success') {
-      const { id_token } = response.params;
-      authService.handleGoogleLogin(id_token);
+  // ─── Handlers ───────────────────────────────────────────────────────────────
+  const handleLogin = async () => {
+    try {
+      await GoogleSignin.hasPlayServices();
+      const userInfo = await GoogleSignin.signIn();
+      
+      const idToken = userInfo.data.idToken;
+      if (idToken) {
+        authService.handleGoogleLogin(idToken);
+      } else {
+        console.error('[GoogleAuth] No ID Token found');
+      }
+    } catch (error) {
+      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+        console.log('[GoogleAuth] User cancelled');
+      } else if (error.code === statusCodes.IN_PROGRESS) {
+        console.log('[GoogleAuth] Sign in in progress');
+      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        console.error('[GoogleAuth] Play services not available');
+      } else {
+        console.error('[GoogleAuth] Error:', error);
+      }
     }
-  }, [response]);
-
-  const styles = createStyles(colors, spacing, borderRadius, isDark);
-
-  const statsData = isLoggedIn
-    ? [
-        { icon: '🏟️', value: user?.stats?.matchesPlayed || 0, label: 'Played' },
-        { icon: '🏗️', value: user?.stats?.matchesCreated || 0, label: 'Created' },
-        { icon: '🏃', value: user?.stats?.runs || 0, label: 'Runs' },
-        { icon: '🎯', value: user?.stats?.wickets || 0, label: 'Wickets' },
-      ]
-    : [];
-
-  const settingsItems = [
-    { icon: 'bell', label: 'Notifications', color: colors.accent },
-    { icon: 'shield', label: 'Privacy', color: colors.primary },
-    { icon: 'help-circle', label: 'Help & Support', color: colors.textSecondary },
-    { icon: 'info', label: 'About', color: colors.textSecondary },
-  ];
-
-  const renderAuthContent = () => {
-    if (isLoading) {
-      return (
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Authenticating...</Text>
-        </View>
-      );
-    }
-
-    if (!isLoggedIn) {
-      return (
-        <View style={styles.loginContainer}>
-          <View style={styles.loginIconContainer}>
-            <Feather name="user" size={48} color={colors.textSecondary} />
-          </View>
-          <Text style={styles.loginTitle}>Welcome to Cricket Pro</Text>
-          <Text style={styles.loginSubtitle}>
-            Login to save your matches, track stats, and compete with friends.
-          </Text>
-          
-          <TouchableOpacity
-            style={styles.googleButton}
-            onPress={() => promptAsync()}
-            disabled={!request}
-            activeOpacity={0.8}
-          >
-            <View style={styles.googleIconBg}>
-              <Feather name="chrome" size={20} color="#EA4335" />
-            </View>
-            <Text style={styles.googleButtonText}>Continue with Google</Text>
-          </TouchableOpacity>
-          
-          {error && <Text style={styles.errorText}>{error}</Text>}
-        </View>
-      );
-    }
-
-    return (
-      <>
-        {/* Avatar Section */}
-        <View style={styles.avatarSection}>
-          <Animated.View style={[styles.avatarRing, { opacity: ringPulse }]} />
-          <View style={styles.avatarCircle}>
-            {user?.avatar ? (
-              <Image source={{ uri: user.avatar }} style={styles.avatarImage} />
-            ) : (
-              <Text style={styles.avatarEmoji}>🏏</Text>
-            )}
-          </View>
-          <Text style={styles.userName}>{user?.name || 'Cricket Player'}</Text>
-          <Text style={styles.userTag}>{user?.email}</Text>
-
-          {/* Theme Indicator */}
-          <TouchableOpacity style={styles.themeBadge} onPress={toggleTheme} activeOpacity={0.7}>
-            <Feather name={isDark ? 'moon' : 'sun'} size={12} color={colors.primary} />
-            <Text style={styles.themeBadgeText}>{isDark ? 'Dark Mode' : 'Light Mode'}</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Stats Grid */}
-        <View style={styles.statsGrid}>
-          {statsData.map((stat, index) => (
-            <View key={index} style={styles.statCard}>
-              <Text style={styles.statIcon}>{stat.icon}</Text>
-              <Text style={styles.statValue}>{stat.value}</Text>
-              <Text style={styles.statLabel}>{stat.label}</Text>
-            </View>
-          ))}
-        </View>
-
-        {/* Settings List */}
-        <Text style={styles.sectionTitle}>Settings</Text>
-        <View style={styles.settingsList}>
-          {settingsItems.map((item, index) => (
-            <TouchableOpacity
-              key={index}
-              style={[
-                styles.settingsItem,
-                index < settingsItems.length - 1 && styles.settingsItemBorder,
-              ]}
-              activeOpacity={0.7}
-            >
-              <View style={styles.settingsItemLeft}>
-                <View style={[styles.settingsIconBg, { borderColor: item.color + '30' }]}>
-                  <Feather name={item.icon} size={18} color={item.color} />
-                </View>
-                <Text style={styles.settingsLabel}>{item.label}</Text>
-              </View>
-              <Feather name="chevron-right" size={18} color={colors.textDisabled} />
-            </TouchableOpacity>
-          ))}
-          
-          {/* Logout Button */}
-          <TouchableOpacity
-            style={styles.settingsItem}
-            onPress={() => authService.logout()}
-            activeOpacity={0.7}
-          >
-            <View style={styles.settingsItemLeft}>
-              <View style={[styles.settingsIconBg, { borderColor: colors.error + '30' }]}>
-                <Feather name="log-out" size={18} color={colors.error} />
-              </View>
-              <Text style={[styles.settingsLabel, { color: colors.error }]}>Logout</Text>
-            </View>
-          </TouchableOpacity>
-        </View>
-      </>
-    );
   };
 
-  return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <StatusBar
-        barStyle={colors.statusBar === 'dark' ? 'dark-content' : 'light-content'}
-        backgroundColor="transparent"
-        translucent
-      />
-      <Header title="Profile" />
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <Animated.View
-          style={{
-            opacity: fadeAnim,
-            transform: [{ translateY: slideAnim }],
-            flex: 1,
-          }}
-        >
-          {renderAuthContent()}
-          <View style={styles.bottomSpacer} />
-        </Animated.View>
-      </ScrollView>
-    </SafeAreaView>
+  const handleLogout = () => {
+    authService.logout();
+  };
+
+  // ─── Render Components ──────────────────────────────────────────────────────
+
+  const renderHeader = () => (
+    <View style={styles.header}>
+      <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>
+        Profile
+      </Text>
+      <TouchableOpacity
+        style={[styles.iconButton, { backgroundColor: colors.surfaceVariant }]}
+        onPress={() => {/* Open Settings */ }}
+      >
+        <Ionicons name="settings-outline" size={22} color={colors.textPrimary} />
+      </TouchableOpacity>
+    </View>
   );
-}
 
-function createStyles(colors, spacing, borderRadius, isDark) {
-  return StyleSheet.create({
-    safeArea: {
-      flex: 1,
-      backgroundColor: colors.background,
-    },
-    scrollContent: {
-      paddingHorizontal: spacing[4],
-      paddingTop: spacing[6],
-    },
+  const renderGuestState = () => (
+    <View style={styles.centeredContent}>
+      <LinearGradient
+        colors={[colors.primary, colors.accent]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.loginCardGlow}
+      />
+      <BlurView intensity={isDark ? 30 : 50} tint={isDark ? 'dark' : 'light'} style={styles.loginCard}>
+        <View style={styles.loginIconContainer}>
+          <Ionicons name="person-circle-outline" size={80} color={colors.primary} />
+        </View>
+        <Text style={[styles.loginTitle, { color: colors.textPrimary }]}>
+          Join the Arena
+        </Text>
+        <Text style={[styles.loginSubtitle, { color: colors.textSecondary }]}>
+          Sign in to track your matches, save your stats, and compete with friends.
+        </Text>
 
-    // Avatar
-    avatarSection: {
-      alignItems: 'center',
-      marginBottom: spacing[6],
-    },
-    avatarRing: {
-      position: 'absolute',
-      top: -4,
-      width: 96,
-      height: 96,
-      borderRadius: 48,
-      borderWidth: 2,
-      borderColor: colors.primary,
-      shadowColor: colors.primary,
-      shadowOffset: { width: 0, height: 0 },
-      shadowOpacity: isDark ? 0.4 : 0.1,
-      shadowRadius: 16,
-    },
-    avatarCircle: {
-      width: 88,
-      height: 88,
-      borderRadius: 44,
-      backgroundColor: colors.glassBg,
-      borderWidth: 1,
-      borderColor: colors.glassBorder,
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginBottom: spacing[3],
-      overflow: 'hidden',
-    },
-    avatarEmoji: {
-      fontSize: 40,
-    },
-    avatarImage: {
-      width: '100%',
-      height: '100%',
-    },
-    userName: {
-      fontSize: 20,
-      fontWeight: '800',
-      color: colors.textPrimary,
-      letterSpacing: -0.3,
-    },
-    userTag: {
-      fontSize: 13,
-      fontWeight: '600',
-      color: colors.textSecondary,
-      marginTop: 2,
-    },
-    themeBadge: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing[1],
-      marginTop: spacing[3],
-      backgroundColor: colors.glassBg,
-      borderRadius: borderRadius.full,
-      borderWidth: 1,
-      borderColor: colors.glassBorder,
-      paddingHorizontal: spacing[3],
-      paddingVertical: spacing[1],
-    },
-    themeBadgeText: {
-      fontSize: 11,
-      fontWeight: '700',
-      color: colors.primary,
-      letterSpacing: 0.3,
-    },
+        <TouchableOpacity
+          style={[styles.googleButton, { backgroundColor: colors.surface }]}
+          onPress={handleLogin}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <ActivityIndicator color={colors.primary} />
+          ) : (
+            <>
+              <Image
+                source={{ uri: 'https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg' }}
+                style={styles.googleIcon}
+              />
+              <Text style={[styles.googleButtonText, { color: colors.textPrimary }]}>
+                Continue with Google
+              </Text>
+            </>
+          )}
+        </TouchableOpacity>
 
-    // Auth Containers
-    centerContainer: {
-      flex: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingVertical: spacing[12],
-    },
-    loadingText: {
-      marginTop: spacing[4],
-      fontSize: 15,
-      fontWeight: '600',
-      color: colors.textSecondary,
-    },
-    loginContainer: {
-      flex: 1,
-      alignItems: 'center',
-      paddingTop: spacing[8],
-      paddingHorizontal: spacing[4],
-    },
-    loginIconContainer: {
-      width: 100,
-      height: 100,
-      borderRadius: 50,
-      backgroundColor: colors.glassBg,
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginBottom: spacing[6],
-      borderWidth: 1,
-      borderColor: colors.glassBorder,
-    },
-    loginTitle: {
-      fontSize: 24,
-      fontWeight: '800',
-      color: colors.textPrimary,
-      textAlign: 'center',
-      marginBottom: spacing[2],
-    },
-    loginSubtitle: {
-      fontSize: 14,
-      color: colors.textSecondary,
-      textAlign: 'center',
-      lineHeight: 20,
-      marginBottom: spacing[10],
-      paddingHorizontal: spacing[6],
-    },
-    googleButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: isDark ? '#fff' : '#000',
-      paddingVertical: spacing[3],
-      paddingHorizontal: spacing[6],
-      borderRadius: borderRadius.xl,
-      width: '100%',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.1,
-      shadowRadius: 8,
-      elevation: 4,
-    },
-    googleIconBg: {
-      width: 32,
-      height: 32,
-      borderRadius: 16,
-      backgroundColor: '#fff',
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginRight: spacing[4],
-    },
-    googleButtonText: {
-      fontSize: 16,
-      fontWeight: '700',
-      color: isDark ? '#000' : '#fff',
-    },
-    errorText: {
-      color: colors.error,
-      fontSize: 13,
-      fontWeight: '600',
-      marginTop: spacing[4],
-      textAlign: 'center',
-    },
+        {error && (
+          <Text style={styles.errorText}>{error}</Text>
+        )}
+      </BlurView>
+    </View>
+  );
 
-    // Stats
-    statsGrid: {
-      flexDirection: 'row',
-      gap: spacing[2],
-      marginBottom: spacing[6],
-    },
-    statCard: {
-      flex: 1,
-      backgroundColor: colors.glassBg,
-      borderRadius: borderRadius.xl,
-      borderWidth: 1,
-      borderColor: colors.glassBorder,
-      paddingVertical: spacing[3],
-      alignItems: 'center',
-    },
-    statIcon: {
-      fontSize: 18,
-      marginBottom: spacing[1],
-    },
-    statValue: {
-      fontSize: 18,
-      fontWeight: '800',
-      color: colors.primary,
-      letterSpacing: -0.3,
-    },
-    statLabel: {
-      fontSize: 10,
-      fontWeight: '600',
-      color: colors.textSecondary,
-      marginTop: 2,
-      letterSpacing: 0.3,
-    },
+  const renderProfileState = () => (
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={styles.scrollContent}
+    >
+      {/* Profile Card */}
+      <View style={styles.profileCardContainer}>
+        <LinearGradient
+          colors={[colors.primary + '30', colors.accent + '30']}
+          style={styles.profileCardBg}
+        />
+        <View style={styles.avatarContainer}>
+          <Image
+            source={{ uri: user?.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + user?.name }}
+            style={[styles.avatar, { borderColor: colors.primary }]}
+          />
+          <View style={[styles.badge, { backgroundColor: colors.primary }]}>
+            <Ionicons name="shield-checkmark" size={12} color={colors.textOnPrimary} />
+          </View>
+        </View>
 
-    // Settings
-    sectionTitle: {
-      fontSize: 13,
-      fontWeight: '800',
-      color: colors.primary,
-      letterSpacing: 1.2,
-      textTransform: 'uppercase',
-      marginBottom: spacing[3],
-    },
-    settingsList: {
-      backgroundColor: colors.glassBg,
-      borderRadius: borderRadius.xl,
-      borderWidth: 1,
-      borderColor: colors.glassBorder,
-      overflow: 'hidden',
-    },
-    settingsItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingVertical: spacing[3],
-      paddingHorizontal: spacing[4],
-    },
-    settingsItemBorder: {
-      borderBottomWidth: 1,
-      borderBottomColor: colors.glassBorder,
-    },
-    settingsItemLeft: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing[3],
-    },
-    settingsIconBg: {
-      width: 36,
-      height: 36,
-      borderRadius: borderRadius.md,
-      backgroundColor: colors.glassBg,
-      borderWidth: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    settingsLabel: {
-      fontSize: 15,
-      fontWeight: '600',
-      color: colors.textPrimary,
-    },
+        <Text style={[styles.userName, { color: colors.textPrimary }]}>{user?.name || 'Cricketer'}</Text>
+        <Text style={[styles.userEmail, { color: colors.textSecondary }]}>{user?.email}</Text>
 
-    bottomSpacer: {
-      height: 100,
-    },
-  });
-}
+        <View style={styles.statsRow}>
+          <View style={styles.statItem}>
+            <Text style={[styles.statValue, { color: colors.primary }]}>{user?.stats?.matchesPlayed || 0}</Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Matches</Text>
+          </View>
+          <View style={[styles.statDivider, { backgroundColor: colors.divider }]} />
+          <View style={styles.statItem}>
+            <Text style={[styles.statValue, { color: colors.accent }]}>{user?.stats?.runsScored || 0}</Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Runs</Text>
+          </View>
+          <View style={[styles.statDivider, { backgroundColor: colors.divider }]} />
+          <View style={styles.statItem}>
+            <Text style={[styles.statValue, { color: colors.danger }]}>{user?.stats?.wicketsTaken || 0}</Text>
+            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Wickets</Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Menu Options */}
+      <View style={styles.menuContainer}>
+        <MenuOption
+          icon="time-outline"
+          title="Match History"
+          subtitle="View your past performances"
+          onPress={() => { }}
+          colors={colors}
+        />
+        <MenuOption
+          icon="trophy-outline"
+          title="Achievements"
+          subtitle="Milestones you've reached"
+          onPress={() => { }}
+          colors={colors}
+        />
+        <MenuOption
+          icon="notifications-outline"
+          title="Notifications"
+          subtitle="Alerts and match updates"
+          onPress={() => { }}
+          colors={colors}
+        />
+        <MenuOption
+          icon="help-circle-outline"
+          title="Help & Support"
+          subtitle="FAQs and contact us"
+          onPress={() => { }}
+          colors={colors}
+        />
+      </View>
+
+      <TouchableOpacity
+        style={[styles.logoutButton, { borderColor: colors.danger + '40' }]}
+        onPress={handleLogout}
+      >
+        <Ionicons name="log-out-outline" size={20} color={colors.danger} />
+        <Text style={[styles.logoutText, { color: colors.danger }]}>Sign Out</Text>
+      </TouchableOpacity>
+
+      <Text style={[styles.versionText, { color: colors.textDisabled }]}>
+        Version {ENV.APP_VERSION}
+      </Text>
+    </ScrollView>
+  );
+
+  return (
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+      {renderHeader()}
+      {isLoggedIn ? renderProfileState() : renderGuestState()}
+    </View>
+  );
+};
+
+const MenuOption = ({ icon, title, subtitle, onPress, colors }) => (
+  <TouchableOpacity style={[styles.menuOption, { borderBottomColor: colors.divider }]} onPress={onPress}>
+    <View style={[styles.menuIconBox, { backgroundColor: colors.surfaceVariant }]}>
+      <Ionicons name={icon} size={22} color={colors.primary} />
+    </View>
+    <View style={styles.menuTextBox}>
+      <Text style={[styles.menuTitle, { color: colors.textPrimary }]}>{title}</Text>
+      <Text style={[styles.menuSubtitle, { color: colors.textSecondary }]}>{subtitle}</Text>
+    </View>
+    <Ionicons name="chevron-forward" size={18} color={colors.textDisabled} />
+  </TouchableOpacity>
+);
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 60,
+    paddingBottom: 20,
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+  },
+  iconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  centeredContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 30,
+  },
+  scrollContent: {
+    paddingBottom: 100,
+  },
+  loginCardGlow: {
+    position: 'absolute',
+    width: width * 0.8,
+    height: 300,
+    borderRadius: 40,
+    opacity: 0.15,
+    transform: [{ scale: 1.1 }],
+  },
+  loginCard: {
+    width: '100%',
+    borderRadius: 32,
+    padding: 32,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    overflow: 'hidden',
+  },
+  loginIconContainer: {
+    marginBottom: 20,
+  },
+  loginTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  loginSubtitle: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 32,
+    lineHeight: 22,
+  },
+  googleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 16,
+    width: '100%',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  googleIcon: {
+    width: 20,
+    height: 20,
+    marginRight: 12,
+  },
+  googleButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  errorText: {
+    color: '#FF3B5C',
+    marginTop: 16,
+    fontSize: 14,
+  },
+  profileCardContainer: {
+    marginHorizontal: 20,
+    borderRadius: 32,
+    padding: 24,
+    alignItems: 'center',
+    overflow: 'hidden',
+    marginBottom: 24,
+  },
+  profileCardBg: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  avatarContainer: {
+    position: 'relative',
+    marginBottom: 16,
+  },
+  avatar: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 3,
+  },
+  badge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  userName: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  userEmail: {
+    fontSize: 14,
+    marginBottom: 24,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    width: '100%',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 20,
+    padding: 16,
+  },
+  statItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  statValue: {
+    fontSize: 18,
+    fontWeight: '800',
+    marginBottom: 2,
+  },
+  statLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  statDivider: {
+    width: 1,
+    height: '70%',
+    alignSelf: 'center',
+  },
+  menuContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 32,
+  },
+  menuOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+  },
+  menuIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  menuTextBox: {
+    flex: 1,
+  },
+  menuTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  menuSubtitle: {
+    fontSize: 13,
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 20,
+    paddingVertical: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    marginBottom: 20,
+  },
+  logoutText: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginLeft: 8,
+  },
+  versionText: {
+    textAlign: 'center',
+    fontSize: 12,
+    marginBottom: 20,
+  },
+});
 
 export default ProfileScreen;

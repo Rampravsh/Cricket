@@ -1,11 +1,9 @@
-import * as Google from 'expo-auth-session/providers/google';
-import * as WebBrowser from 'expo-web-browser';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { userApi } from './api';
 import store from '../store';
 import { loginSuccess, logout, setLoading, setError, setUser } from '../store/userSlice';
 
-WebBrowser.maybeCompleteAuthSession();
 
 const AUTH_STORAGE_KEY = '@cricket_auth_data';
 
@@ -88,9 +86,13 @@ export const authService = {
   logout: async () => {
     try {
       await AsyncStorage.removeItem(AUTH_STORAGE_KEY);
+      // Native Google Sign-Out
+      await GoogleSignin.signOut();
       store.dispatch(logout());
     } catch (error) {
       console.error('[AuthService] Error during logout:', error);
+      // Even if Google sign out fails, we should clear local state
+      store.dispatch(logout());
     }
   },
 };
