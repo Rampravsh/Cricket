@@ -41,12 +41,13 @@ const matchService = {
     }
 
     // 4. Update balls & overs
+    const recordedBallIndex = match.score.balls; // current legal balls (0-5)
+    
     if (isLegalDelivery) {
       match.score.balls += 1;
     }
 
     const currentOver = match.score.overs;
-    const currentBall = match.score.balls;
 
     let overCompleted = false;
     if (match.score.balls === 6) {
@@ -57,7 +58,7 @@ const matchService = {
 
     // 5. Handle strike rotation
     let rotateStrike = false;
-    if (isLegalDelivery && runs % 2 !== 0) {
+    if (runs % 2 !== 0) {
       rotateStrike = true;
     }
     
@@ -74,7 +75,7 @@ const matchService = {
     // 6. Push ball record
     const ballRecord = {
       over: currentOver,
-      ball: currentBall,
+      ball: recordedBallIndex,
       strikerId: currentStrikerId,
       bowlerId: currentBowlerId,
       runs,

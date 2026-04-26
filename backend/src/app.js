@@ -21,6 +21,7 @@ app.use(
   cors({
     origin: config.corsOrigins,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-device-id'],
     credentials: true,
   })
 );

@@ -1,3 +1,4 @@
+// Trigger restart for config changes
 const http = require('http');
 const { Server } = require('socket.io');
 
@@ -55,3 +56,4 @@ process.on('SIGTERM', () => {
     logger.info('💥 Process terminated!');
   });
 });
+
