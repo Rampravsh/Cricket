@@ -239,6 +239,9 @@ const ProfileScreen = () => {
       {renderHeader()}
       {isLoggedIn ? renderProfileState() : renderGuestState()}
     </View>
+  );
+};
+
 const StatItem = ({ label, value, color }) => {
   const { colors } = useTheme();
   return (
