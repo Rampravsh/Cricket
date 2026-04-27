@@ -48,6 +48,13 @@ const ProfileScreen = () => {
   const isLoading = useSelector(selectAuthLoading);
   const error = useSelector(selectAuthError);
   const dispatch = useDispatch();
+  const theme = useTheme();
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      authService.refreshProfile();
+    }
+  }, [isLoggedIn]);
 
   // ─── Handlers ───────────────────────────────────────────────────────────────
   const handleLogin = async () => {
@@ -107,10 +114,10 @@ const ProfileScreen = () => {
           <Ionicons name="person-circle-outline" size={80} color={colors.primary} />
         </View>
         <Text style={[styles.loginTitle, { color: colors.textPrimary }]}>
-          Join the Arena
+          Cricket Identity
         </Text>
         <Text style={[styles.loginSubtitle, { color: colors.textSecondary }]}>
-          Sign in to track your matches, save your stats, and compete with friends.
+          Login to view your cricket profile, track matches, and earn achievements.
         </Text>
 
         <TouchableOpacity
@@ -165,20 +172,13 @@ const ProfileScreen = () => {
         <Text style={[styles.userEmail, { color: colors.textSecondary }]}>{user?.email}</Text>
 
         <View style={styles.statsRow}>
-          <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: colors.primary }]}>{user?.stats?.matchesPlayed || 0}</Text>
-            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Matches</Text>
-          </View>
-          <View style={[styles.statDivider, { backgroundColor: colors.divider }]} />
-          <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: colors.accent }]}>{user?.stats?.runsScored || 0}</Text>
-            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Runs</Text>
-          </View>
-          <View style={[styles.statDivider, { backgroundColor: colors.divider }]} />
-          <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: colors.danger }]}>{user?.stats?.wicketsTaken || 0}</Text>
-            <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Wickets</Text>
-          </View>
+          <StatItem label="Matches" value={playerProfile?.stats?.matchesPlayed || 0} color={colors.primary} />
+          <StatItem label="Runs" value={playerProfile?.stats?.totalRuns || 0} color={colors.accent} />
+          <StatItem label="Wickets" value={playerProfile?.stats?.totalWickets || 0} color={colors.danger} />
+        </View>
+        <View style={[styles.statsRow, { marginTop: 12 }]}>
+          <StatItem label="Created" value={playerProfile?.stats?.matchesCreated || 0} color={colors.textPrimary} />
+          <StatItem label="Scored" value={playerProfile?.stats?.matchesScored || 0} color={colors.textPrimary} />
         </View>
       </View>
 
@@ -233,6 +233,16 @@ const ProfileScreen = () => {
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
       {renderHeader()}
       {isLoggedIn ? renderProfileState() : renderGuestState()}
+    </View>
+  );
+};
+
+const StatItem = ({ label, value, color }) => {
+  const { colors } = useTheme();
+  return (
+    <View style={styles.statItem}>
+      <Text style={[styles.statValue, { color: color || colors.textPrimary }]}>{value}</Text>
+      <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{label}</Text>
     </View>
   );
 };
