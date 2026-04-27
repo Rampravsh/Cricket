@@ -1,87 +1,228 @@
-import React, { useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, StatusBar, Animated } from 'react-native';
+import React, { useState, useEffect, useMemo } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  StatusBar,
+  FlatList,
+  TouchableOpacity,
+  ActivityIndicator,
+  RefreshControl,
+  Dimensions
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
+
 import { useTheme } from '~/hooks/useTheme';
 import Header from '~/components/Header';
-import Button from '~/components/Button';
+import { userApi } from '~/services/api';
+
+const { width } = Dimensions.get('window');
+
+const FILTER_TABS = [
+  { id: 'all', label: 'All' },
+  { id: 'player', label: 'Played' },
+  { id: 'scorer', label: 'Scored' },
+  { id: 'creator', label: 'Created' },
+];
 
 function HistoryScreen() {
   const { colors, spacing, borderRadius, isDark } = useTheme();
+  const navigation = useNavigation();
+  const styles = createStyles(colors, spacing, borderRadius, isDark);
 
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(20)).current;
-  const pulseAnim = useRef(new Animated.Value(0.6)).current;
+  const [matches, setMatches] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState('all');
 
   useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
-      Animated.timing(slideAnim, { toValue: 0, duration: 700, useNativeDriver: true }),
-    ]).start();
-
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1, duration: 2000, useNativeDriver: true }),
-        Animated.timing(pulseAnim, { toValue: 0.6, duration: 2000, useNativeDriver: true }),
-      ])
-    ).start();
+    fetchMatches();
   }, []);
 
-  const styles = createStyles(colors, spacing, borderRadius, isDark);
+  const fetchMatches = async () => {
+    setIsLoading(true);
+    try {
+      const response = await userApi.getMatchHistory();
+      if (response.success) {
+        setMatches(response.data);
+      }
+    } catch (error) {
+      console.error('[History] Error fetching matches:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await fetchMatches();
+    setIsRefreshing(false);
+  };
+
+  const filteredMatches = useMemo(() => {
+    if (activeTab === 'all') return matches;
+    return matches.filter(match => match.roles && match.roles.includes(activeTab));
+  }, [matches, activeTab]);
+
+  const bestPerformance = useMemo(() => {
+    if (!matches.length) return null;
+    let bestRunsMatch = null;
+    let bestWicketsMatch = null;
+
+    matches.forEach(m => {
+      if (m.performance) {
+        if (!bestRunsMatch || (m.performance.runs > (bestRunsMatch.performance?.runs || 0))) {
+          bestRunsMatch = m;
+        }
+        if (!bestWicketsMatch || (m.performance.wickets > (bestWicketsMatch.performance?.wickets || 0))) {
+          bestWicketsMatch = m;
+        }
+      }
+    });
+
+    return { bestRunsMatch, bestWicketsMatch };
+  }, [matches]);
+
+  const renderFilterTabs = () => (
+    <View style={styles.tabsContainer}>
+      {FILTER_TABS.map(tab => (
+        <TouchableOpacity
+          key={tab.id}
+          style={[
+            styles.tab,
+            activeTab === tab.id && { backgroundColor: colors.primary }
+          ]}
+          onPress={() => setActiveTab(tab.id)}
+        >
+          <Text style={[
+            styles.tabLabel,
+            { color: activeTab === tab.id ? colors.textOnPrimary : colors.textSecondary }
+          ]}>
+            {tab.label}
+          </Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+
+  const renderMatchCard = ({ item }) => {
+    const isBestRuns = bestPerformance?.bestRunsMatch?._id === item._id && (item.performance?.runs || 0) > 0;
+    const isBestWickets = bestPerformance?.bestWicketsMatch?._id === item._id && (item.performance?.wickets || 0) > 0;
+
+    return (
+      <TouchableOpacity 
+        style={styles.matchCard}
+        onPress={() => navigation.navigate('LiveMatch', { matchId: item.matchId })}
+      >
+        <View style={styles.cardHeader}>
+          <View>
+            <Text style={styles.matchTitle}>{item.matchId}</Text>
+            <Text style={styles.matchDate}>
+              {new Date(item.createdAt).toLocaleDateString(undefined, { 
+                day: 'numeric', 
+                month: 'short', 
+                year: 'numeric' 
+              })}
+            </Text>
+          </View>
+          <View style={styles.rolesContainer}>
+            {item.roles?.map(role => (
+              <View key={role} style={[styles.roleBadge, { backgroundColor: colors.surfaceVariant }]}>
+                <Text style={[styles.roleText, { color: colors.primary }]}>
+                  {role.charAt(0).toUpperCase() + role.slice(1)}
+                </Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        {item.performance && (
+          <View style={styles.performanceRow}>
+            <View style={styles.perfItem}>
+              <Text style={styles.perfLabel}>Runs</Text>
+              <View style={styles.perfValueContainer}>
+                <Text style={styles.perfValue}>{item.performance.runs}</Text>
+                {isBestRuns && <Text style={styles.highlightIcon}>🔥</Text>}
+              </View>
+            </View>
+            <View style={styles.perfDivider} />
+            <View style={styles.perfItem}>
+              <Text style={styles.perfLabel}>Wickets</Text>
+              <View style={styles.perfValueContainer}>
+                <Text style={styles.perfValue}>{item.performance.wickets}</Text>
+                {isBestWickets && <Text style={styles.highlightIcon}>🎯</Text>}
+              </View>
+            </View>
+            <View style={styles.perfDivider} />
+            <View style={styles.perfItem}>
+              <Text style={styles.perfLabel}>S/R</Text>
+              <Text style={styles.perfValue}>
+                {item.performance.balls > 0 
+                  ? ((item.performance.runs / item.performance.balls) * 100).toFixed(1) 
+                  : '0.0'}
+              </Text>
+            </View>
+          </View>
+        )}
+
+        <View style={styles.cardFooter}>
+          <Text style={styles.viewDetailsText}>View Details</Text>
+          <Ionicons name="chevron-forward" size={14} color={colors.primary} />
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  const renderEmptyState = () => (
+    <View style={styles.emptyContainer}>
+      <View style={styles.emptyIllustration}>
+        <Text style={styles.emptyEmoji}>🏏</Text>
+      </View>
+      <Text style={styles.emptyTitle}>No matches yet</Text>
+      <Text style={styles.emptySubtitle}>
+        Your match history will appear here once you play, score, or create matches.
+      </Text>
+      <TouchableOpacity 
+        style={[styles.ctaButton, { backgroundColor: colors.primary }]}
+        onPress={() => navigation.navigate('Home')}
+      >
+        <Text style={[styles.ctaButtonText, { color: colors.textOnPrimary }]}>Start your first match</Text>
+      </TouchableOpacity>
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <StatusBar
-        barStyle={colors.statusBar === 'dark' ? 'dark-content' : 'light-content'}
+        barStyle={isDark ? 'light-content' : 'dark-content'}
         backgroundColor="transparent"
         translucent
       />
-      <Header title="Match History" />
+      <Header title="Performance Hub" />
+      
       <View style={styles.container}>
-        <Animated.View
-          style={[
-            styles.content,
-            {
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }],
-            },
-          ]}
-        >
-          {/* Cricket illustration */}
-          <Animated.View style={[styles.illustrationRing, { opacity: pulseAnim }]}>
-            <View style={styles.illustrationInner}>
-              <Text style={styles.illustrationEmoji}>🏏</Text>
-            </View>
-          </Animated.View>
+        {renderFilterTabs()}
 
-          <Text style={styles.title}>No Matches Yet</Text>
-          <Text style={styles.subtitle}>
-            Your match history will show up here.{'\n'}Start scoring to build your cricket legacy!
-          </Text>
-
-          {/* Placeholder stat cards */}
-          <View style={styles.statsRow}>
-            <View style={styles.statCard}>
-              <Text style={styles.statValue}>0</Text>
-              <Text style={styles.statLabel}>Played</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Text style={styles.statValue}>—</Text>
-              <Text style={styles.statLabel}>Won</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Text style={styles.statValue}>—</Text>
-              <Text style={styles.statLabel}>Best</Text>
-            </View>
+        {isLoading ? (
+          <View style={styles.centerContainer}>
+            <ActivityIndicator size="large" color={colors.primary} />
           </View>
-
-          <Button
-            title="⚡ Start First Match"
-            onPress={() => {}}
-            variant="primary"
-            size="lg"
-            style={styles.ctaButton}
+        ) : (
+          <FlatList
+            data={filteredMatches}
+            renderItem={renderMatchCard}
+            keyExtractor={item => item._id}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} tintColor={colors.primary} />
+            }
+            ListEmptyComponent={renderEmptyState}
           />
-        </Animated.View>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -95,90 +236,175 @@ function createStyles(colors, spacing, borderRadius, isDark) {
     },
     container: {
       flex: 1,
-      alignItems: 'center',
+    },
+    centerContainer: {
+      flex: 1,
       justifyContent: 'center',
-      paddingHorizontal: spacing[6],
-    },
-    content: {
       alignItems: 'center',
     },
-
-    // Illustration
-    illustrationRing: {
-      width: 120,
-      height: 120,
-      borderRadius: 60,
-      borderWidth: 2,
-      borderColor: colors.primary,
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginBottom: spacing[6],
-      shadowColor: colors.primary,
-      shadowOffset: { width: 0, height: 0 },
-      shadowOpacity: isDark ? 0.35 : 0.1,
-      shadowRadius: 20,
-      elevation: 6,
+    tabsContainer: {
+      flexDirection: 'row',
+      paddingHorizontal: 20,
+      marginBottom: 16,
+      marginTop: 8,
     },
-    illustrationInner: {
-      width: 96,
-      height: 96,
-      borderRadius: 48,
-      backgroundColor: colors.glassBg,
+    tab: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      borderRadius: 20,
+      marginRight: 8,
+      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)',
+    },
+    tabLabel: {
+      fontSize: 14,
+      fontWeight: '600',
+    },
+    listContent: {
+      paddingHorizontal: 20,
+      paddingBottom: 40,
+    },
+    matchCard: {
+      backgroundColor: colors.surface,
+      borderRadius: 24,
+      padding: 20,
+      marginBottom: 16,
       borderWidth: 1,
-      borderColor: colors.glassBorder,
+      borderColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)',
+      elevation: 2,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+    },
+    cardHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: 16,
+    },
+    matchTitle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: colors.textPrimary,
+      marginBottom: 4,
+    },
+    matchDate: {
+      fontSize: 12,
+      color: colors.textSecondary,
+    },
+    rolesContainer: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'flex-end',
+      maxWidth: '40%',
+    },
+    roleBadge: {
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 8,
+      marginLeft: 4,
+      marginBottom: 4,
+    },
+    roleText: {
+      fontSize: 10,
+      fontWeight: '800',
+      textTransform: 'uppercase',
+    },
+    performanceRow: {
+      flexDirection: 'row',
+      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)',
+      borderRadius: 16,
+      padding: 16,
+      marginBottom: 16,
+      justifyContent: 'space-between',
       alignItems: 'center',
-      justifyContent: 'center',
     },
-    illustrationEmoji: {
-      fontSize: 44,
+    perfItem: {
+      flex: 1,
+      alignItems: 'center',
     },
-
-    title: {
-      fontSize: 22,
+    perfLabel: {
+      fontSize: 10,
+      color: colors.textSecondary,
+      marginBottom: 4,
+      textTransform: 'uppercase',
+      fontWeight: '700',
+    },
+    perfValueContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    perfValue: {
+      fontSize: 18,
       fontWeight: '800',
       color: colors.textPrimary,
-      marginBottom: spacing[2],
-      letterSpacing: -0.3,
     },
-    subtitle: {
+    highlightIcon: {
+      marginLeft: 4,
+      fontSize: 14,
+    },
+    perfDivider: {
+      width: 1,
+      height: '60%',
+      backgroundColor: colors.divider,
+      opacity: 0.5,
+    },
+    cardFooter: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'flex-end',
+    },
+    viewDetailsText: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: colors.primary,
+      marginRight: 4,
+    },
+    emptyContainer: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 60,
+    },
+    emptyIllustration: {
+      width: 100,
+      height: 100,
+      borderRadius: 50,
+      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 20,
+    },
+    emptyEmoji: {
+      fontSize: 40,
+    },
+    emptyTitle: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: colors.textPrimary,
+      marginBottom: 8,
+    },
+    emptySubtitle: {
       fontSize: 14,
       color: colors.textSecondary,
       textAlign: 'center',
+      paddingHorizontal: 40,
+      marginBottom: 32,
       lineHeight: 20,
-      marginBottom: spacing[6],
-      fontWeight: '500',
     },
-
-    // Stats
-    statsRow: {
-      flexDirection: 'row',
-      gap: spacing[3],
-      marginBottom: spacing[6],
-    },
-    statCard: {
-      width: 80,
-      backgroundColor: colors.glassBg,
-      borderRadius: borderRadius.xl,
-      borderWidth: 1,
-      borderColor: colors.glassBorder,
-      paddingVertical: spacing[3],
-      alignItems: 'center',
-    },
-    statValue: {
-      fontSize: 22,
-      fontWeight: '800',
-      color: colors.primary,
-    },
-    statLabel: {
-      fontSize: 11,
-      fontWeight: '600',
-      color: colors.textSecondary,
-      marginTop: 2,
-      letterSpacing: 0.3,
-    },
-
     ctaButton: {
-      paddingHorizontal: spacing[10],
+      paddingHorizontal: 32,
+      paddingVertical: 14,
+      borderRadius: 16,
+      elevation: 4,
+      shadowColor: colors.primary,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 10,
+    },
+    ctaButtonText: {
+      fontSize: 16,
+      fontWeight: 'bold',
     },
   });
 }
