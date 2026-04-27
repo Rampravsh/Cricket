@@ -8,7 +8,9 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
-  Dimensions
+  Dimensions,
+  Alert,
+  ScrollView
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,12 +19,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import { useTheme } from '~/hooks/useTheme';
 import Header from '~/components/Header';
-import { userApi } from '~/services/api';
+import { userApi, matchApi } from '~/services/api';
+import { useSelector } from 'react-redux';
 
 const { width } = Dimensions.get('window');
 
 const FILTER_TABS = [
   { id: 'all', label: 'All' },
+  { id: 'public', label: 'Public' },
   { id: 'player', label: 'Played' },
   { id: 'scorer', label: 'Scored' },
   { id: 'creator', label: 'Created' },
@@ -32,28 +36,37 @@ function HistoryScreen() {
   const { colors, spacing, borderRadius, isDark } = useTheme();
   const navigation = useNavigation();
   const styles = createStyles(colors, spacing, borderRadius, isDark);
+  const currentUser = useSelector(state => state.auth.user);
 
   const [matches, setMatches] = useState([]);
+  const [publicMatches, setPublicMatches] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetchMatches();
+    fetchAllMatches();
   }, []);
 
-  const fetchMatches = async (showLoading = true) => {
+  const fetchAllMatches = async (showLoading = true) => {
     if (showLoading) setIsLoading(true);
     setError(null);
     try {
-      const response = await userApi.getMatchHistory();
-      if (response.success) {
-        setMatches(response.data);
+      const [historyRes, publicRes] = await Promise.all([
+        userApi.getMatchHistory(),
+        matchApi.getMatches()
+      ]);
+
+      if (historyRes.success) {
+        setMatches(historyRes.data);
+      }
+      if (publicRes.success) {
+        setPublicMatches(publicRes.data.matches);
       }
     } catch (err) {
       console.error('[History] Error fetching matches:', err);
-      setError('Failed to load match history. Please try again.');
+      setError('Failed to load matches. Please try again.');
     } finally {
       if (showLoading) setIsLoading(false);
     }
@@ -61,14 +74,42 @@ function HistoryScreen() {
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await fetchMatches(false);
+    await fetchAllMatches(false);
     setIsRefreshing(false);
   };
 
-  const filteredMatches = useMemo(() => {
-    if (activeTab === 'all') return matches;
-    return matches.filter(match => match.roles && match.roles.includes(activeTab));
-  }, [matches, activeTab]);
+  const handleRequestScorer = async (matchId) => {
+    try {
+      const response = await matchApi.requestScorer(matchId);
+      if (response.success) {
+        Alert.alert('Success', 'Scorer request sent to the match owner!');
+        fetchAllMatches(false);
+      } else {
+        Alert.alert('Error', response.message || 'Failed to send request');
+      }
+    } catch (err) {
+      Alert.alert('Error', err.message || 'Something went wrong');
+    }
+  };
+
+  const combinedMatches = useMemo(() => {
+    const map = new Map();
+    // Add history matches first (they have performance data)
+    matches.forEach(m => map.set(m.matchId, m));
+    // Add public matches if not already present
+    publicMatches.forEach(m => {
+      if (!map.has(m.matchId)) {
+        map.set(m.matchId, m);
+      }
+    });
+    
+    let result = Array.from(map.values());
+    result.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    if (activeTab === 'all') return result;
+    if (activeTab === 'public') return result.filter(m => m.isPublic);
+    return result.filter(match => match.roles && match.roles.includes(activeTab));
+  }, [matches, publicMatches, activeTab]);
 
   const bestPerformance = useMemo(() => {
     if (!matches.length) return null;
@@ -91,29 +132,35 @@ function HistoryScreen() {
 
   const renderFilterTabs = () => (
     <View style={styles.tabsContainer}>
-      {FILTER_TABS.map(tab => (
-        <TouchableOpacity
-          key={tab.id}
-          style={[
-            styles.tab,
-            activeTab === tab.id && { backgroundColor: colors.primary }
-          ]}
-          onPress={() => setActiveTab(tab.id)}
-        >
-          <Text style={[
-            styles.tabLabel,
-            { color: activeTab === tab.id ? colors.textOnPrimary : colors.textSecondary }
-          ]}>
-            {tab.label}
-          </Text>
-        </TouchableOpacity>
-      ))}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        {FILTER_TABS.map(tab => (
+          <TouchableOpacity
+            key={tab.id}
+            style={[
+              styles.tab,
+              activeTab === tab.id && { backgroundColor: colors.primary }
+            ]}
+            onPress={() => setActiveTab(tab.id)}
+          >
+            <Text style={[
+              styles.tabLabel,
+              { color: activeTab === tab.id ? colors.textOnPrimary : colors.textSecondary }
+            ]}>
+              {tab.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
     </View>
   );
 
   const renderMatchCard = ({ item }) => {
     const isBestRuns = bestPerformance?.bestRunsMatch?._id === item._id && (item.performance?.runs || 0) > 0;
     const isBestWickets = bestPerformance?.bestWicketsMatch?._id === item._id && (item.performance?.wickets || 0) > 0;
+
+    const isOwner = item.createdByUserId?._id === currentUser?._id || item.createdByUserId === currentUser?._id;
+    const isScorer = item.scorers?.some(s => (s._id || s) === currentUser?._id);
+    const hasRequested = item.scorerRequests?.some(r => (r.userId?._id || r.userId) === currentUser?._id);
 
     return (
       <TouchableOpacity 
@@ -123,13 +170,8 @@ function HistoryScreen() {
         <View style={styles.cardHeader}>
           <View>
             <Text style={styles.matchTitle}>{item.matchId}</Text>
-            <Text style={styles.matchDate}>
-              {new Date(item.createdAt).toLocaleDateString(undefined, { 
-                day: 'numeric', 
-                month: 'short', 
-                year: 'numeric' 
-              })}
-            </Text>
+            <Text style={styles.matchOwner}>Owner: {item.createdByUserId?.name || 'Unknown'}</Text>
+            <Text style={styles.matchStatus}>Status: {item.status?.toUpperCase()}</Text>
           </View>
           <View style={styles.rolesContainer}>
             {item.roles?.map(role => (
@@ -172,8 +214,21 @@ function HistoryScreen() {
         )}
 
         <View style={styles.cardFooter}>
-          <Text style={styles.viewDetailsText}>View Details</Text>
-          <Ionicons name="chevron-forward" size={14} color={colors.primary} />
+          {!isOwner && !isScorer && item.status !== 'completed' && (
+            <TouchableOpacity 
+              style={[styles.scorerRequestBtn, hasRequested && styles.scorerRequestBtnDisabled]}
+              onPress={() => !hasRequested && handleRequestScorer(item.matchId)}
+              disabled={hasRequested}
+            >
+              <Text style={styles.scorerRequestText}>
+                {hasRequested ? 'Request Pending' : 'Request to Score'}
+              </Text>
+            </TouchableOpacity>
+          )}
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Text style={styles.viewDetailsText}>View Match</Text>
+            <Ionicons name="chevron-forward" size={14} color={colors.primary} />
+          </View>
         </View>
       </TouchableOpacity>
     );
@@ -186,13 +241,13 @@ function HistoryScreen() {
       </View>
       <Text style={styles.emptyTitle}>No matches yet</Text>
       <Text style={styles.emptySubtitle}>
-        Your match history will appear here once you play, score, or create matches.
+        Matches you create or join will appear here. Public matches are also shown.
       </Text>
       <TouchableOpacity 
         style={[styles.ctaButton, { backgroundColor: colors.primary }]}
         onPress={() => navigation.navigate('Home')}
       >
-        <Text style={[styles.ctaButtonText, { color: colors.textOnPrimary }]}>Start your first match</Text>
+        <Text style={[styles.ctaButtonText, { color: colors.textOnPrimary }]}>Back to Home</Text>
       </TouchableOpacity>
     </View>
   );
@@ -204,7 +259,7 @@ function HistoryScreen() {
         backgroundColor="transparent"
         translucent
       />
-      <Header title="Performance Hub" />
+      <Header title="Match Explorer" />
       
       <View style={styles.container}>
         {renderFilterTabs()}
@@ -220,16 +275,16 @@ function HistoryScreen() {
             <Text style={[styles.errorSubtitle, { color: colors.textSecondary }]}>{error}</Text>
             <TouchableOpacity 
               style={[styles.ctaButton, { backgroundColor: colors.primary, marginTop: 24 }]}
-              onPress={() => fetchMatches(true)}
+              onPress={() => fetchAllMatches(true)}
             >
               <Text style={[styles.ctaButtonText, { color: colors.textOnPrimary }]}>Retry</Text>
             </TouchableOpacity>
           </View>
         ) : (
           <FlatList
-            data={filteredMatches}
+            data={combinedMatches}
             renderItem={renderMatchCard}
-            keyExtractor={item => item._id}
+            keyExtractor={item => item.matchId}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
             refreshControl={
@@ -303,9 +358,15 @@ function createStyles(colors, spacing, borderRadius, isDark) {
       color: colors.textPrimary,
       marginBottom: 4,
     },
-    matchDate: {
+    matchOwner: {
       fontSize: 12,
       color: colors.textSecondary,
+      marginBottom: 2,
+    },
+    matchStatus: {
+      fontSize: 10,
+      fontWeight: '800',
+      color: colors.primary,
     },
     rolesContainer: {
       flexDirection: 'row',
@@ -367,7 +428,21 @@ function createStyles(colors, spacing, borderRadius, isDark) {
     cardFooter: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'flex-end',
+      justifyContent: 'space-between',
+    },
+    scorerRequestBtn: {
+      backgroundColor: colors.primary + '15',
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 12,
+    },
+    scorerRequestBtnDisabled: {
+      backgroundColor: colors.surfaceVariant,
+    },
+    scorerRequestText: {
+      fontSize: 11,
+      fontWeight: '800',
+      color: colors.primary,
     },
     viewDetailsText: {
       fontSize: 12,

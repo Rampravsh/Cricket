@@ -20,6 +20,15 @@ const notificationSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    type: {
+      type: String,
+      enum: ['info', 'match_invitation', 'scorer_request', 'invitation_response', 'scorer_response'],
+      default: 'info',
+    },
+    data: {
+      type: Object,
+      default: {},
+    },
   },
   {
     timestamps: true,

@@ -4,6 +4,7 @@ const Match = require('../models/Match');
 const PlayerProfile = require('../models/PlayerProfile');
 const Performance = require('../models/Performance');
 const matchService = require('../services/matchService');
+const notificationService = require('../services/notificationService');
 
 /**
  * @desc    Health check route
@@ -25,13 +26,17 @@ const checkHealth = catchAsync(async (req, res) => {
  * @access  Private
  */
 const createMatch = catchAsync(async (req, res) => {
-  const { matchId, teams, isPublic, toss } = req.body;
+  const { matchId, teams, isPublic, toss, format, overs, maxPlayers, players } = req.body;
 
   const newMatch = await Match.create({
     matchId,
     teams,
     isPublic,
     toss,
+    format: format || 'custom',
+    overs: overs || 20,
+    maxPlayers: maxPlayers || 11,
+    players: players || [],
     createdByUserId: req.user._id,
     activeScorer: req.user._id,
     scorers: [req.user._id],
@@ -41,6 +46,21 @@ const createMatch = catchAsync(async (req, res) => {
   const io = req.app.get('io');
   if (io) {
     io.to(newMatch.matchId).emit('match-created', newMatch);
+  }
+
+  // Send invitations to players
+  if (players && players.length > 0) {
+    for (const p of players) {
+      if (p.playerId) {
+        await notificationService.createNotification(
+          p.playerId,
+          'Match Invitation',
+          `You have been invited to join the match: ${newMatch.matchId}`,
+          'match_invitation',
+          { matchId: newMatch.matchId }
+        );
+      }
+    }
   }
 
   res.status(201).json(sendResponse(true, 'Match created successfully', newMatch));
@@ -100,7 +120,7 @@ const getMatchById = catchAsync(async (req, res) => {
     return res.status(404).json(sendResponse(false, 'Match not found'));
   }
 
-  // Task 4: Include roles if user is authenticated
+  // Include roles if user is authenticated
   const matchObj = match.toObject();
   if (req.user) {
     const playerProfile = await PlayerProfile.findOne({ userId: req.user._id });
@@ -192,8 +212,12 @@ const addBall = catchAsync(async (req, res) => {
     return res.status(400).json(sendResponse(false, 'Match not live'));
   }
 
-  if (!match.activeScorer.equals(req.user._id)) {
-    return res.status(403).json(sendResponse(false, 'Not authorized to score this match'));
+  // Check if user is owner or approved scorer
+  const isOwner = match.createdByUserId.toString() === req.user._id.toString();
+  const isApprovedScorer = match.scorers.some(s => s.toString() === req.user._id.toString());
+  
+  if (!isOwner && !isApprovedScorer) {
+    return res.status(403).json(sendResponse(false, 'You do not have permission to score this match'));
   }
 
   const ballData = req.body;
@@ -243,6 +267,143 @@ const getPublicMatches = catchAsync(async (req, res) => {
   }));
 });
 
+/**
+ * @desc    Invite a player to a match
+ * @route   POST /api/v1/matches/:id/invite-player
+ * @access  Private
+ */
+const invitePlayer = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const { userId, name } = req.body;
+
+  const match = await Match.findOne({ matchId: id });
+  if (!match) return res.status(404).json(sendResponse(false, 'Match not found'));
+
+  if (!match.createdByUserId.equals(req.user._id) && !match.scorers.includes(req.user._id)) {
+    return res.status(403).json(sendResponse(false, 'Not authorized to invite players'));
+  }
+
+  const alreadyInvited = match.players.find((p) => p.playerId?.toString() === userId);
+  if (alreadyInvited) return res.status(400).json(sendResponse(false, 'Player already invited'));
+
+  match.players.push({ playerId: userId, name, status: 'pending' });
+  await match.save();
+
+  await notificationService.createNotification(
+    userId,
+    'Match Invitation',
+    `You have been invited to join the match: ${match.matchId}`,
+    'match_invitation',
+    { matchId: match.matchId }
+  );
+
+  res.status(200).json(sendResponse(true, 'Player invited successfully', match));
+});
+
+/**
+ * @desc    Accept or reject match invitation
+ * @route   PATCH /api/v1/matches/:id/player-response
+ * @access  Private
+ */
+const playerResponse = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  if (!['accepted', 'rejected'].includes(status)) {
+    return res.status(400).json(sendResponse(false, 'Invalid status'));
+  }
+
+  const match = await Match.findOne({ matchId: id });
+  if (!match) return res.status(404).json(sendResponse(false, 'Match not found'));
+
+  const playerIndex = match.players.findIndex((p) => p.playerId?.toString() === req.user._id.toString());
+  if (playerIndex === -1) return res.status(403).json(sendResponse(false, 'You are not invited to this match'));
+
+  match.players[playerIndex].status = status;
+  await match.save();
+
+  await notificationService.createNotification(
+    match.createdByUserId,
+    'Invitation Response',
+    `${req.user.name} has ${status} your match invitation.`,
+    'invitation_response',
+    { matchId: match.matchId, status }
+  );
+
+  res.status(200).json(sendResponse(true, `Invitation ${status}`, match));
+});
+
+/**
+ * @desc    Request to be a scorer for a match
+ * @route   POST /api/v1/matches/:id/request-scorer
+ * @access  Private
+ */
+const requestScorer = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const match = await Match.findOne({ matchId: id });
+  if (!match) return res.status(404).json(sendResponse(false, 'Match not found'));
+
+  if (match.scorers.includes(req.user._id)) {
+    return res.status(400).json(sendResponse(false, 'You are already a scorer'));
+  }
+
+  const existingRequest = match.scorerRequests.find((r) => r.userId.toString() === req.user._id.toString());
+  if (existingRequest) {
+    return res.status(400).json(sendResponse(false, 'Request already sent'));
+  }
+
+  match.scorerRequests.push({ userId: req.user._id, status: 'pending' });
+  await match.save();
+
+  await notificationService.createNotification(
+    match.createdByUserId,
+    'Scorer Request',
+    `${req.user.name} wants to be a scorer for match: ${match.matchId}`,
+    'scorer_request',
+    { matchId: match.matchId, requesterId: req.user._id }
+  );
+
+  res.status(200).json(sendResponse(true, 'Scorer request sent', match));
+});
+
+/**
+ * @desc    Approve or reject scorer request
+ * @route   PATCH /api/v1/matches/:id/scorer-response
+ * @access  Private
+ */
+const scorerResponse = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const { userId, status } = req.body;
+
+  const match = await Match.findOne({ matchId: id });
+  if (!match) return res.status(404).json(sendResponse(false, 'Match not found'));
+
+  if (!match.createdByUserId.equals(req.user._id)) {
+    return res.status(403).json(sendResponse(false, 'Not authorized to approve scorers'));
+  }
+
+  const requestIndex = match.scorerRequests.findIndex((r) => r.userId.toString() === userId);
+  if (requestIndex === -1) return res.status(404).json(sendResponse(false, 'Request not found'));
+
+  match.scorerRequests[requestIndex].status = status;
+  if (status === 'accepted') {
+    if (!match.scorers.includes(userId)) {
+      match.scorers.push(userId);
+    }
+  }
+  await match.save();
+
+  await notificationService.createNotification(
+    userId,
+    'Scorer Request Response',
+    `Your request to score match ${match.matchId} was ${status}`,
+    'scorer_response',
+    { matchId: match.matchId, status }
+  );
+
+  res.status(200).json(sendResponse(true, `Scorer request ${status}`, match));
+});
+
 module.exports = {
   checkHealth,
   createMatch,
@@ -251,4 +412,8 @@ module.exports = {
   startMatch,
   addBall,
   getPublicMatches,
+  invitePlayer,
+  playerResponse,
+  requestScorer,
+  scorerResponse,
 };

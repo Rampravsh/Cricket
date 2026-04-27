@@ -60,5 +60,6 @@ export const SCREENS = {
   QUICK_MATCH: 'QuickMatch',
   HISTORY: 'History',
   PROFILE: 'Profile',
+  NOTIFICATIONS: 'Notifications',
   MAIN_TABS: 'MainTabs',
 };

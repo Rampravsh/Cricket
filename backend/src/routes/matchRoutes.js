@@ -6,6 +6,10 @@ const {
   startMatch,
   addBall,
   getPublicMatches,
+  invitePlayer,
+  playerResponse,
+  requestScorer,
+  scorerResponse,
 } = require('../controllers/matchController');
 
 const { protect } = require('../middleware/auth');
@@ -26,5 +30,11 @@ router.use(protect);
 router.post('/create', createMatch);
 router.patch('/:matchId/start', startMatch);
 router.post('/:matchId/ball', addBall);
+
+// New Match Flows
+router.post('/:id/invite-player', invitePlayer);
+router.patch('/:id/player-response', playerResponse);
+router.post('/:id/request-scorer', requestScorer);
+router.patch('/:id/scorer-response', scorerResponse);
 
 module.exports = router;

@@ -4,6 +4,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { useTheme } from '~/hooks/useTheme';
 import { SCREENS } from '~/constants';
 import BottomTabs from './BottomTabs';
+import NotificationScreen from '~/screens/NotificationScreen';
 
 const Stack = createStackNavigator();
 
@@ -49,6 +50,7 @@ function AppNavigator() {
         }}
       >
         <Stack.Screen name={SCREENS.MAIN_TABS} component={BottomTabs} />
+        <Stack.Screen name={SCREENS.NOTIFICATIONS} component={NotificationScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

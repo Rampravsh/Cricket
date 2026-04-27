@@ -8,6 +8,9 @@ const router = express.Router();
 router.get('/:id', playerController.getPlayerProfile);
 router.get('/:id/performance', playerController.getPlayerPerformances);
 
+// Search players
+router.get('/search', protect, playerController.searchPlayers);
+
 // Recompute stats from performance (Source of Truth)
 router.post('/me/recompute-stats', protect, playerController.recomputeMyStats);
 
