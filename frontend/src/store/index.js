@@ -1,6 +1,6 @@
 import { configureStore } from '@reduxjs/toolkit';
 import matchReducer from './matchSlice';
-import userReducer from './userSlice';
+import authReducer from './authSlice';
 
 /**
  * Redux store configuration
@@ -9,7 +9,7 @@ import userReducer from './userSlice';
 const store = configureStore({
   reducer: {
     match: matchReducer,
-    user: userReducer,
+    auth: authReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

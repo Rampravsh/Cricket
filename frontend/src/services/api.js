@@ -19,7 +19,7 @@ apiClient.interceptors.request.use(
   (config) => {
     // Dynamically import store to avoid circular dependency
     const store = require('../store').default;
-    const token = store.getState().user.token;
+    const token = store.getState().auth.token;
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -37,7 +37,7 @@ apiClient.interceptors.response.use(
 
     if (status === 401) {
       const store = require('../store').default;
-      store.dispatch({ type: 'user/logout' });
+      store.dispatch({ type: 'auth/logout' });
       console.warn('[API] Unauthorized — logged out');
     }
 

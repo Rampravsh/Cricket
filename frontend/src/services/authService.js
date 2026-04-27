@@ -2,7 +2,7 @@ import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { userApi } from './api';
 import store from '../store';
-import { loginSuccess, logout, setLoading, setError, setUser } from '../store/userSlice';
+import { loginSuccess, logout, setLoading, setError, setAuth, setPlayerProfile } from '../store/authSlice';
 
 
 const AUTH_STORAGE_KEY = '@cricket_auth_data';
@@ -46,7 +46,12 @@ export const authService = {
     try {
       const response = await userApi.getProfile();
       if (response.success) {
-        store.dispatch(setUser(response.data));
+        // response.data is { user, playerProfile, stats }
+        store.dispatch(setAuth({
+          user: response.data.user,
+          playerProfile: response.data.playerProfile,
+          token: store.getState().auth.token
+        }));
       }
     } catch (error) {
       console.error('[AuthService] Error refreshing profile:', error);
@@ -64,9 +69,11 @@ export const authService = {
     try {
       const response = await userApi.loginWithGoogle(idToken);
       if (response.success) {
+        // response.data is { token, user, playerProfile }
         const authData = {
           token: response.data.token,
           user: response.data.user,
+          playerProfile: response.data.playerProfile,
         };
         store.dispatch(loginSuccess(authData));
         await authService.saveAuthData(authData);
