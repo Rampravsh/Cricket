@@ -50,9 +50,18 @@ const createMatch = catchAsync(async (req, res) => {
  * @access  Private
  */
 const getMyMatches = catchAsync(async (req, res) => {
-  const playerProfile = await require('../models/PlayerProfile').findOne({ userId: req.user._id });
+  const PlayerProfile = require('../models/PlayerProfile');
+  const playerProfile = await PlayerProfile.findOne({ userId: req.user._id });
   const matches = await matchService.getMatchHistory(req.user._id, playerProfile?._id);
-  res.status(200).json(sendResponse(true, 'Match history fetched successfully', matches));
+  
+  // Task 4: Include roles
+  const matchesWithRoles = matches.map(match => {
+    const matchObj = match.toObject();
+    matchObj.roles = matchService.computeUserRoles(match, req.user._id, playerProfile?._id);
+    return matchObj;
+  });
+
+  res.status(200).json(sendResponse(true, 'Match history fetched successfully', matchesWithRoles));
 });
 
 /**
@@ -71,7 +80,15 @@ const getMatchById = catchAsync(async (req, res) => {
     return res.status(404).json(sendResponse(false, 'Match not found'));
   }
 
-  res.status(200).json(sendResponse(true, 'Match fetched successfully', match));
+  // Task 4: Include roles if user is authenticated
+  const matchObj = match.toObject();
+  if (req.user) {
+    const PlayerProfile = require('../models/PlayerProfile');
+    const playerProfile = await PlayerProfile.findOne({ userId: req.user._id });
+    matchObj.roles = matchService.computeUserRoles(match, req.user._id, playerProfile?._id);
+  }
+
+  res.status(200).json(sendResponse(true, 'Match fetched successfully', matchObj));
 });
 
 /**
