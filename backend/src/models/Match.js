@@ -62,6 +62,33 @@ const matchSchema = new mongoose.Schema(
         ts: { type: Number, default: Date.now },
       },
     ],
+    format: {
+      type: String,
+      enum: ['T10', 'T20', 'ODI', 'custom'],
+      default: 'custom',
+    },
+    overs: {
+      type: Number,
+      default: 20,
+    },
+    maxPlayers: {
+      type: Number,
+      default: 11,
+    },
+    players: [
+      {
+        playerId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'User',
+        },
+        name: { type: String },
+        status: {
+          type: String,
+          enum: ['pending', 'accepted', 'rejected'],
+          default: 'pending',
+        },
+      },
+    ],
     createdByUserId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
@@ -71,6 +98,19 @@ const matchSchema = new mongoose.Schema(
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
+      },
+    ],
+    scorerRequests: [
+      {
+        userId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'User',
+        },
+        status: {
+          type: String,
+          enum: ['pending', 'accepted', 'rejected'],
+          default: 'pending',
+        },
       },
     ],
     activeScorer: {
