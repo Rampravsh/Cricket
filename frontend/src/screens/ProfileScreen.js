@@ -221,6 +221,41 @@ const ProfileScreen = () => {
           <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No matches played yet.</Text>
         )}
 
+        {/* Achievements Section */}
+        <View style={styles.sectionHeader}>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Achievements</Text>
+        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.achievementsScroll}>
+          <AchievementBadge 
+            icon="flash" 
+            title="Run Machine" 
+            subtitle="50+ Total Runs" 
+            unlocked={(playerProfile?.stats?.totalRuns || 0) >= 50} 
+            colors={colors} 
+          />
+          <AchievementBadge 
+            icon="trophy" 
+            title="Wicket King" 
+            subtitle="5+ Total Wickets" 
+            unlocked={(playerProfile?.stats?.totalWickets || 0) >= 5} 
+            colors={colors} 
+          />
+          <AchievementBadge 
+            icon="star" 
+            title="Veteran" 
+            subtitle="10+ Matches" 
+            unlocked={(playerProfile?.stats?.matchesPlayed || 0) >= 10} 
+            colors={colors} 
+          />
+          <AchievementBadge 
+            icon="pencil" 
+            title="Scorer" 
+            subtitle="5+ Scored" 
+            unlocked={(playerProfile?.stats?.matchesScored || 0) >= 5} 
+            colors={colors} 
+          />
+        </ScrollView>
+
         <View style={{ height: 20 }} />
 
         {/* Menu Options */}
@@ -277,6 +312,17 @@ const ProfileScreen = () => {
     </View>
   );
 };
+
+const AchievementBadge = ({ icon, title, subtitle, unlocked, colors }) => (
+  <View style={[styles.achievementBadge, { opacity: unlocked ? 1 : 0.4 }]}>
+    <View style={[styles.achievementIconBox, { backgroundColor: unlocked ? colors.primary + '20' : colors.surfaceVariant }]}>
+      <Ionicons name={icon} size={24} color={unlocked ? colors.primary : colors.textDisabled} />
+    </View>
+    <Text style={[styles.achievementTitle, { color: colors.textPrimary }]}>{title}</Text>
+    <Text style={[styles.achievementSubtitle, { color: colors.textSecondary }]}>{subtitle}</Text>
+    {!unlocked && <Ionicons name="lock-closed" size={12} color={colors.textDisabled} style={styles.lockIcon} />}
+  </View>
+);
 
 const MatchHistoryItem = ({ match, colors, user, playerProfile }) => {
   const getRole = () => {
@@ -591,6 +637,42 @@ const styles = StyleSheet.create({
     marginTop: 20,
     fontSize: 14,
     fontStyle: 'italic',
+  },
+  achievementsScroll: {
+    paddingLeft: 20,
+    paddingRight: 10,
+  },
+  achievementBadge: {
+    width: 110,
+    alignItems: 'center',
+    marginRight: 15,
+    padding: 12,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  achievementIconBox: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  achievementTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 2,
+  },
+  achievementSubtitle: {
+    fontSize: 10,
+    textAlign: 'center',
+  },
+  lockIcon: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
   },
 });
 
