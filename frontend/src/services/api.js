@@ -89,4 +89,12 @@ export const feedApi = {
   getFeed: () => apiClient.get('/feed'),
 };
 
+// ─── Notification API ─────────────────────────────────────────────────────────
+export const notificationApi = {
+  /** Get user notifications */
+  getNotifications: () => apiClient.get('/notifications'),
+  /** Mark notification as read */
+  markRead: (id) => apiClient.patch(`/notifications/${id}/read`),
+};
+
 export default apiClient;

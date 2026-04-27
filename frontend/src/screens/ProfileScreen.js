@@ -20,7 +20,7 @@ import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-si
 
 import { useTheme } from '~/hooks';
 import { authService } from '~/services/authService';
-import { userApi, matchApi, feedApi } from '~/services/api';
+import { userApi, matchApi, feedApi, notificationApi } from '~/services/api';
 import {
   selectUser,
   selectIsLoggedIn,
@@ -55,6 +55,7 @@ const ProfileScreen = () => {
 
   const [matchHistory, setMatchHistory] = React.useState([]);
   const [feed, setFeed] = React.useState([]);
+  const [notifications, setNotifications] = React.useState([]);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
 
   useEffect(() => {
@@ -67,20 +68,25 @@ const ProfileScreen = () => {
     setIsRefreshing(true);
     try {
       await authService.refreshProfile();
-      const matchResponse = await userApi.getMatchHistory();
-      if (matchResponse.success) {
-        setMatchHistory(matchResponse.data);
-      }
-      const feedResponse = await feedApi.getFeed();
-      if (feedResponse.success) {
-        setFeed(feedResponse.data);
-      }
+      
+      const [matches, activities, notes] = await Promise.all([
+        userApi.getMatchHistory(),
+        feedApi.getFeed(),
+        notificationApi.getNotifications()
+      ]);
+
+      if (matches.success) setMatchHistory(matches.data);
+      if (activities.success) setFeed(activities.data);
+      if (notes.success) setNotifications(notes.data);
+      
     } catch (err) {
       console.error('[Profile] Error loading data:', err);
     } finally {
       setIsRefreshing(false);
     }
   };
+
+  const unreadCount = notifications.filter(n => !n.isRead).length;
 
   // ─── Handlers ───────────────────────────────────────────────────────────────
   const handleLogin = async () => {
@@ -300,6 +306,7 @@ const ProfileScreen = () => {
           icon="notifications-outline"
           title="Notifications"
           subtitle="Alerts and match updates"
+          badge={unreadCount > 0 ? unreadCount : null}
           onPress={() => { }}
           colors={colors}
         />
@@ -418,10 +425,15 @@ const StatItem = ({ label, value, color }) => {
   );
 };
 
-const MenuOption = ({ icon, title, subtitle, onPress, colors }) => (
+const MenuOption = ({ icon, title, subtitle, onPress, colors, badge }) => (
   <TouchableOpacity style={[styles.menuOption, { borderBottomColor: colors.divider }]} onPress={onPress}>
     <View style={[styles.menuIconBox, { backgroundColor: colors.surfaceVariant }]}>
       <Ionicons name={icon} size={22} color={colors.primary} />
+      {badge && (
+        <View style={[styles.menuBadge, { backgroundColor: colors.danger }]}>
+          <Text style={styles.menuBadgeText}>{badge}</Text>
+        </View>
+      )}
     </View>
     <View style={styles.menuTextBox}>
       <Text style={[styles.menuTitle, { color: colors.textPrimary }]}>{title}</Text>
@@ -609,6 +621,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
+    position: 'relative',
+  },
+  menuBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 2,
+    borderColor: '#000', // Assuming black background or use theme
+  },
+  menuBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
   menuTextBox: {
     flex: 1,
