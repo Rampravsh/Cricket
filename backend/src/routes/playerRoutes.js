@@ -5,6 +5,7 @@ const { protect } = require('../middleware/auth');
 
 const router = express.Router();
 
+router.get('/search', protect, playerController.searchPlayers);
 router.get('/:id', playerController.getPlayerProfile);
 router.get('/:id/performance', playerController.getPlayerPerformances);
 

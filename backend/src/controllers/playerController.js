@@ -43,8 +43,40 @@ const recomputeMyStats = catchAsync(async (req, res) => {
   res.status(200).json(sendResponse(true, 'Stats recomputed from performance source of truth', stats));
 });
 
+const User = require('../models/User');
+
+/**
+ * @desc    Search players by name or displayName
+ * @route   GET /api/v1/players/search?q=
+ * @access  Private
+ */
+const searchPlayers = catchAsync(async (req, res) => {
+  const { q } = req.query;
+  if (!q) {
+    return res.status(200).json(sendResponse(true, 'Search query is empty', []));
+  }
+
+  // Find users matching name or email
+  const users = await User.find({
+    $or: [
+      { name: { $regex: q, $options: 'i' } },
+      { email: { $regex: q, $options: 'i' } },
+    ],
+  }).select('_id');
+
+  const userIds = users.map((u) => u._id);
+
+  // Find profiles matching displayName or belonging to found users
+  const players = await PlayerProfile.find({
+    $or: [{ displayName: { $regex: q, $options: 'i' } }, { userId: { $in: userIds } }],
+  }).populate('userId', 'name email avatar');
+
+  res.status(200).json(sendResponse(true, 'Players found', players));
+});
+
 module.exports = {
   getPlayerProfile,
   getPlayerPerformances,
   recomputeMyStats,
+  searchPlayers,
 };
