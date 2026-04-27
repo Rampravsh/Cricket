@@ -13,6 +13,7 @@ const {
 } = require('../controllers/matchController');
 
 const { protect } = require('../middleware/auth');
+const { canScoreMatch } = require('../middleware/matchMiddleware');
 
 const router = express.Router();
 
@@ -28,8 +29,8 @@ router.use(protect);
 
 // Match management
 router.post('/create', createMatch);
-router.patch('/:matchId/start', startMatch);
-router.post('/:matchId/ball', addBall);
+router.patch('/:matchId/start', canScoreMatch, startMatch);
+router.post('/:matchId/ball', canScoreMatch, addBall);
 
 // New Match Flows
 router.post('/:id/invite-player', invitePlayer);

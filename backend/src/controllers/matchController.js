@@ -136,8 +136,7 @@ const getMatchById = catchAsync(async (req, res) => {
  * @access  Private
  */
 const startMatch = catchAsync(async (req, res) => {
-  const { matchId } = req.params;
-  const match = await Match.findOne({ matchId });
+  const match = req.match || await Match.findOne({ matchId: req.params.matchId });
 
   if (!match) {
     return res.status(404).json(sendResponse(false, 'Match not found'));
@@ -145,11 +144,6 @@ const startMatch = catchAsync(async (req, res) => {
 
   if (match.status === 'live') {
     return res.status(400).json(sendResponse(false, 'Match is already live'));
-  }
-
-  // Authorization check
-  if (!match.createdByUserId.equals(req.user._id) && !match.scorers.includes(req.user._id)) {
-    return res.status(403).json(sendResponse(false, 'Not authorized to start this match'));
   }
 
   if (!match.teams || match.teams.length < 2) {
@@ -201,8 +195,7 @@ const startMatch = catchAsync(async (req, res) => {
  * @access  Private
  */
 const addBall = catchAsync(async (req, res) => {
-  const { matchId } = req.params;
-  const match = await Match.findOne({ matchId });
+  const match = req.match || await Match.findOne({ matchId: req.params.matchId });
 
   if (!match) {
     return res.status(404).json(sendResponse(false, 'Match not found'));
@@ -210,14 +203,6 @@ const addBall = catchAsync(async (req, res) => {
 
   if (match.status !== 'live') {
     return res.status(400).json(sendResponse(false, 'Match not live'));
-  }
-
-  // Check if user is owner or approved scorer
-  const isOwner = match.createdByUserId.toString() === req.user._id.toString();
-  const isApprovedScorer = match.scorers.some(s => s.toString() === req.user._id.toString());
-  
-  if (!isOwner && !isApprovedScorer) {
-    return res.status(403).json(sendResponse(false, 'You do not have permission to score this match'));
   }
 
   const ballData = req.body;
