@@ -51,13 +51,33 @@ const createMatch = catchAsync(async (req, res) => {
  */
 const getMyMatches = catchAsync(async (req, res) => {
   const PlayerProfile = require('../models/PlayerProfile');
+  const Performance = require('../models/Performance');
   const playerProfile = await PlayerProfile.findOne({ userId: req.user._id });
   const matches = await matchService.getMatchHistory(req.user._id, playerProfile?._id);
   
-  // Task 4: Include roles
+  // Fetch performances for this user across these matches
+  const performances = playerProfile 
+    ? await Performance.find({ playerId: playerProfile._id, matchId: { $in: matches.map(m => m._id) } })
+    : [];
+    
+  const perfMap = new Map(performances.map(p => [p.matchId.toString(), p]));
+
   const matchesWithRoles = matches.map(match => {
     const matchObj = match.toObject();
     matchObj.roles = matchService.computeUserRoles(match, req.user._id, playerProfile?._id);
+    
+    const performance = perfMap.get(match._id.toString());
+    if (performance) {
+      matchObj.performance = {
+        runs: performance.batting.runs,
+        wickets: performance.bowling.wickets,
+        balls: performance.batting.balls,
+        overs: performance.bowling.overs
+      };
+    } else {
+      matchObj.performance = null;
+    }
+    
     return matchObj;
   });
 
