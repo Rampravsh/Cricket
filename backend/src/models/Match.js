@@ -77,6 +77,11 @@ const matchSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
     },
+    finalizedAt: {
+      type: Date,
+      default: null,
+      index: true,
+    },
     lastEventId: { type: Number, default: 0 },
     version: {
       type: Number,
@@ -87,6 +92,11 @@ const matchSchema = new mongoose.Schema(
     timestamps: true, // Automatically creates createdAt and updatedAt fields
   }
 );
+
+// Indexes for performance optimization
+matchSchema.index({ createdByUserId: 1 });
+matchSchema.index({ scorers: 1 });
+matchSchema.index({ 'teams.players.playerId': 1 });
 
 const Match = mongoose.model('Match', matchSchema);
 
