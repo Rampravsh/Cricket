@@ -21,10 +21,11 @@ import { authService } from '~/services/authService';
 import {
   selectUser,
   selectIsLoggedIn,
-  selectUserLoading,
-  selectUserError,
-  clearError
-} from '~/store/userSlice';
+  selectAuthLoading,
+  selectAuthError,
+  clearError,
+  selectPlayerProfile
+} from '~/store/authSlice';
 import { ENV } from '~/constants';
 
 // Configure Google Sign-In
@@ -42,9 +43,10 @@ const { width } = Dimensions.get('window');
 const ProfileScreen = () => {
   const { colors, spacing, isDark } = useTheme();
   const user = useSelector(selectUser);
+  const playerProfile = useSelector(selectPlayerProfile);
   const isLoggedIn = useSelector(selectIsLoggedIn);
-  const isLoading = useSelector(selectUserLoading);
-  const error = useSelector(selectUserError);
+  const isLoading = useSelector(selectAuthLoading);
+  const error = useSelector(selectAuthError);
   const dispatch = useDispatch();
 
   // ─── Handlers ───────────────────────────────────────────────────────────────
