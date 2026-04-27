@@ -22,7 +22,18 @@ const updateMe = catchAsync(async (req, res) => {
   res.status(200).json(sendResponse(true, 'Profile updated successfully', user));
 });
 
+/**
+ * @desc    Get dashboard aggregation data
+ * @route   GET /api/v1/users/me/dashboard
+ * @access  Private
+ */
+const getDashboard = catchAsync(async (req, res) => {
+  const data = await userService.getDashboardData(req.user._id);
+  res.status(200).json(sendResponse(true, 'Dashboard data fetched successfully', data));
+});
+
 module.exports = {
   getMe,
+  getDashboard,
   updateMe,
 };

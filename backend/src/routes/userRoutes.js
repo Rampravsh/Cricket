@@ -4,7 +4,7 @@
  */
 const express = require('express');
 
-const { getMe, updateMe } = require('../controllers/userController');
+const { getMe, updateMe, getDashboard } = require('../controllers/userController');
 const { getMyMatches } = require('../controllers/matchController');
 const { protect } = require('../middleware/auth');
 
@@ -12,6 +12,9 @@ const router = express.Router();
 
 // All user routes require authentication
 router.use(protect);
+
+// GET  /api/v1/users/me/dashboard
+router.get('/me/dashboard', getDashboard);
 
 // GET  /api/v1/users/me
 router.get('/me', getMe);

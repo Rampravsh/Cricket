@@ -1,6 +1,10 @@
 const User = require('../models/User');
 const PlayerProfile = require('../models/PlayerProfile');
+const Match = require('../models/Match');
+const Activity = require('../models/Activity');
+const Notification = require('../models/Notification');
 const AppError = require('../utils/AppError');
+const matchService = require('./matchService');
 
 /**
  * Get user profile by ID including player profile.
@@ -19,6 +23,53 @@ const getFullProfile = async (userId) => {
     user,
     playerProfile,
     stats: playerProfile ? playerProfile.stats : null,
+  };
+};
+
+/**
+ * Get dashboard data for the current user
+ * Task 1 & 6
+ */
+const getDashboardData = async (userId) => {
+  const user = await User.findById(userId);
+  if (!user) throw new AppError('User not found', 404);
+
+  const playerProfile = await PlayerProfile.findOne({ userId });
+  const playerProfileId = playerProfile?._id;
+
+  // Last 5 matches
+  const recentMatches = await Match.find({
+    $or: [
+      { createdByUserId: userId },
+      { scorers: userId },
+      { 'teams.players.playerId': playerProfileId }
+    ]
+  })
+  .sort({ createdAt: -1 })
+  .limit(5)
+  .lean();
+
+  // Task 4: Normalize roles for matches
+  recentMatches.forEach(match => {
+    match.roles = matchService.computeUserRoles(match, userId, playerProfileId);
+  });
+
+  // Last 10 activities
+  const recentActivity = await Activity.find({ userId })
+    .sort({ createdAt: -1 })
+    .limit(10)
+    .populate('matchId', 'matchId status');
+
+  // Unread notification count
+  const notificationsCount = await Notification.countDocuments({ userId, read: false });
+
+  return {
+    user,
+    playerProfile,
+    stats: playerProfile ? playerProfile.stats : null,
+    recentMatches,
+    recentActivity,
+    notificationsCount,
   };
 };
 
@@ -68,5 +119,6 @@ const updateProfile = async (userId, updates) => {
 
 module.exports = {
   getFullProfile,
+  getDashboardData,
   updateProfile,
 };
