@@ -109,6 +109,102 @@ const matchService = {
 
     return match;
   },
+  /**
+   * Finalize match: calculate stats and update profiles
+   * @param {Object} match Mongoose Match document
+   */
+  finalizeMatch: async (match) => {
+    if (match.status !== 'completed') return;
+
+    const PlayerProfile = require('../models/PlayerProfile');
+    const Performance = require('../models/Performance');
+    const activityService = require('./activityService');
+
+    const players = [];
+    match.teams.forEach(team => {
+      team.players.forEach(p => {
+        players.push(p.playerId.toString());
+      });
+    });
+
+    for (const playerId of players) {
+      // Calculate performance from balls array
+      const battingBalls = match.balls.filter(b => b.strikerId === playerId && b.extra !== 'wide');
+      const runs = battingBalls.reduce((sum, b) => sum + (b.runs || 0), 0);
+      const balls = battingBalls.length;
+      const fours = battingBalls.filter(b => b.runs === 4).length;
+      const sixes = battingBalls.filter(b => b.runs === 6).length;
+
+      const bowlingBalls = match.balls.filter(b => b.bowlerId === playerId);
+      const wickets = bowlingBalls.filter(b => b.wicket).length;
+      const runsGiven = bowlingBalls.reduce((sum, b) => sum + (b.runs || 0) + (b.extra === 'wide' || b.extra === 'noBall' ? 1 : 0), 0);
+      const legalBowledBalls = bowlingBalls.filter(b => b.extra !== 'wide' && b.extra !== 'noBall').length;
+      const overs = Math.floor(legalBowledBalls / 6) + (legalBowledBalls % 6) / 10;
+
+      // Create Performance record
+      await Performance.findOneAndUpdate(
+        { matchId: match._id, playerId },
+        {
+          batting: { runs, balls, fours, sixes },
+          bowling: { wickets, runsGiven, overs }
+        },
+        { upsert: true }
+      );
+
+      // Update PlayerProfile stats
+      const profile = await PlayerProfile.findById(playerId);
+      if (profile) {
+        profile.stats.totalRuns += runs;
+        profile.stats.totalWickets += wickets;
+        profile.stats.matchesPlayed += 1;
+        await profile.save();
+
+        // Create Activity
+        await activityService.createActivity(profile.userId, 'match_played', match._id, { runs, wickets });
+        if (runs >= 50) {
+          await activityService.createActivity(profile.userId, 'fifty', match._id, { runs });
+        }
+        if (wickets >= 3) {
+          await activityService.createActivity(profile.userId, 'wicket', match._id, { wickets });
+        }
+      }
+    }
+
+    // Update Creator stats
+    const creatorProfile = await PlayerProfile.findOne({ userId: match.createdByUserId });
+    if (creatorProfile) {
+      creatorProfile.stats.matchesCreated += 1;
+      await creatorProfile.save();
+      await activityService.createActivity(match.createdByUserId, 'match_created', match._id);
+    }
+
+    // Update Scorers stats
+    if (match.scorers && match.scorers.length > 0) {
+      for (const scorerId of match.scorers) {
+        const scorerProfile = await PlayerProfile.findOne({ userId: scorerId });
+        if (scorerProfile) {
+          scorerProfile.stats.matchesScored += 1;
+          await scorerProfile.save();
+        }
+      }
+    }
+  },
+
+  /**
+   * Get match history for a user
+   * @param {string} userId - User ID
+   * @param {string} playerProfileId - Player Profile ID
+   */
+  getMatchHistory: async (userId, playerProfileId) => {
+    const Match = require('../models/Match');
+    return await Match.find({
+      $or: [
+        { createdByUserId: userId },
+        { scorers: userId },
+        { 'teams.players.playerId': playerProfileId }
+      ]
+    }).sort({ createdAt: -1 });
+  }
 };
 
 module.exports = matchService;

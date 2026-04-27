@@ -1,53 +1,72 @@
 const User = require('../models/User');
+const PlayerProfile = require('../models/PlayerProfile');
 const AppError = require('../utils/AppError');
 
 /**
- * Get user profile by ID.
+ * Get user profile by ID including player profile.
  * @param {string} userId - MongoDB user ID
- * @returns {Object} User document
+ * @returns {Object} { user, playerProfile }
  */
-const getUserById = async (userId) => {
+const getFullProfile = async (userId) => {
   const user = await User.findById(userId);
   if (!user) {
     throw new AppError('User not found', 404);
   }
-  return user;
+
+  const playerProfile = await PlayerProfile.findOne({ userId });
+  
+  return {
+    user,
+    playerProfile,
+    stats: playerProfile ? playerProfile.stats : null,
+  };
 };
 
 /**
  * Update allowed user profile fields.
- * Only name and avatar can be updated by the user.
+ * Updates User (avatar) and PlayerProfile (displayName).
  * @param {string} userId - MongoDB user ID
- * @param {Object} updates - { name?, avatar? }
- * @returns {Object} Updated user document
+ * @param {Object} updates - { displayName?, avatar? }
+ * @returns {Object} Updated profile data
  */
 const updateProfile = async (userId, updates) => {
-  const allowedFields = ['name', 'avatar'];
-  const sanitized = {};
+  const userUpdates = {};
+  if (updates.avatar !== undefined) userUpdates.avatar = updates.avatar;
 
-  for (const key of allowedFields) {
-    if (updates[key] !== undefined) {
-      sanitized[key] = updates[key];
-    }
+  const profileUpdates = {};
+  if (updates.displayName !== undefined) profileUpdates.displayName = updates.displayName;
+
+  let user = null;
+  if (Object.keys(userUpdates).length > 0) {
+    user = await User.findByIdAndUpdate(userId, userUpdates, {
+      new: true,
+      runValidators: true,
+    });
+  } else {
+    user = await User.findById(userId);
   }
 
-  if (Object.keys(sanitized).length === 0) {
-    throw new AppError('No valid fields to update', 400);
+  if (!user) throw new AppError('User not found', 404);
+
+  let playerProfile = null;
+  if (Object.keys(profileUpdates).length > 0) {
+    playerProfile = await PlayerProfile.findOneAndUpdate(
+      { userId },
+      profileUpdates,
+      { new: true, runValidators: true }
+    );
+  } else {
+    playerProfile = await PlayerProfile.findOne({ userId });
   }
 
-  const user = await User.findByIdAndUpdate(userId, sanitized, {
-    new: true,
-    runValidators: true,
-  });
-
-  if (!user) {
-    throw new AppError('User not found', 404);
-  }
-
-  return user;
+  return {
+    user,
+    playerProfile,
+    stats: playerProfile ? playerProfile.stats : null,
+  };
 };
 
 module.exports = {
-  getUserById,
+  getFullProfile,
   updateProfile,
 };

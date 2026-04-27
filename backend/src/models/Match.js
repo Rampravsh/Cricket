@@ -25,8 +25,12 @@ const matchSchema = new mongoose.Schema(
         name: { type: String, required: true },
         players: [
           {
-            id: { type: String, required: true },
-            name: { type: String, required: true },
+            playerId: {
+              type: mongoose.Schema.Types.ObjectId,
+              ref: 'PlayerProfile',
+              required: true,
+            },
+            nameSnapshot: { type: String, required: true },
           },
         ],
       },
@@ -58,9 +62,21 @@ const matchSchema = new mongoose.Schema(
         ts: { type: Number, default: Date.now },
       },
     ],
-    hostId: { type: String, required: true },
-    scorers: [{ type: String }],
-    activeScorer: { type: String },
+    createdByUserId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
+    scorers: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    ],
+    activeScorer: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
     lastEventId: { type: Number, default: 0 },
     version: {
       type: Number,

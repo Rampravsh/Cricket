@@ -8,8 +8,8 @@ const userService = require('../services/userService');
  * @access  Private
  */
 const getMe = catchAsync(async (req, res) => {
-  const user = await userService.getUserById(req.user._id);
-  res.status(200).json(sendResponse(true, 'Profile fetched successfully', user));
+  const profile = await userService.getFullProfile(req.user._id);
+  res.status(200).json(sendResponse(true, 'Profile fetched successfully', profile));
 });
 
 /**

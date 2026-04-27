@@ -64,19 +64,24 @@ const generateToken = (user) => {
   );
 };
 
+const PlayerProfile = require('../models/PlayerProfile');
+const playerProfileService = require('./playerProfileService');
+
 /**
  * Full Google authentication flow:
  * 1. Verify Google token
  * 2. Find or create user
- * 3. Generate app JWT
+ * 3. Find or create player profile
+ * 4. Generate app JWT
  * @param {string} idToken - Google ID token
- * @returns {Object} { token, user }
+ * @returns {Object} { token, user, playerProfile }
  */
 const authenticateWithGoogle = async (idToken) => {
   const googleProfile = await verifyGoogleToken(idToken);
   const user = await findOrCreateUser(googleProfile);
+  const playerProfile = await playerProfileService.getOrCreateProfile(user._id, user.name);
   const token = generateToken(user);
-  return { token, user };
+  return { token, user, playerProfile };
 };
 
 module.exports = {

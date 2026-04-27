@@ -43,24 +43,11 @@ const userSchema = new mongoose.Schema(
     // --- System ---
     isVerified: {
       type: Boolean,
-      default: true, // Google users are verified by default
-    },
-    deviceIds: {
-      type: [String],
-      default: [],
-    },
-
-    // --- Stats (denormalized for fast reads) ---
-    stats: {
-      matchesPlayed: { type: Number, default: 0 },
-      matchesCreated: { type: Number, default: 0 },
-      runs: { type: Number, default: 0 },
-      wickets: { type: Number, default: 0 },
-      lastUpdatedAt: { type: Date, default: null },
+      default: true,
     },
   },
   {
-    timestamps: true, // createdAt + updatedAt
+    timestamps: true,
   }
 );
 

@@ -14,9 +14,9 @@ const googleLogin = catchAsync(async (req, res) => {
     return res.status(400).json(sendResponse(false, 'Google ID token is required'));
   }
 
-  const { token, user } = await authService.authenticateWithGoogle(idToken);
+  const { token, user, playerProfile } = await authService.authenticateWithGoogle(idToken);
 
-  res.status(200).json(sendResponse(true, 'Authentication successful', { token, user }));
+  res.status(200).json(sendResponse(true, 'Authentication successful', { token, user, playerProfile }));
 });
 
 module.exports = {

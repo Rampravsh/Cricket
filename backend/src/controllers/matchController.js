@@ -20,14 +20,9 @@ const checkHealth = catchAsync(async (req, res) => {
 /**
  * @desc    Create a new match
  * @route   POST /api/v1/matches/create
- * @access  Public
+ * @access  Private
  */
 const createMatch = catchAsync(async (req, res) => {
-  const deviceId = req.headers['x-device-id'];
-  if (!deviceId) {
-    return res.status(400).json(sendResponse(false, 'Device ID is required in headers (x-device-id)'));
-  }
-
   const { matchId, teams, isPublic, toss } = req.body;
 
   const newMatch = await Match.create({
@@ -35,10 +30,10 @@ const createMatch = catchAsync(async (req, res) => {
     teams,
     isPublic,
     toss,
-    hostId: deviceId,
-    activeScorer: deviceId,
-    scorers: [deviceId],
-    status: 'waiting', // or 'live' based on your start logic
+    createdByUserId: req.user._id,
+    activeScorer: req.user._id,
+    scorers: [req.user._id],
+    status: 'waiting',
   });
 
   const io = req.app.get('io');
@@ -50,13 +45,27 @@ const createMatch = catchAsync(async (req, res) => {
 });
 
 /**
+ * @desc    Get current user's match history
+ * @route   GET /api/v1/users/me/matches
+ * @access  Private
+ */
+const getMyMatches = catchAsync(async (req, res) => {
+  const playerProfile = await require('../models/PlayerProfile').findOne({ userId: req.user._id });
+  const matches = await matchService.getMatchHistory(req.user._id, playerProfile?._id);
+  res.status(200).json(sendResponse(true, 'Match history fetched successfully', matches));
+});
+
+/**
  * @desc    Get a single match by ID
  * @route   GET /api/v1/matches/:matchId
  * @access  Public
  */
 const getMatchById = catchAsync(async (req, res) => {
   const { matchId } = req.params;
-  const match = await Match.findOne({ matchId });
+  const match = await Match.findOne({ matchId })
+    .populate('createdByUserId', 'name avatar')
+    .populate('scorers', 'name avatar')
+    .populate('teams.players.playerId');
 
   if (!match) {
     return res.status(404).json(sendResponse(false, 'Match not found'));
@@ -68,7 +77,7 @@ const getMatchById = catchAsync(async (req, res) => {
 /**
  * @desc    Start a match
  * @route   PATCH /api/v1/matches/:matchId/start
- * @access  Public
+ * @access  Private
  */
 const startMatch = catchAsync(async (req, res) => {
   const { matchId } = req.params;
@@ -80,6 +89,11 @@ const startMatch = catchAsync(async (req, res) => {
 
   if (match.status === 'live') {
     return res.status(400).json(sendResponse(false, 'Match is already live'));
+  }
+
+  // Authorization check
+  if (!match.createdByUserId.equals(req.user._id) && !match.scorers.includes(req.user._id)) {
+    return res.status(403).json(sendResponse(false, 'Not authorized to start this match'));
   }
 
   if (!match.teams || match.teams.length < 2) {
@@ -110,9 +124,9 @@ const startMatch = catchAsync(async (req, res) => {
 
   match.status = 'live';
   match.current = {
-    strikerId: battingTeam.players[0].id,
-    nonStrikerId: battingTeam.players[1].id,
-    bowlerId: bowlingTeam.players[0].id,
+    strikerId: battingTeam.players[0].playerId,
+    nonStrikerId: battingTeam.players[1].playerId,
+    bowlerId: bowlingTeam.players[0].playerId,
   };
 
   await match.save();
@@ -128,16 +142,10 @@ const startMatch = catchAsync(async (req, res) => {
 /**
  * @desc    Process a new ball
  * @route   POST /api/v1/matches/:matchId/ball
- * @access  Public
+ * @access  Private
  */
 const addBall = catchAsync(async (req, res) => {
   const { matchId } = req.params;
-  const deviceId = req.headers['x-device-id'];
-
-  if (!deviceId) {
-    return res.status(400).json(sendResponse(false, 'Device ID is required in headers (x-device-id)'));
-  }
-
   const match = await Match.findOne({ matchId });
 
   if (!match) {
@@ -148,19 +156,19 @@ const addBall = catchAsync(async (req, res) => {
     return res.status(400).json(sendResponse(false, 'Match not live'));
   }
 
-  if (deviceId !== match.activeScorer) {
-    return res.status(403).json(sendResponse(false, 'Not authorized'));
+  if (!match.activeScorer.equals(req.user._id)) {
+    return res.status(403).json(sendResponse(false, 'Not authorized to score this match'));
   }
 
   const ballData = req.body;
-
-  // Process ball in service layer
   const updatedMatch = matchService.processBall(match, ballData);
 
-  // 1. Process ball
-  // 2. Save match
-  // 3. Emit event (Strict order as requested)
   await updatedMatch.save();
+
+  // If match completed, finalize stats
+  if (updatedMatch.status === 'completed') {
+    await matchService.finalizeMatch(updatedMatch);
+  }
 
   const io = req.app.get('io');
   if (io) {
@@ -181,6 +189,7 @@ const getPublicMatches = catchAsync(async (req, res) => {
   const skip = (page - 1) * limit;
 
   const matches = await Match.find({ isPublic: true })
+    .populate('createdByUserId', 'name avatar')
     .sort('-createdAt')
     .skip(skip)
     .limit(limit);
@@ -201,6 +210,7 @@ const getPublicMatches = catchAsync(async (req, res) => {
 module.exports = {
   checkHealth,
   createMatch,
+  getMyMatches,
   getMatchById,
   startMatch,
   addBall,
