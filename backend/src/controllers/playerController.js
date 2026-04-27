@@ -25,7 +25,26 @@ const getPlayerPerformances = catchAsync(async (req, res) => {
   res.status(200).json(sendResponse(true, 'Player performances fetched successfully', performances));
 });
 
+const matchService = require('../services/matchService');
+const PlayerProfile = require('../models/PlayerProfile');
+
+/**
+ * @desc    Recompute stats for current user
+ * @route   POST /api/v1/players/me/recompute-stats
+ * @access  Private
+ */
+const recomputeMyStats = catchAsync(async (req, res) => {
+  const profile = await PlayerProfile.findOne({ userId: req.user._id });
+  if (!profile) {
+    return res.status(404).json(sendResponse(false, 'Player profile not found'));
+  }
+
+  const stats = await matchService.recomputePlayerStats(profile._id);
+  res.status(200).json(sendResponse(true, 'Stats recomputed from performance source of truth', stats));
+});
+
 module.exports = {
   getPlayerProfile,
   getPlayerPerformances,
+  recomputeMyStats,
 };
