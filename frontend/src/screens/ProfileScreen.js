@@ -59,10 +59,10 @@ const ProfileScreen = () => {
   const [isRefreshing, setIsRefreshing] = React.useState(false);
 
   useEffect(() => {
-    if (isLoggedIn) {
+    if (isLoggedIn && matchHistory.length === 0) {
       loadProfileData();
     }
-  }, [isLoggedIn]);
+  }, [isLoggedIn, matchHistory.length]);
 
   const loadProfileData = async () => {
     setIsRefreshing(true);
