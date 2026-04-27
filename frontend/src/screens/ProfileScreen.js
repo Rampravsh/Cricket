@@ -17,6 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
+import { useNavigation } from '@react-navigation/native';
 
 import { useTheme } from '~/hooks';
 import { authService } from '~/services/authService';
@@ -43,6 +44,7 @@ const { width } = Dimensions.get('window');
  * ProfileScreen — Handles user profile display and Google Authentication
  * Features: Neon Glassy UI, Google OAuth, Profile Stats, Settings links
  */
+
 const ProfileScreen = () => {
   const { colors, spacing, isDark } = useTheme();
   const user = useSelector(selectUser);
@@ -51,42 +53,26 @@ const ProfileScreen = () => {
   const isLoading = useSelector(selectAuthLoading);
   const error = useSelector(selectAuthError);
   const dispatch = useDispatch();
-  const theme = useTheme();
+  const navigation = useNavigation();
 
-  const [matchHistory, setMatchHistory] = React.useState([]);
-  const [feed, setFeed] = React.useState([]);
-  const [notifications, setNotifications] = React.useState([]);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
 
   useEffect(() => {
-    if (isLoggedIn && matchHistory.length === 0) {
+    if (isLoggedIn) {
       loadProfileData();
     }
-  }, [isLoggedIn, matchHistory.length]);
+  }, [isLoggedIn]);
 
   const loadProfileData = async () => {
     setIsRefreshing(true);
     try {
       await authService.refreshProfile();
-      
-      const [matches, activities, notes] = await Promise.all([
-        userApi.getMatchHistory(),
-        feedApi.getFeed(),
-        notificationApi.getNotifications()
-      ]);
-
-      if (matches.success) setMatchHistory(matches.data);
-      if (activities.success) setFeed(activities.data);
-      if (notes.success) setNotifications(notes.data);
-      
     } catch (err) {
       console.error('[Profile] Error loading data:', err);
     } finally {
       setIsRefreshing(false);
     }
   };
-
-  const unreadCount = notifications.filter(n => !n.isRead).length;
 
   // ─── Handlers ───────────────────────────────────────────────────────────────
   const handleLogin = async () => {
@@ -115,9 +101,6 @@ const ProfileScreen = () => {
 
   const handleLogout = () => {
     authService.logout();
-    setMatchHistory([]);
-    setFeed([]);
-    setNotifications([]);
   };
 
   // ─── Render Components ──────────────────────────────────────────────────────
@@ -220,107 +203,21 @@ const ProfileScreen = () => {
         </View>
       </View>
 
-        {/* Match History Section */}
-        <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Recent Matches</Text>
-          <TouchableOpacity onPress={() => {/* Navigate to full history */}}>
-            <Text style={[styles.seeAllText, { color: colors.primary }]}>See All</Text>
-          </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.historyButton, { backgroundColor: colors.surfaceVariant }]}
+        onPress={() => navigation.navigate('History')}
+      >
+        <View style={styles.historyButtonContent}>
+          <Ionicons name="time-outline" size={24} color={colors.primary} />
+          <View style={styles.historyButtonTextContainer}>
+            <Text style={[styles.historyButtonTitle, { color: colors.textPrimary }]}>View Full History</Text>
+            <Text style={[styles.historyButtonSubtitle, { color: colors.textSecondary }]}>Detailed stats & performance hub</Text>
+          </View>
         </View>
+        <Ionicons name="chevron-forward" size={20} color={colors.textDisabled} />
+      </TouchableOpacity>
 
-        {matchHistory.length > 0 ? (
-          matchHistory.slice(0, 3).map((match, index) => (
-            <MatchHistoryItem key={match._id || index} match={match} colors={colors} user={user} playerProfile={playerProfile} />
-          ))
-        ) : (
-          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No matches played yet.</Text>
-        )}
-
-        {/* Achievements Section */}
-        <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Achievements</Text>
-        </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.achievementsScroll}>
-          <AchievementBadge 
-            icon="flash" 
-            title="Run Machine" 
-            subtitle="50+ Total Runs" 
-            unlocked={(playerProfile?.stats?.totalRuns || 0) >= 50} 
-            colors={colors} 
-          />
-          <AchievementBadge 
-            icon="trophy" 
-            title="Wicket King" 
-            subtitle="5+ Total Wickets" 
-            unlocked={(playerProfile?.stats?.totalWickets || 0) >= 5} 
-            colors={colors} 
-          />
-          <AchievementBadge 
-            icon="star" 
-            title="Veteran" 
-            subtitle="10+ Matches" 
-            unlocked={(playerProfile?.stats?.matchesPlayed || 0) >= 10} 
-            colors={colors} 
-          />
-          <AchievementBadge 
-            icon="pencil" 
-            title="Scorer" 
-            subtitle="5+ Scored" 
-            unlocked={(playerProfile?.stats?.matchesScored || 0) >= 5} 
-            colors={colors} 
-          />
-        </ScrollView>
-
-        <View style={{ height: 24 }} />
-
-        {/* Activity Feed Section */}
-        <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Activity Feed</Text>
-        </View>
-        <View style={styles.feedContainer}>
-          {feed.length > 0 ? (
-            feed.map((activity, index) => (
-              <ActivityItem key={activity._id || index} activity={activity} colors={colors} />
-            ))
-          ) : (
-            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No recent activities.</Text>
-          )}
-        </View>
-
-        <View style={{ height: 20 }} />
-
-        {/* Menu Options */}
-        <View style={styles.menuContainer}>
-        <MenuOption
-          icon="time-outline"
-          title="Match History"
-          subtitle="View your past performances"
-          onPress={() => { }}
-          colors={colors}
-        />
-        <MenuOption
-          icon="trophy-outline"
-          title="Achievements"
-          subtitle="Milestones you've reached"
-          onPress={() => { }}
-          colors={colors}
-        />
-        <MenuOption
-          icon="notifications-outline"
-          title="Notifications"
-          subtitle="Alerts and match updates"
-          badge={unreadCount > 0 ? unreadCount : null}
-          onPress={() => { }}
-          colors={colors}
-        />
-        <MenuOption
-          icon="help-circle-outline"
-          title="Help & Support"
-          subtitle="FAQs and contact us"
-          onPress={() => { }}
-          colors={colors}
-        />
-      </View>
+      <View style={{ height: 40 }} />
 
       <TouchableOpacity
         style={[styles.logoutButton, { borderColor: colors.danger + '40' }]}
@@ -342,79 +239,6 @@ const ProfileScreen = () => {
       {renderHeader()}
       {isLoggedIn ? renderProfileState() : renderGuestState()}
     </View>
-  );
-};
-
-const ActivityItem = ({ activity, colors }) => {
-  const getIcon = () => {
-    switch (activity.type) {
-      case 'match_played': return 'trophy-outline';
-      case 'fifty': return 'flash-outline';
-      case 'wicket': return 'analytics-outline';
-      case 'match_created': return 'add-circle-outline';
-      default: return 'radio-button-on-outline';
-    }
-  };
-
-  const getMessage = () => {
-    const name = activity.userId?.name || 'Someone';
-    switch (activity.type) {
-      case 'match_played': return `${name} played a match`;
-      case 'fifty': return `${name} scored a fifty!`;
-      case 'wicket': return `${name} took ${activity.meta?.wickets || 3} wickets!`;
-      case 'match_created': return `${name} created a new match`;
-      default: return `${name} did something`;
-    }
-  };
-
-  return (
-    <View style={styles.activityItem}>
-      <View style={[styles.activityIconBox, { backgroundColor: colors.surfaceVariant }]}>
-        <Ionicons name={getIcon()} size={20} color={colors.primary} />
-      </View>
-      <View style={styles.activityContent}>
-        <Text style={[styles.activityMessage, { color: colors.textPrimary }]}>{getMessage()}</Text>
-        <Text style={[styles.activityTime, { color: colors.textSecondary }]}>
-          {new Date(activity.createdAt).toLocaleDateString()}
-        </Text>
-      </View>
-    </View>
-  );
-};
-
-const AchievementBadge = ({ icon, title, subtitle, unlocked, colors }) => (
-  <View style={[styles.achievementBadge, { opacity: unlocked ? 1 : 0.4 }]}>
-    <View style={[styles.achievementIconBox, { backgroundColor: unlocked ? colors.primary + '20' : colors.surfaceVariant }]}>
-      <Ionicons name={icon} size={24} color={unlocked ? colors.primary : colors.textDisabled} />
-    </View>
-    <Text style={[styles.achievementTitle, { color: colors.textPrimary }]}>{title}</Text>
-    <Text style={[styles.achievementSubtitle, { color: colors.textSecondary }]}>{subtitle}</Text>
-    {!unlocked && <Ionicons name="lock-closed" size={12} color={colors.textDisabled} style={styles.lockIcon} />}
-  </View>
-);
-
-const MatchHistoryItem = ({ match, colors, user, playerProfile }) => {
-  const getRole = () => {
-    if (match.createdByUserId === user?._id) return 'Creator';
-    if (match.scorers.includes(user?._id)) return 'Scorer';
-    return 'Player';
-  };
-
-  return (
-    <TouchableOpacity style={[styles.matchItem, { backgroundColor: colors.surfaceVariant }]}>
-      <View style={styles.matchInfo}>
-        <Text style={[styles.matchName, { color: colors.textPrimary }]}>{match.matchId || 'Match'}</Text>
-        <Text style={[styles.matchRole, { color: colors.primary }]}>{getRole()}</Text>
-      </View>
-      <View style={styles.matchScoreBox}>
-        <Text style={[styles.matchScore, { color: colors.textPrimary }]}>
-          {match.score?.runs || 0}/{match.score?.wickets || 0}
-        </Text>
-        <Text style={[styles.matchOvers, { color: colors.textSecondary }]}>
-          ({match.score?.overs || 0}.{match.score?.balls || 0} ov)
-        </Text>
-      </View>
-    </TouchableOpacity>
   );
 };
 
@@ -676,125 +500,29 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginBottom: 20,
   },
-  sectionHeader: {
+  historyButton: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 16,
-    marginTop: 8,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-  },
-  seeAllText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  matchItem: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
     marginHorizontal: 20,
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 12,
-  },
-  matchInfo: {
-    flex: 1,
-  },
-  matchName: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  matchRole: {
-    fontSize: 12,
-    fontWeight: '500',
-    textTransform: 'uppercase',
-  },
-  matchScoreBox: {
-    alignItems: 'flex-end',
-  },
-  matchScore: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 2,
-  },
-  matchOvers: {
-    fontSize: 12,
-  },
-  emptyText: {
-    textAlign: 'center',
-    marginTop: 20,
-    fontSize: 14,
-    fontStyle: 'italic',
-  },
-  achievementsScroll: {
-    paddingLeft: 20,
-    paddingRight: 10,
-  },
-  achievementBadge: {
-    width: 110,
-    alignItems: 'center',
-    marginRight: 15,
-    padding: 12,
-    borderRadius: 20,
+    padding: 20,
+    borderRadius: 24,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.05)',
   },
-  achievementIconBox: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  achievementTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    textAlign: 'center',
-    marginBottom: 2,
-  },
-  achievementSubtitle: {
-    fontSize: 10,
-    textAlign: 'center',
-  },
-  lockIcon: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-  },
-  feedContainer: {
-    paddingHorizontal: 20,
-  },
-  activityItem: {
+  historyButtonContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
   },
-  activityIconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
+  historyButtonTextContainer: {
+    marginLeft: 16,
   },
-  activityContent: {
-    flex: 1,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
-    paddingBottom: 12,
+  historyButtonTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 2,
   },
-  activityMessage: {
-    fontSize: 14,
-    fontWeight: '500',
-    marginBottom: 4,
-  },
-  activityTime: {
+  historyButtonSubtitle: {
     fontSize: 12,
   },
 });
