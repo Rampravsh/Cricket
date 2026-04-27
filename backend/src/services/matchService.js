@@ -109,16 +109,49 @@ const matchService = {
 
     return match;
   },
+
+  /**
+   * Compute roles for a user in a match
+   * @param {Object} match - Match document
+   * @param {string} userId - User ID
+   * @param {string} playerProfileId - Player Profile ID
+   * @returns {string[]} Array of roles
+   */
+  computeUserRoles: (match, userId, playerProfileId) => {
+    const roles = [];
+    if (!match) return roles;
+
+    if (match.createdByUserId && match.createdByUserId.toString() === userId.toString()) {
+      roles.push('creator');
+    }
+
+    if (match.scorers && match.scorers.some(id => id.toString() === userId.toString())) {
+      roles.push('scorer');
+    }
+
+    const isPlayer = match.teams && match.teams.some(team => 
+      team.players && team.players.some(p => p.playerId && p.playerId.toString() === playerProfileId?.toString())
+    );
+
+    if (isPlayer) {
+      roles.push('player');
+    }
+
+    return roles;
+  },
+
   /**
    * Finalize match: calculate stats and update profiles
    * @param {Object} match Mongoose Match document
    */
   finalizeMatch: async (match) => {
-    if (match.status !== 'completed') return;
+    // Task 2: Idempotency check
+    if (match.status !== 'completed' || match.finalizedAt) return;
 
     const PlayerProfile = require('../models/PlayerProfile');
     const Performance = require('../models/Performance');
     const activityService = require('./activityService');
+    const notificationService = require('./notificationService');
 
     const players = [];
     match.teams.forEach(team => {
@@ -129,37 +162,61 @@ const matchService = {
 
     for (const playerId of players) {
       // Calculate performance from balls array
-      const battingBalls = match.balls.filter(b => b.strikerId === playerId && b.extra !== 'wide');
+      const battingBalls = match.balls.filter(b => b.strikerId && b.strikerId.toString() === playerId && b.extra !== 'wide');
       const runs = battingBalls.reduce((sum, b) => sum + (b.runs || 0), 0);
       const balls = battingBalls.length;
       const fours = battingBalls.filter(b => b.runs === 4).length;
       const sixes = battingBalls.filter(b => b.runs === 6).length;
 
-      const bowlingBalls = match.balls.filter(b => b.bowlerId === playerId);
+      const bowlingBalls = match.balls.filter(b => b.bowlerId && b.bowlerId.toString() === playerId);
       const wickets = bowlingBalls.filter(b => b.wicket).length;
       const runsGiven = bowlingBalls.reduce((sum, b) => sum + (b.runs || 0) + (b.extra === 'wide' || b.extra === 'noBall' ? 1 : 0), 0);
       const legalBowledBalls = bowlingBalls.filter(b => b.extra !== 'wide' && b.extra !== 'noBall').length;
       const overs = Math.floor(legalBowledBalls / 6) + (legalBowledBalls % 6) / 10;
 
-      // Create Performance record
+      // 1. Create Performance (Source of Truth)
       await Performance.findOneAndUpdate(
         { matchId: match._id, playerId },
         {
           batting: { runs, balls, fours, sixes },
           bowling: { wickets, runsGiven, overs }
         },
-        { upsert: true }
+        { upsert: true, new: true }
       );
 
-      // Update PlayerProfile stats
+      // 2. Update PlayerProfile stats (Cache)
       const profile = await PlayerProfile.findById(playerId);
       if (profile) {
         profile.stats.totalRuns += runs;
         profile.stats.totalWickets += wickets;
         profile.stats.matchesPlayed += 1;
+
+        // Task 5: Achievements Generation
+        if (runs >= 100) {
+          profile.achievements.push({
+            title: 'Century!',
+            description: `Scored ${runs} runs in match ${match.matchId}`,
+            matchId: match._id
+          });
+        } else if (runs >= 50) {
+          profile.achievements.push({
+            title: 'Half Century!',
+            description: `Scored ${runs} runs in match ${match.matchId}`,
+            matchId: match._id
+          });
+        }
+
+        if (wickets >= 5) {
+          profile.achievements.push({
+            title: 'Five-wicket Haul!',
+            description: `Took ${wickets} wickets in match ${match.matchId}`,
+            matchId: match._id
+          });
+        }
+
         await profile.save();
 
-        // Create Activity
+        // 3. Create Activity
         await activityService.createActivity(profile.userId, 'match_played', match._id, { runs, wickets });
         if (runs >= 50) {
           await activityService.createActivity(profile.userId, 'fifty', match._id, { runs });
@@ -167,6 +224,13 @@ const matchService = {
         if (wickets >= 3) {
           await activityService.createActivity(profile.userId, 'wicket', match._id, { wickets });
         }
+
+        // 4. Create Notification
+        await notificationService.createNotification(
+          profile.userId,
+          'Match Finalized',
+          `Match ${match.matchId} has been finalized. Your stats: ${runs} runs, ${wickets} wickets.`
+        );
       }
     }
 
@@ -188,6 +252,46 @@ const matchService = {
         }
       }
     }
+
+    // 5. Set finalizedAt
+    match.finalizedAt = new Date();
+    await match.save();
+  },
+
+  /**
+   * Recompute player stats from all Performance records
+   * Task 3: Stats Source of Truth Fallback
+   */
+  recomputePlayerStats: async (playerProfileId) => {
+    const Performance = require('../models/Performance');
+    const PlayerProfile = require('../models/PlayerProfile');
+    
+    const performances = await Performance.find({ playerId: playerProfileId });
+    
+    const stats = {
+      totalRuns: 0,
+      totalWickets: 0,
+      matchesPlayed: performances.length,
+      matchesCreated: 0,
+      matchesScored: 0
+    };
+
+    performances.forEach(p => {
+      stats.totalRuns += p.batting.runs || 0;
+      stats.totalWickets += p.bowling.wickets || 0;
+    });
+
+    const profile = await PlayerProfile.findById(playerProfileId);
+    if (profile) {
+      // Preserve created/scored counts as they aren't in Performance
+      stats.matchesCreated = profile.stats.matchesCreated;
+      stats.matchesScored = profile.stats.matchesScored;
+      
+      profile.stats = stats;
+      await profile.save();
+    }
+    
+    return stats;
   },
 
   /**
