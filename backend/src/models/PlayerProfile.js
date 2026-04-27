@@ -26,6 +26,14 @@ const playerProfileSchema = new mongoose.Schema(
       matchesCreated: { type: Number, default: 0 },
       matchesScored: { type: Number, default: 0 },
     },
+    achievements: [
+      {
+        title: { type: String, required: true },
+        description: { type: String },
+        dateEarned: { type: Date, default: Date.now },
+        matchId: { type: mongoose.Schema.Types.ObjectId, ref: 'Match' },
+      },
+    ],
   },
   {
     timestamps: true,
