@@ -115,6 +115,9 @@ const ProfileScreen = () => {
 
   const handleLogout = () => {
     authService.logout();
+    setMatchHistory([]);
+    setFeed([]);
+    setNotifications([]);
   };
 
   // ─── Render Components ──────────────────────────────────────────────────────
