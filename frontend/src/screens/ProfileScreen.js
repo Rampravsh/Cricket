@@ -17,6 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
+import { useNavigation } from '@react-navigation/native';
 
 import { useTheme } from '~/hooks';
 import { authService } from '~/services/authService';
@@ -43,7 +44,6 @@ const { width } = Dimensions.get('window');
  * ProfileScreen — Handles user profile display and Google Authentication
  * Features: Neon Glassy UI, Google OAuth, Profile Stats, Settings links
  */
-import { useNavigation } from '@react-navigation/native';
 
 const ProfileScreen = () => {
   const { colors, spacing, isDark } = useTheme();

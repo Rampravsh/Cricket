@@ -1,6 +1,8 @@
 const { sendResponse } = require('../utils/response');
 const catchAsync = require('../utils/catchAsync');
 const Match = require('../models/Match');
+const PlayerProfile = require('../models/PlayerProfile');
+const Performance = require('../models/Performance');
 const matchService = require('../services/matchService');
 
 /**
@@ -50,8 +52,6 @@ const createMatch = catchAsync(async (req, res) => {
  * @access  Private
  */
 const getMyMatches = catchAsync(async (req, res) => {
-  const PlayerProfile = require('../models/PlayerProfile');
-  const Performance = require('../models/Performance');
   const playerProfile = await PlayerProfile.findOne({ userId: req.user._id });
   const matches = await matchService.getMatchHistory(req.user._id, playerProfile?._id);
   
@@ -103,7 +103,6 @@ const getMatchById = catchAsync(async (req, res) => {
   // Task 4: Include roles if user is authenticated
   const matchObj = match.toObject();
   if (req.user) {
-    const PlayerProfile = require('../models/PlayerProfile');
     const playerProfile = await PlayerProfile.findOne({ userId: req.user._id });
     matchObj.roles = matchService.computeUserRoles(match, req.user._id, playerProfile?._id);
   }

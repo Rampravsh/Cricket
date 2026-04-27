@@ -37,28 +37,31 @@ function HistoryScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchMatches();
   }, []);
 
-  const fetchMatches = async () => {
-    setIsLoading(true);
+  const fetchMatches = async (showLoading = true) => {
+    if (showLoading) setIsLoading(true);
+    setError(null);
     try {
       const response = await userApi.getMatchHistory();
       if (response.success) {
         setMatches(response.data);
       }
-    } catch (error) {
-      console.error('[History] Error fetching matches:', error);
+    } catch (err) {
+      console.error('[History] Error fetching matches:', err);
+      setError('Failed to load match history. Please try again.');
     } finally {
-      setIsLoading(false);
+      if (showLoading) setIsLoading(false);
     }
   };
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await fetchMatches();
+    await fetchMatches(false);
     setIsRefreshing(false);
   };
 
@@ -206,9 +209,21 @@ function HistoryScreen() {
       <View style={styles.container}>
         {renderFilterTabs()}
 
-        {isLoading ? (
+        {isLoading && !isRefreshing ? (
           <View style={styles.centerContainer}>
             <ActivityIndicator size="large" color={colors.primary} />
+          </View>
+        ) : error ? (
+          <View style={styles.centerContainer}>
+            <Ionicons name="alert-circle-outline" size={60} color={colors.danger} />
+            <Text style={[styles.errorTitle, { color: colors.textPrimary }]}>Oops!</Text>
+            <Text style={[styles.errorSubtitle, { color: colors.textSecondary }]}>{error}</Text>
+            <TouchableOpacity 
+              style={[styles.ctaButton, { backgroundColor: colors.primary, marginTop: 24 }]}
+              onPress={() => fetchMatches(true)}
+            >
+              <Text style={[styles.ctaButtonText, { color: colors.textOnPrimary }]}>Retry</Text>
+            </TouchableOpacity>
           </View>
         ) : (
           <FlatList
@@ -390,6 +405,18 @@ function createStyles(colors, spacing, borderRadius, isDark) {
       textAlign: 'center',
       paddingHorizontal: 40,
       marginBottom: 32,
+      lineHeight: 20,
+    },
+    errorTitle: {
+      fontSize: 22,
+      fontWeight: 'bold',
+      marginTop: 16,
+      marginBottom: 8,
+    },
+    errorSubtitle: {
+      fontSize: 14,
+      textAlign: 'center',
+      paddingHorizontal: 40,
       lineHeight: 20,
     },
     ctaButton: {
