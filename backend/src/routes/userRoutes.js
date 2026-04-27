@@ -1,4 +1,9 @@
+/**
+ * @route   /api/v1/users
+ * @desc    Routes for managing user profiles and preferences.
+ */
 const express = require('express');
+
 const { getMe, updateMe } = require('../controllers/userController');
 const { protect } = require('../middleware/auth');
 

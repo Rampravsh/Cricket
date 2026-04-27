@@ -53,11 +53,34 @@ npm run dev     # Runs with nodemon for hot-reloading
 To ensure the backend is active, ping the health route:
 `GET http://localhost:5000/api/v1/matches/health`
 
-## 📡 Match Flow Endpoints
+## 📡 API Endpoints
 
 All endpoints respond with the standardized format: `{ success: boolean, message: string, data: object }`.
 
-### 1. Create a Match
+### 🔑 Authentication
+#### 1. Google Login
+- **Route:** `POST /api/v1/auth/google`
+- **Body Example:**
+  ```json
+  {
+    "idToken": "GOOGLE_ID_TOKEN"
+  }
+  ```
+- **Description:** Verifies the Google ID Token and returns a JWT for the user.
+
+### 👤 User Management
+#### 1. Get My Profile
+- **Route:** `GET /api/v1/users/me`
+- **Headers Needed:** `Authorization: Bearer <token>`
+- **Description:** Returns the authenticated user's data.
+
+#### 2. Update My Profile
+- **Route:** `PATCH /api/v1/users/me`
+- **Headers Needed:** `Authorization: Bearer <token>`
+- **Body Example:** `{ "name": "New Name" }`
+
+### 🏏 Match Flow
+#### 1. Create a Match
 - **Route:** `POST /api/v1/matches/create`
 - **Headers Needed:**
   - `x-device-id`: Your unique device ID (used to identify host/scorer).
@@ -74,11 +97,11 @@ All endpoints respond with the standardized format: `{ success: boolean, message
   }
   ```
 
-### 2. Start a Match
+#### 2. Start a Match
 - **Route:** `PATCH /api/v1/matches/:matchId/start`
 - **Description:** Transitions a match status from `waiting` to `live` and initializes the current on-field players. Emits the `match-started` socket event.
 
-### 3. Process a New Ball
+#### 3. Process a New Ball
 - **Route:** `POST /api/v1/matches/:matchId/ball`
 - **Headers Needed:**
   - `x-device-id`: Must match the `activeScorer` ID of the live match.
@@ -93,12 +116,12 @@ All endpoints respond with the standardized format: `{ success: boolean, message
   }
   ```
 
-### 4. Get Public Matches
+#### 4. Get Public Matches
 - **Route:** `GET /api/v1/matches/public`
 - **Query Params:** `?page=1&limit=10`
 - **Description:** Returns paginated live/waiting matches flagged as `isPublic: true`.
 
-### 5. Fetch a Specific Match
+#### 5. Fetch a Specific Match
 - **Route:** `GET /api/v1/matches/:matchId`
 - **Description:** Returns the full comprehensive state of a match (score, ball logs, status).
 
@@ -109,3 +132,4 @@ All endpoints respond with the standardized format: `{ success: boolean, message
   - `'match-created'`: Triggers when a new match is generated.
   - `'match-started'`: Triggers when a match transitions to live.
   - `'score-updated'`: Triggers immediately after a new ball is processed successfully.
+

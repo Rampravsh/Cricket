@@ -55,6 +55,7 @@ npm run web
 
 ## 🎨 Features
 
+- ✅ **Google Authentication** — Full integration with `@react-native-google-signin/google-signin` and backend JWT verification
 - ✅ **Light / Dark mode** — auto-detects system preference via `useColorScheme()`
 - ✅ **Reusable components** — Button (variants), ScoreButton, Header, Card, Input
 - ✅ **Redux Toolkit store** — `matchSlice` + `userSlice` with selectors + Async Thunks
@@ -77,7 +78,7 @@ Edit `src/constants/index.js` to set your API/WebSocket URLs:
 
 ```js
 export const ENV = {
-  API_BASE_URL: 'http://YOUR_IP:5000/api',
+  API_BASE_URL: 'http://YOUR_IP:5000/api/v1',
   SOCKET_URL:   'ws://YOUR_IP:5000',
 };
 ```
@@ -87,7 +88,8 @@ export const ENV = {
 - [x] Backend Node.js/Express server in `backend/`
 - [x] API Integration for Match lifecycle (Create, Start)
 - [x] Socket.IO integration for real-time scoring
-- [ ] Authentication flow (login/register screens)
+- [x] Authentication flow (Google Sign-In integration)
 - [ ] Scorecard screen
 - [ ] Match history & stats
 - [ ] Push notifications for wickets/milestones
+

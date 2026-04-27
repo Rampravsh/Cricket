@@ -1,4 +1,10 @@
+/**
+ * @module models/User
+ * @description Mongoose schema and model for User.
+ * This model stores user identity from Google, along with system flags and denormalized statistics.
+ */
 const mongoose = require('mongoose');
+
 
 const userSchema = new mongoose.Schema(
   {
