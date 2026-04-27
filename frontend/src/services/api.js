@@ -78,6 +78,9 @@ export const userApi = {
 
   /** Update profile */
   updateProfile: (data) => apiClient.patch('/users/me', data),
+
+  /** Get user's match history */
+  getMatchHistory: () => apiClient.get('/users/me/matches'),
 };
 
 export default apiClient;

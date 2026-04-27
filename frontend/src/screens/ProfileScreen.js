@@ -9,6 +9,8 @@ import {
   StatusBar,
   Dimensions,
   ActivityIndicator,
+  RefreshControl,
+  FlatList,
 } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -50,11 +52,29 @@ const ProfileScreen = () => {
   const dispatch = useDispatch();
   const theme = useTheme();
 
+  const [matchHistory, setMatchHistory] = React.useState([]);
+  const [isRefreshing, setIsRefreshing] = React.useState(false);
+
   useEffect(() => {
     if (isLoggedIn) {
-      authService.refreshProfile();
+      loadProfileData();
     }
   }, [isLoggedIn]);
+
+  const loadProfileData = async () => {
+    setIsRefreshing(true);
+    try {
+      await authService.refreshProfile();
+      const response = await userApi.getMatchHistory();
+      if (response.success) {
+        setMatchHistory(response.data);
+      }
+    } catch (err) {
+      console.error('[Profile] Error loading data:', err);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   // ─── Handlers ───────────────────────────────────────────────────────────────
   const handleLogin = async () => {
@@ -151,6 +171,9 @@ const ProfileScreen = () => {
     <ScrollView
       showsVerticalScrollIndicator={false}
       contentContainerStyle={styles.scrollContent}
+      refreshControl={
+        <RefreshControl refreshing={isRefreshing} onRefresh={loadProfileData} tintColor={colors.primary} />
+      }
     >
       {/* Profile Card */}
       <View style={styles.profileCardContainer}>
@@ -182,8 +205,26 @@ const ProfileScreen = () => {
         </View>
       </View>
 
-      {/* Menu Options */}
-      <View style={styles.menuContainer}>
+        {/* Match History Section */}
+        <View style={styles.sectionHeader}>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Recent Matches</Text>
+          <TouchableOpacity onPress={() => {/* Navigate to full history */}}>
+            <Text style={[styles.seeAllText, { color: colors.primary }]}>See All</Text>
+          </TouchableOpacity>
+        </View>
+
+        {matchHistory.length > 0 ? (
+          matchHistory.slice(0, 3).map((match, index) => (
+            <MatchHistoryItem key={match._id || index} match={match} colors={colors} user={user} playerProfile={playerProfile} />
+          ))
+        ) : (
+          <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No matches played yet.</Text>
+        )}
+
+        <View style={{ height: 20 }} />
+
+        {/* Menu Options */}
+        <View style={styles.menuContainer}>
         <MenuOption
           icon="time-outline"
           title="Match History"
@@ -234,6 +275,31 @@ const ProfileScreen = () => {
       {renderHeader()}
       {isLoggedIn ? renderProfileState() : renderGuestState()}
     </View>
+  );
+};
+
+const MatchHistoryItem = ({ match, colors, user, playerProfile }) => {
+  const getRole = () => {
+    if (match.createdByUserId === user?._id) return 'Creator';
+    if (match.scorers.includes(user?._id)) return 'Scorer';
+    return 'Player';
+  };
+
+  return (
+    <TouchableOpacity style={[styles.matchItem, { backgroundColor: colors.surfaceVariant }]}>
+      <View style={styles.matchInfo}>
+        <Text style={[styles.matchName, { color: colors.textPrimary }]}>{match.matchId || 'Match'}</Text>
+        <Text style={[styles.matchRole, { color: colors.primary }]}>{getRole()}</Text>
+      </View>
+      <View style={styles.matchScoreBox}>
+        <Text style={[styles.matchScore, { color: colors.textPrimary }]}>
+          {match.score?.runs || 0}/{match.score?.wickets || 0}
+        </Text>
+        <Text style={[styles.matchOvers, { color: colors.textSecondary }]}>
+          ({match.score?.overs || 0}.{match.score?.balls || 0} ov)
+        </Text>
+      </View>
+    </TouchableOpacity>
   );
 };
 
@@ -470,6 +536,61 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 12,
     marginBottom: 20,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 16,
+    marginTop: 8,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+  },
+  seeAllText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  matchItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginHorizontal: 20,
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 12,
+  },
+  matchInfo: {
+    flex: 1,
+  },
+  matchName: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  matchRole: {
+    fontSize: 12,
+    fontWeight: '500',
+    textTransform: 'uppercase',
+  },
+  matchScoreBox: {
+    alignItems: 'flex-end',
+  },
+  matchScore: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 2,
+  },
+  matchOvers: {
+    fontSize: 12,
+  },
+  emptyText: {
+    textAlign: 'center',
+    marginTop: 20,
+    fontSize: 14,
+    fontStyle: 'italic',
   },
 });
 
