@@ -83,4 +83,10 @@ export const userApi = {
   getMatchHistory: () => apiClient.get('/users/me/matches'),
 };
 
+// ─── Feed API ──────────────────────────────────────────────────────────────────
+export const feedApi = {
+  /** Get recent activity feed */
+  getFeed: () => apiClient.get('/feed'),
+};
+
 export default apiClient;

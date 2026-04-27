@@ -20,6 +20,7 @@ import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-si
 
 import { useTheme } from '~/hooks';
 import { authService } from '~/services/authService';
+import { userApi, matchApi, feedApi } from '~/services/api';
 import {
   selectUser,
   selectIsLoggedIn,
@@ -53,6 +54,7 @@ const ProfileScreen = () => {
   const theme = useTheme();
 
   const [matchHistory, setMatchHistory] = React.useState([]);
+  const [feed, setFeed] = React.useState([]);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
 
   useEffect(() => {
@@ -65,9 +67,13 @@ const ProfileScreen = () => {
     setIsRefreshing(true);
     try {
       await authService.refreshProfile();
-      const response = await userApi.getMatchHistory();
-      if (response.success) {
-        setMatchHistory(response.data);
+      const matchResponse = await userApi.getMatchHistory();
+      if (matchResponse.success) {
+        setMatchHistory(matchResponse.data);
+      }
+      const feedResponse = await feedApi.getFeed();
+      if (feedResponse.success) {
+        setFeed(feedResponse.data);
       }
     } catch (err) {
       console.error('[Profile] Error loading data:', err);
@@ -256,6 +262,22 @@ const ProfileScreen = () => {
           />
         </ScrollView>
 
+        <View style={{ height: 24 }} />
+
+        {/* Activity Feed Section */}
+        <View style={styles.sectionHeader}>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Activity Feed</Text>
+        </View>
+        <View style={styles.feedContainer}>
+          {feed.length > 0 ? (
+            feed.map((activity, index) => (
+              <ActivityItem key={activity._id || index} activity={activity} colors={colors} />
+            ))
+          ) : (
+            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>No recent activities.</Text>
+          )}
+        </View>
+
         <View style={{ height: 20 }} />
 
         {/* Menu Options */}
@@ -309,6 +331,43 @@ const ProfileScreen = () => {
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
       {renderHeader()}
       {isLoggedIn ? renderProfileState() : renderGuestState()}
+    </View>
+  );
+};
+
+const ActivityItem = ({ activity, colors }) => {
+  const getIcon = () => {
+    switch (activity.type) {
+      case 'match_played': return 'trophy-outline';
+      case 'fifty': return 'flash-outline';
+      case 'wicket': return 'analytics-outline';
+      case 'match_created': return 'add-circle-outline';
+      default: return 'radio-button-on-outline';
+    }
+  };
+
+  const getMessage = () => {
+    const name = activity.userId?.name || 'Someone';
+    switch (activity.type) {
+      case 'match_played': return `${name} played a match`;
+      case 'fifty': return `${name} scored a fifty!`;
+      case 'wicket': return `${name} took ${activity.meta?.wickets || 3} wickets!`;
+      case 'match_created': return `${name} created a new match`;
+      default: return `${name} did something`;
+    }
+  };
+
+  return (
+    <View style={styles.activityItem}>
+      <View style={[styles.activityIconBox, { backgroundColor: colors.surfaceVariant }]}>
+        <Ionicons name={getIcon()} size={20} color={colors.primary} />
+      </View>
+      <View style={styles.activityContent}>
+        <Text style={[styles.activityMessage, { color: colors.textPrimary }]}>{getMessage()}</Text>
+        <Text style={[styles.activityTime, { color: colors.textSecondary }]}>
+          {new Date(activity.createdAt).toLocaleDateString()}
+        </Text>
+      </View>
     </View>
   );
 };
@@ -673,6 +732,36 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 8,
     right: 8,
+  },
+  feedContainer: {
+    paddingHorizontal: 20,
+  },
+  activityItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  activityIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  activityContent: {
+    flex: 1,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+    paddingBottom: 12,
+  },
+  activityMessage: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  activityTime: {
+    fontSize: 12,
   },
 });
 
