@@ -93,9 +93,20 @@ All endpoints respond with the standardized format: `{ success: boolean, message
       { "name": "Team B", "players": [{ "id": "p2", "name": "Player 2" }] }
     ],
     "isPublic": true,
-    "toss": { "winner": "Team A", "decision": "bat" }
+    "toss": { "winner": "Team A", "decision": "bat" },
+    "format": "T20",
+    "overs": 20,
+    "maxPlayers": 11,
+    "players": [
+      { "playerId": "USER_ID", "name": "Player Name" }
+    ]
   }
   ```
+
+#### 2. Get My Match History
+- **Route:** `GET /api/v1/matches/my-history` (or `GET /api/v1/users/me/matches`)
+- **Headers Needed:** `Authorization: Bearer <token>`
+- **Description:** Returns a list of matches where the user participated as a player, host, or scorer, including their performance stats.
 
 #### 2. Start a Match
 - **Route:** `PATCH /api/v1/matches/:matchId/start`
@@ -115,6 +126,26 @@ All endpoints respond with the standardized format: `{ success: boolean, message
     "bowlerId": "p2"
   }
   ```
+- **Note:** Only the `activeScorer` or authorized `scorers` can use this endpoint.
+
+#### 5. Invite a Player
+- **Route:** `POST /api/v1/matches/:matchId/invite-player`
+- **Body Example:** `{ "userId": "ID", "name": "Name" }`
+- **Description:** Invites a registered user to join a team in the match.
+
+#### 6. Player Response
+- **Route:** `PATCH /api/v1/matches/:matchId/player-response`
+- **Body Example:** `{ "status": "accepted" }` // or "rejected"
+- **Description:** Accept or reject a match invitation.
+
+#### 7. Request to Score
+- **Route:** `POST /api/v1/matches/:matchId/request-scorer`
+- **Description:** Request permission to be a scorer for a specific match.
+
+#### 8. Scorer Response (Host Only)
+- **Route:** `PATCH /api/v1/matches/:matchId/scorer-response`
+- **Body Example:** `{ "userId": "ID", "status": "accepted" }`
+- **Description:** The match host can approve or reject scorer requests.
 
 #### 4. Get Public Matches
 - **Route:** `GET /api/v1/matches/public`
@@ -123,7 +154,7 @@ All endpoints respond with the standardized format: `{ success: boolean, message
 
 #### 5. Fetch a Specific Match
 - **Route:** `GET /api/v1/matches/:matchId`
-- **Description:** Returns the full comprehensive state of a match (score, ball logs, status).
+- **Description:** Returns the full comprehensive state of a match (score, ball logs, status). Also includes a `roles` array for the authenticated user (e.g., `['host', 'scorer']`).
 
 ## 🔌 WebSockets / Socket.IO
 - **Connect:** Connect your socket instance to the server URL.
@@ -132,4 +163,9 @@ All endpoints respond with the standardized format: `{ success: boolean, message
   - `'match-created'`: Triggers when a new match is generated.
   - `'match-started'`: Triggers when a match transitions to live.
   - `'score-updated'`: Triggers immediately after a new ball is processed successfully.
+
+## 🛡️ Middlewares
+
+- **`protect`**: Ensures the user is authenticated via JWT.
+- **`canScoreMatch`**: Ensures only the host or an approved scorer can perform scoring actions (start match, add ball).
 

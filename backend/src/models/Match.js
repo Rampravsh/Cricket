@@ -28,7 +28,7 @@ const matchSchema = new mongoose.Schema(
             playerId: {
               type: mongoose.Schema.Types.ObjectId,
               ref: 'PlayerProfile',
-              required: true,
+              required: false,
             },
             nameSnapshot: { type: String, required: true },
           },

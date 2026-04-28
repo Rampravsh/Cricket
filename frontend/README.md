@@ -14,10 +14,12 @@ A premium, high-performance cricket scoring mobile application built with React 
 
 ## 🛠 Features
 
-- **Google Authentication:** Seamless login flow with profile sync.
-- **Live Scoring:** Real-time match updates via WebSockets.
+- **Live Scoring:** Real-time match updates via WebSockets with haptic feedback.
+- **Match Creation:** Comprehensive multi-step flow for configuring teams, toss, and match format.
+- **Profile Hub:** Personalized dashboard showing stats (runs, wickets) and match history.
+- **Invitations:** Manage match invitations and scorer requests from other users.
 - **Dynamic Theming:** Auto-switching light/dark mode based on system preferences.
-- **Interactive UI:** Premium motion design with scale animations and haptic feedback.
+- **Interactive UI:** Premium motion design with scale animations and glassmorphism.
 - **Clean Architecture:** Service-based API layer and Redux-driven state.
 
 ## 📁 Directory Structure

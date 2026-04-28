@@ -66,6 +66,24 @@ export const matchApi = {
   /** Add a ball delivery */
   addBall: (matchId, payload) =>
     apiClient.post(`/matches/${matchId}/ball`, payload),
+
+  /** Invite a player to a match */
+  invitePlayer: (id, payload) => apiClient.post(`/matches/${id}/invite-player`, payload),
+
+  /** Respond to a match invitation */
+  respondInvitation: (id, status) => apiClient.patch(`/matches/${id}/player-response`, { status }),
+
+  /** Request to be a scorer */
+  requestScorer: (id) => apiClient.post(`/matches/${id}/request-scorer`),
+
+  /** Respond to a scorer request */
+  respondScorerRequest: (id, payload) => apiClient.patch(`/matches/${id}/scorer-response`, payload),
+};
+
+// ─── Player API ───────────────────────────────────────────────────────────────
+export const playerApi = {
+  /** Search players by name or username */
+  searchPlayers: (query) => apiClient.get(`/players/search?q=${query}`),
 };
 
 // ─── User API ──────────────────────────────────────────────────────────────────

@@ -99,10 +99,15 @@ export const lightColors = {
   dangerLight:      '#FF6B7F',
   dangerContainer:  'rgba(229, 57, 80, 0.08)',
 
+  // ── Feedback ─────────────────────────────────────────────────────────────
+  success:          palette.neonGreenDim,
+  warning:          palette.neonGoldDim,
+
   // ── Text ─────────────────────────────────────────────────────────────────
   textPrimary:    palette.frost[900],
   textSecondary:  palette.frost[600],
-  textDisabled:   palette.frost[400],
+  textTertiary:   palette.frost[400],
+  textDisabled:   palette.frost[300],
   textOnPrimary:  palette.white,
   textOnDanger:   palette.white,
   textOnAccent:   palette.white,
@@ -170,10 +175,15 @@ export const darkColors = {
   dangerLight:      '#FF6B7F',
   dangerContainer:  'rgba(255, 59, 92, 0.12)',
 
+  // ── Feedback ─────────────────────────────────────────────────────────────
+  success:          palette.neonGreen,
+  warning:          palette.neonGold,
+
   // ── Text ─────────────────────────────────────────────────────────────────
   textPrimary:    palette.space[50],
   textSecondary:  palette.space[300],
-  textDisabled:   palette.space[500],
+  textTertiary:   palette.space[500],
+  textDisabled:   palette.space[600],
   textOnPrimary:  palette.space[900],
   textOnDanger:   palette.white,
   textOnAccent:   palette.white,

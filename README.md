@@ -62,8 +62,9 @@ npm run web
 - ✅ **API service layer** — Active Axios integration connecting to `backend/` endpoints
 - ✅ **Absolute imports** — `~/` maps to `src/` via `babel-plugin-module-resolver`
 - ✅ **Stack navigation** — slide transition, custom Header per screen
-- ✅ **useSocket hook** — Fully configured `Socket.IO` bridging live Redux actions real-time
 - ✅ **Cricket scoring UI** — ScoreButton grid, over tracker, scoreboard
+- ✅ **Multi-Scorer Support** — Multiple users can request to score; host can approve.
+- ✅ **Match Invitations** — Invite players to matches via notifications.
 
 ## 🧩 Key Decisions
 
@@ -89,7 +90,8 @@ export const ENV = {
 - [x] API Integration for Match lifecycle (Create, Start)
 - [x] Socket.IO integration for real-time scoring
 - [x] Authentication flow (Google Sign-In integration)
+- [x] Match history & stats (Backend API & Redux state)
 - [ ] Scorecard screen
-- [ ] Match history & stats
 - [ ] Push notifications for wickets/milestones
+- [ ] Tournament management
 
