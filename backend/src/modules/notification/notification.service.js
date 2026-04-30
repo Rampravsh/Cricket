@@ -23,9 +23,23 @@ const sendNotification = async ({
   meta = {}
 }) => {
   try {
-    // 1. Save notification in DB
+    let targetUserId = userId;
+    
+    // 1. Resolve ID: If not a User, it might be a PlayerProfile ID
+    let user = await User.findById(targetUserId).select('fcmTokens');
+    
+    if (!user) {
+      const PlayerProfile = require('../../models/PlayerProfile');
+      const profile = await PlayerProfile.findById(targetUserId);
+      if (profile) {
+        targetUserId = profile.userId;
+        user = await User.findById(targetUserId).select('fcmTokens');
+      }
+    }
+
+    // 2. Save notification in DB using the resolved User ID
     const notification = await Notification.create({
-      userId,
+      userId: targetUserId,
       type,
       title,
       message,
@@ -33,28 +47,50 @@ const sendNotification = async ({
       meta,
       status: (type === 'player_invite' || type === 'scorer_request') ? 'pending' : 'none'
     });
-
-    // 2. Fetch user's FCM tokens
-    const user = await User.findById(userId).select('fcmTokens');
     
-    // 3. Send FCM push
+    // 3. Send Push Notifications (FCM or Expo)
     if (user && user.fcmTokens && user.fcmTokens.length > 0) {
-      const admin = require('../../config/firebase');
-      const payload = { 
-        notification: { title, body: message }, 
-        data: { ...meta, type, matchId: String(matchId || '') } 
-      };
-      
-      try {
-        const messages = user.fcmTokens.map(token => ({
-          token,
-          notification: payload.notification,
-          data: payload.data
+      const expoTokens = user.fcmTokens.filter(token => token.startsWith('ExponentPushToken'));
+      const fcmTokens = user.fcmTokens.filter(token => !token.startsWith('ExponentPushToken'));
+
+      // Send Expo Push
+      if (expoTokens.length > 0) {
+        const { Expo } = require('expo-server-sdk');
+        const expo = new Expo();
+        const messages = expoTokens.map(token => ({
+          to: token,
+          sound: 'default',
+          title,
+          body: message,
+          data: { ...meta, type, matchId: String(matchId || '') }
         }));
-        await admin.messaging().sendEach(messages);
-        logger.info(`FCM push sent to user ${userId}`);
-      } catch (fcmError) {
-        logger.error('FCM send error:', fcmError);
+        
+        try {
+          const chunks = expo.chunkPushNotifications(messages);
+          for (const chunk of chunks) {
+            await expo.sendPushNotificationsAsync(chunk);
+          }
+          logger.info(`Expo push sent to user ${userId}`);
+        } catch (expoError) {
+          logger.error('Expo send error:', expoError);
+        }
+      }
+
+      // Send FCM Push
+      if (fcmTokens.length > 0) {
+        const admin = require('../../config/firebase');
+        const messages = fcmTokens.map(token => ({
+          token,
+          notification: { title, body: message },
+          data: { ...meta, type, matchId: String(matchId || '') }
+        }));
+        
+        try {
+          await admin.messaging().sendEach(messages);
+          logger.info(`FCM push sent to user ${userId}`);
+        } catch (fcmError) {
+          logger.error('FCM send error:', fcmError);
+        }
       }
     }
 

@@ -45,8 +45,11 @@ export async function registerForPushNotificationsAsync() {
     }
 
     try {
-      token = (await Notifications.getDevicePushTokenAsync()).data;
-      console.log('Native Push Token (FCM):', token);
+      const projectId = Constants.expoConfig?.extra?.eas?.projectId || Constants.easConfig?.projectId;
+      token = (await Notifications.getExpoPushTokenAsync({
+        projectId,
+      })).data;
+      console.log('Expo Push Token:', token);
 
       // Send to backend
       await userApi.registerFCMToken(token);
