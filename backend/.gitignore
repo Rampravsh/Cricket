@@ -4,3 +4,5 @@ node_modules/
 npm-debug.log
 coverage/
 dist/
+# Firebase Admin SDK
+cricket-494410-firebase-adminsdk-fbsvc-f4a7379d18.json

@@ -53,6 +53,27 @@ function AppNavigator() {
         }}
       >
         <Stack.Screen name={SCREENS.MAIN_TABS} component={BottomTabs} />
+        <Stack.Screen 
+          name={SCREENS.NOTIFICATIONS} 
+          component={NotificationScreen}
+          options={{
+            headerShown: false,
+            // Slide up animation for notifications
+            gestureDirection: 'vertical',
+            cardStyleInterpolator: ({ current, layouts }) => ({
+              cardStyle: {
+                transform: [
+                  {
+                    translateY: current.progress.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [layouts.screen.height, 0],
+                    }),
+                  },
+                ],
+              },
+            }),
+          }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );

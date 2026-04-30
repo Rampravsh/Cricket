@@ -25,6 +25,7 @@ import { SCORE_VALUES } from '~/constants';
 import Header from '~/components/Header';
 import Card from '~/components/Card';
 import ScoreButton from '~/components/ScoreButton';
+import NotificationIcon from '~/components/NotificationIcon';
 
 /**
  * LiveMatchScreen — Live cricket match scoring UI (Neon Glassy)
@@ -226,12 +227,15 @@ function LiveMatchScreen() {
         showBack
         onBack={() => navigation.goBack()}
         rightComponent={
-          !isWaiting && (
-            <View style={styles.liveBadge}>
-              <Animated.View style={[styles.liveDot, { opacity: blinkAnim }]} />
-              <Text style={styles.liveBadgeText}>LIVE</Text>
-            </View>
-          )
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            {!isWaiting && (
+              <View style={[styles.liveBadge, { marginRight: 8 }]}>
+                <Animated.View style={[styles.liveDot, { opacity: blinkAnim }]} />
+                <Text style={styles.liveBadgeText}>LIVE</Text>
+              </View>
+            )}
+            <NotificationIcon />
+          </View>
         }
       />
 

@@ -368,7 +368,7 @@ function QuickMatchScreen() {
         backgroundColor="transparent"
         translucent
       />
-      <Header title="Match Creation" />
+      <Header title="Match Creation" showNotification />
       <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
         {step === 1 ? renderStep1() : renderStep2()}
       </Animated.View>

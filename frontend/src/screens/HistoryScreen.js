@@ -259,7 +259,7 @@ function HistoryScreen() {
         backgroundColor="transparent"
         translucent
       />
-      <Header title="Match Explorer" />
+      <Header title="Match Explorer" showNotification />
       
       <View style={styles.container}>
         {renderFilterTabs()}

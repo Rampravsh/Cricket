@@ -24,7 +24,6 @@ function HomeScreen() {
   const navigation = useNavigation();
   const dispatch = useDispatch();
   const isLoading = useSelector(selectIsLoading);
-  const unreadCount = useSelector(state => state.notifications.unreadCount);
   const styles = createStyles(colors, spacing, borderRadius, isDark);
 
   // Real match data from API
@@ -142,19 +141,7 @@ function HomeScreen() {
       {/* Header */}
       <Header 
         title="Cricket Live" 
-        rightComponent={
-          <TouchableOpacity 
-            style={styles.notificationBtn}
-            onPress={() => navigation.navigate(SCREENS.NOTIFICATIONS)}
-          >
-            <Feather name="bell" size={22} color={colors.primary} />
-            {unreadCount > 0 && (
-              <View style={[styles.notificationBadge, { backgroundColor: colors.danger }]}>
-                <Text style={styles.notificationBadgeText}>{unreadCount}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-        }
+        showNotification
       />
 
       <ScrollView
@@ -512,32 +499,6 @@ function createStyles(colors, spacing, borderRadius, isDark) {
       marginBottom: spacing[3],
       marginTop: spacing[2],
       gap: spacing[2],
-    },
-    notificationBtn: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      backgroundColor: colors.glassBg,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderWidth: 1,
-      borderColor: colors.glassBorder,
-    },
-    notificationBadge: {
-      position: 'absolute',
-      top: -2,
-      right: -2,
-      minWidth: 18,
-      height: 18,
-      borderRadius: 9,
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingHorizontal: 4,
-    },
-    notificationBadgeText: {
-      color: '#fff',
-      fontSize: 10,
-      fontWeight: '900',
     },
     sectionTitle: {
       fontSize: 13,

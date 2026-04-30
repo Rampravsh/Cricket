@@ -10,7 +10,6 @@ import {
   Dimensions,
   ActivityIndicator,
   RefreshControl,
-  FlatList,
 } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -19,7 +18,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import { useNavigation } from '@react-navigation/native';
 
-import { useTheme } from '~/hooks';
+import { useTheme } from '~/hooks/useTheme';
+import Header from '~/components/Header';
 import { authService } from '~/services/authService';
 import { userApi, matchApi, feedApi, notificationApi } from '~/services/api';
 import {
@@ -106,17 +106,18 @@ const ProfileScreen = () => {
   // ─── Render Components ──────────────────────────────────────────────────────
 
   const renderHeader = () => (
-    <View style={styles.header}>
-      <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>
-        Profile
-      </Text>
-      <TouchableOpacity
-        style={[styles.iconButton, { backgroundColor: colors.surfaceVariant }]}
-        onPress={() => {/* Open Settings */ }}
-      >
-        <Ionicons name="settings-outline" size={22} color={colors.textPrimary} />
-      </TouchableOpacity>
-    </View>
+    <Header 
+      title="Profile" 
+      showNotification
+      rightComponent={
+        <TouchableOpacity
+          style={[styles.iconButton, { backgroundColor: colors.surfaceVariant }]}
+          onPress={() => {/* Open Settings */ }}
+        >
+          <Ionicons name="settings-outline" size={22} color={colors.textPrimary} />
+        </TouchableOpacity>
+      }
+    />
   );
 
   const renderGuestState = () => (
@@ -273,19 +274,6 @@ const MenuOption = ({ icon, title, subtitle, onPress, colors, badge }) => (
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 20,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: '800',
-    letterSpacing: -0.5,
   },
   iconButton: {
     width: 44,

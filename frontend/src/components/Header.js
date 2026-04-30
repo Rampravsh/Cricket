@@ -3,6 +3,8 @@ import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '~/hooks/useTheme';
 
+import NotificationIcon from './NotificationIcon';
+
 /**
  * Header — Glassmorphic screen-level header bar
  *
@@ -10,6 +12,7 @@ import { useTheme } from '~/hooks/useTheme';
  * @param {boolean}        showBack       - Show back button (chevron ‹)
  * @param {function}       onBack         - Called when back button is pressed
  * @param {React.ReactNode} rightComponent - Element rendered on the right side
+ * @param {boolean}        showNotification - Show notification bell icon
  * @param {boolean}        transparent    - Transparent background (for overlays)
  * @param {object}         style          - Additional container overrides
  */
@@ -18,6 +21,7 @@ function Header({
   showBack = false,
   onBack,
   rightComponent,
+  showNotification = false,
   transparent = false,
   style,
 }) {
@@ -46,9 +50,9 @@ function Header({
         {title}
       </Text>
 
-      {/* Right — Custom component */}
+      {/* Right — Custom component or Notification */}
       <View style={[styles.side, styles.sideRight]}>
-        {rightComponent || null}
+        {rightComponent ? rightComponent : (showNotification ? <NotificationIcon /> : null)}
       </View>
     </View>
   );

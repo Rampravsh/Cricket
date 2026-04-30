@@ -15,10 +15,12 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
       "package": "com.rampr.cricket",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -35,7 +37,8 @@
         {
           "iosUrlScheme": "com.googleusercontent.apps.205419828287-ios-client-id"
         }
-      ]
+      ],
+      "expo-notifications"
     ],
     "extra": {
       "eas": {

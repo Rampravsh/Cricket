@@ -37,16 +37,20 @@ const sendNotification = async ({
     // 2. Fetch user's FCM tokens
     const user = await User.findById(userId).select('fcmTokens');
     
-    // 3. Send FCM push (Placeholder)
+    // 3. Send FCM push
     if (user && user.fcmTokens && user.fcmTokens.length > 0) {
-      // In a real app, use firebase-admin here
-      // const admin = require('firebase-admin');
-      // const payload = { 
-      //   notification: { title, body: message }, 
-      //   data: { ...meta, type, matchId: String(matchId || '') } 
-      // };
-      // await admin.messaging().sendToDevice(user.fcmTokens, payload);
-      logger.info(`FCM push simulated for user ${userId} with ${user.fcmTokens.length} tokens`);
+      const admin = require('../../config/firebase');
+      const payload = { 
+        notification: { title, body: message }, 
+        data: { ...meta, type, matchId: String(matchId || '') } 
+      };
+      
+      try {
+        await admin.messaging().sendToDevice(user.fcmTokens, payload);
+        logger.info(`FCM push sent to user ${userId}`);
+      } catch (fcmError) {
+        logger.error('FCM send error:', fcmError);
+      }
     }
 
     // 4. Emit via Socket.IO

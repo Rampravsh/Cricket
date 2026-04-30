@@ -134,8 +134,6 @@ function BottomTabs() {
             iconName = 'clock';
           } else if (route.name === SCREENS.PROFILE) {
             iconName = 'user';
-          } else if (route.name === SCREENS.NOTIFICATIONS) {
-            iconName = 'bell';
           }
 
           const iconSize = focused ? size + 2 : size;
@@ -143,11 +141,6 @@ function BottomTabs() {
           return (
             <View style={styles.iconContainer}>
               <Feather name={iconName} size={iconSize} color={color} />
-              {route.name === SCREENS.NOTIFICATIONS && unreadCount > 0 && (
-                <View style={[styles.badge, { backgroundColor: colors.error }]}>
-                  <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
-                </View>
-              )}
               {focused && (
                 <View
                   style={[
@@ -187,10 +180,6 @@ function BottomTabs() {
         }}
       />
 
-      <Tab.Screen
-        name={SCREENS.NOTIFICATIONS}
-        component={NotificationScreen}
-      />
       
       <Tab.Screen
         name={SCREENS.HISTORY}

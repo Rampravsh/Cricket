@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "205419828287",
+    "project_id": "cricket-494410",
+    "storage_bucket": "cricket-494410.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:205419828287:android:171be436d50f299495d48a",
+        "android_client_info": {
+          "package_name": "com.rampr.cricket"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "205419828287-o8b2t056d6bvkjqm6kcmclnvd2lqb5fo.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDkpDL_uWSP69mvaVNfV9Eaxqc34oQ9crE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "205419828287-o8b2t056d6bvkjqm6kcmclnvd2lqb5fo.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
