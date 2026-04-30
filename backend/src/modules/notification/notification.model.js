@@ -8,6 +8,11 @@ const notificationSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+    type: {
+      type: String,
+      required: true,
+      enum: ['player_invite', 'invite_response', 'scorer_request', 'scorer_response', 'info'],
+    },
     title: {
       type: String,
       required: true,
@@ -16,18 +21,23 @@ const notificationSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    matchId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Match',
+      default: null,
+    },
+    meta: {
+      type: Object,
+      default: {},
+    },
+    status: {
+      type: String,
+      enum: ['pending', 'accepted', 'rejected', 'none'],
+      default: 'none',
+    },
     read: {
       type: Boolean,
       default: false,
-    },
-    type: {
-      type: String,
-      enum: ['info', 'match_invitation', 'scorer_request', 'invitation_response', 'scorer_response'],
-      default: 'info',
-    },
-    data: {
-      type: Object,
-      default: {},
     },
   },
   {

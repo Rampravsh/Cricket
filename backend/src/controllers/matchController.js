@@ -4,7 +4,9 @@ const Match = require('../models/Match');
 const PlayerProfile = require('../models/PlayerProfile');
 const Performance = require('../models/Performance');
 const matchService = require('../services/matchService');
-const notificationService = require('../services/notificationService');
+const notificationService = require('../modules/notification/notification.service');
+
+// ... (removed notifyUser helper as it's now integrated in notificationService)
 
 /**
  * @desc    Health check route
@@ -52,13 +54,14 @@ const createMatch = catchAsync(async (req, res) => {
   if (players && players.length > 0) {
     for (const p of players) {
       if (p.playerId) {
-        await notificationService.createNotification(
-          p.playerId,
-          'Match Invitation',
-          `You have been invited to join the match: ${newMatch.matchId}`,
-          'match_invitation',
-          { matchId: newMatch.matchId }
-        );
+        await notificationService.sendNotification({
+          userId: p.playerId,
+          type: 'player_invite',
+          title: 'Match Invitation',
+          message: `You have been invited to join the match: ${newMatch.matchId}`,
+          matchId: newMatch._id,
+          meta: { matchId: newMatch.matchId, creatorId: req.user._id }
+        });
       }
     }
   }
@@ -274,13 +277,14 @@ const invitePlayer = catchAsync(async (req, res) => {
   match.players.push({ playerId: userId, name, status: 'pending' });
   await match.save();
 
-  await notificationService.createNotification(
+  await notificationService.sendNotification({
     userId,
-    'Match Invitation',
-    `You have been invited to join the match: ${match.matchId}`,
-    'match_invitation',
-    { matchId: match.matchId }
-  );
+    type: 'player_invite',
+    title: 'Match Invitation',
+    message: `You have been invited to join the match: ${match.matchId}`,
+    matchId: match._id,
+    meta: { matchId: match.matchId, creatorId: req.user._id }
+  });
 
   res.status(200).json(sendResponse(true, 'Player invited successfully', match));
 });
@@ -307,13 +311,14 @@ const playerResponse = catchAsync(async (req, res) => {
   match.players[playerIndex].status = status;
   await match.save();
 
-  await notificationService.createNotification(
-    match.createdByUserId,
-    'Invitation Response',
-    `${req.user.name} has ${status} your match invitation.`,
-    'invitation_response',
-    { matchId: match.matchId, status }
-  );
+  await notificationService.sendNotification({
+    userId: match.createdByUserId,
+    type: 'invite_response',
+    title: 'Invitation Response',
+    message: `${req.user.name} has ${status} your match invitation.`,
+    matchId: match._id,
+    meta: { matchId: match.matchId, status, responderId: req.user._id }
+  });
 
   res.status(200).json(sendResponse(true, `Invitation ${status}`, match));
 });
@@ -340,13 +345,14 @@ const requestScorer = catchAsync(async (req, res) => {
   match.scorerRequests.push({ userId: req.user._id, status: 'pending' });
   await match.save();
 
-  await notificationService.createNotification(
-    match.createdByUserId,
-    'Scorer Request',
-    `${req.user.name} wants to be a scorer for match: ${match.matchId}`,
-    'scorer_request',
-    { matchId: match.matchId, requesterId: req.user._id }
-  );
+  await notificationService.sendNotification({
+    userId: match.createdByUserId,
+    type: 'scorer_request',
+    title: 'Scorer Request',
+    message: `${req.user.name} wants to be a scorer for match: ${match.matchId}`,
+    matchId: match._id,
+    meta: { matchId: match.matchId, requesterId: req.user._id }
+  });
 
   res.status(200).json(sendResponse(true, 'Scorer request sent', match));
 });
@@ -378,15 +384,74 @@ const scorerResponse = catchAsync(async (req, res) => {
   }
   await match.save();
 
-  await notificationService.createNotification(
+  await notificationService.sendNotification({
     userId,
-    'Scorer Request Response',
-    `Your request to score match ${match.matchId} was ${status}`,
-    'scorer_response',
-    { matchId: match.matchId, status }
-  );
+    type: 'scorer_response',
+    title: 'Scorer Request Response',
+    message: `Your request to score match ${match.matchId} was ${status}`,
+    matchId: match._id,
+    meta: { matchId: match.matchId, status, creatorId: req.user._id }
+  });
 
   res.status(200).json(sendResponse(true, `Scorer request ${status}`, match));
+});
+
+/**
+ * @desc    Replace a player in a match
+ * @route   PATCH /api/v1/matches/:id/replace-player
+ * @access  Private
+ */
+const replacePlayer = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const { oldPlayerId, oldPlayerName, newPlayerId, newName } = req.body;
+
+  const match = await Match.findOne({ matchId: id });
+  if (!match) return res.status(404).json(sendResponse(false, 'Match not found'));
+
+  if (!match.createdByUserId.equals(req.user._id) && !match.scorers.includes(req.user._id)) {
+    return res.status(403).json(sendResponse(false, 'Not authorized to manage players'));
+  }
+
+  // 1. Update match.players
+  if (oldPlayerId) {
+    match.players = match.players.filter(p => p.playerId?.toString() !== oldPlayerId.toString());
+  } else if (oldPlayerName) {
+    match.players = match.players.filter(p => p.name !== oldPlayerName);
+  }
+
+  if (newPlayerId) {
+    match.players.push({ playerId: newPlayerId, name: newName, status: 'pending' });
+  }
+
+  // 2. Update the team player lists
+  match.teams.forEach(team => {
+    team.players = team.players.map(p => {
+      const matchIdAttr = p.playerId?.toString();
+      if ((oldPlayerId && matchIdAttr === oldPlayerId.toString()) || (oldPlayerName && p.nameSnapshot === oldPlayerName)) {
+        return { 
+          playerId: newPlayerId || null, 
+          nameSnapshot: newName 
+        };
+      }
+      return p;
+    });
+  });
+
+  await match.save();
+
+  // 3. Send notification to new player
+  if (newPlayerId) {
+    await notificationService.sendNotification({
+      userId: newPlayerId,
+      type: 'player_invite',
+      title: 'Match Invitation',
+      message: `You have been invited to join the match: ${match.matchId}`,
+      matchId: match._id,
+      meta: { matchId: match.matchId, creatorId: req.user._id }
+    });
+  }
+
+  res.status(200).json(sendResponse(true, 'Player replaced successfully', match));
 });
 
 module.exports = {
@@ -401,4 +466,5 @@ module.exports = {
   playerResponse,
   requestScorer,
   scorerResponse,
+  replacePlayer,
 };

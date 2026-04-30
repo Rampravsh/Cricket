@@ -10,6 +10,7 @@ const {
   playerResponse,
   requestScorer,
   scorerResponse,
+  replacePlayer,
 } = require('../controllers/matchController');
 
 const { protect } = require('../middleware/auth');
@@ -37,5 +38,6 @@ router.post('/:id/invite-player', invitePlayer);
 router.patch('/:id/player-response', playerResponse);
 router.post('/:id/request-scorer', requestScorer);
 router.patch('/:id/scorer-response', scorerResponse);
+router.patch('/:id/replace-player', replacePlayer);
 
 module.exports = router;

@@ -6,6 +6,7 @@ const express = require('express');
 
 const { getMe, updateMe, getDashboard } = require('../controllers/userController');
 const { getMyMatches } = require('../controllers/matchController');
+const { registerFCMToken } = require('../modules/notification/notification.controller');
 const { protect } = require('../middleware/auth');
 
 const router = express.Router();
@@ -24,5 +25,8 @@ router.patch('/me', updateMe);
 
 // GET /api/v1/users/me/matches
 router.get('/me/matches', getMyMatches);
+
+// POST /api/v1/users/register-fcm-token
+router.post('/register-fcm-token', registerFCMToken);
 
 module.exports = router;

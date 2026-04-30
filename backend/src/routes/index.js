@@ -4,7 +4,7 @@ const authRoutes = require('./authRoutes');
 const userRoutes = require('./userRoutes');
 const playerRoutes = require('./playerRoutes');
 const feedRoutes = require('./feedRoutes');
-const notificationRoutes = require('./notificationRoutes');
+const notificationRoutes = require('../modules/notification/notification.routes');
 
 const router = express.Router();
 

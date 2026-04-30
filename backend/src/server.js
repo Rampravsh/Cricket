@@ -6,7 +6,7 @@ const app = require('./app');
 const config = require('./config');
 const connectDB = require('./config/db');
 const logger = require('./utils/logger');
-const socketHandler = require('./sockets');
+const { socketHandler } = require('./sockets');
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (err) => {

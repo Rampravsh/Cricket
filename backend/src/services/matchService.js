@@ -151,7 +151,7 @@ const matchService = {
     const PlayerProfile = require('../models/PlayerProfile');
     const Performance = require('../models/Performance');
     const activityService = require('./activityService');
-    const notificationService = require('./notificationService');
+    const notificationService = require('../modules/notification/notification.service');
 
     const players = [];
     match.teams.forEach(team => {
@@ -226,11 +226,14 @@ const matchService = {
         }
 
         // 4. Create Notification
-        await notificationService.createNotification(
-          profile.userId,
-          'Match Finalized',
-          `Match ${match.matchId} has been finalized. Your stats: ${runs} runs, ${wickets} wickets.`
-        );
+        await notificationService.sendNotification({
+          userId: profile.userId,
+          type: 'info',
+          title: 'Match Finalized',
+          message: `Match ${match.matchId} has been finalized. Your stats: ${runs} runs, ${wickets} wickets.`,
+          matchId: match._id,
+          meta: { matchId: match.matchId, runs, wickets }
+        });
       }
     }
 

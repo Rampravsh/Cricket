@@ -2,7 +2,7 @@ const User = require('../models/User');
 const PlayerProfile = require('../models/PlayerProfile');
 const Match = require('../models/Match');
 const Activity = require('../models/Activity');
-const Notification = require('../models/Notification');
+const Notification = require('../modules/notification/notification.model');
 const AppError = require('../utils/AppError');
 const matchService = require('./matchService');
 
