@@ -6,6 +6,8 @@ import { SCREENS } from '~/constants';
 import BottomTabs from './BottomTabs';
 import NotificationScreen from '~/screens/NotificationScreen';
 
+import { navigationRef } from './navigationRef';
+
 const Stack = createStackNavigator();
 
 /**
@@ -18,6 +20,7 @@ function AppNavigator() {
 
   return (
     <NavigationContainer
+      ref={navigationRef}
       theme={{
         dark: colors.statusBar === 'light',
         colors: {
@@ -50,7 +53,6 @@ function AppNavigator() {
         }}
       >
         <Stack.Screen name={SCREENS.MAIN_TABS} component={BottomTabs} />
-        <Stack.Screen name={SCREENS.NOTIFICATIONS} component={NotificationScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

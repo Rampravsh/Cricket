@@ -102,6 +102,8 @@ export const userApi = {
 
   /** Get user's match history */
   getMatchHistory: () => apiClient.get('/users/me/matches'),
+  /** Register FCM token */
+  registerFCMToken: (token) => apiClient.post('/users/register-fcm-token', { token }),
 };
 
 // ─── Feed API ──────────────────────────────────────────────────────────────────
@@ -116,6 +118,8 @@ export const notificationApi = {
   getNotifications: () => apiClient.get('/notifications'),
   /** Mark notification as read */
   markRead: (id) => apiClient.patch(`/notifications/${id}/read`),
+  /** Handle actionable notification */
+  handleAction: (id, action) => apiClient.patch(`/notifications/${id}/action`, { action }),
 };
 
 export default apiClient;

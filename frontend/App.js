@@ -12,6 +12,10 @@ import authService from '~/services/authService';
 import { connectSocket, joinUser, listenToNotifications } from '~/services/socket';
 import { addNotification } from '~/store/notificationSlice';
 
+import { registerForPushNotificationsAsync, setupNotificationListeners } from '~/utils/notifications';
+import { listenToMatchUpdates } from '~/services/socket';
+import { fetchMatchThunk } from '~/store/matchSlice';
+
 /**
  * Main app content to handle initialization
  */
@@ -26,14 +30,37 @@ function AppContent() {
 
   React.useEffect(() => {
     if (user?._id) {
+      // Setup Socket
       connectSocket();
       joinUser(user._id);
 
       listenToNotifications((notification) => {
         dispatch(addNotification(notification));
       });
+
+      listenToMatchUpdates((data) => {
+        console.log('[Socket] Match updated:', data);
+        // If we are tracking a match, refresh it
+        if (data.matchId) {
+          // You might want to refresh specific match if currently viewed
+          // For now, we can just trigger a general refresh if needed
+        }
+      });
+
+      // Setup Push Notifications
+      registerForPushNotificationsAsync();
     }
   }, [user?._id, dispatch]);
+
+  // Handle deep linking / navigation from notifications
+  React.useEffect(() => {
+    // Note: We need a navigation ref or use navigation within a component that has it.
+    // AppContent is inside NavigationContainer (via AppNavigator), so we can't use useNavigation here directly if it's not a screen.
+    // However, setupNotificationListeners can take a reference or we can handle it inside the navigator.
+    // For now, let's just initialize it.
+    const cleanup = setupNotificationListeners();
+    return () => cleanup && cleanup();
+  }, []);
 
   return <AppNavigator />;
 }

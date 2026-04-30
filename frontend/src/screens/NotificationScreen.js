@@ -14,8 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTheme } from '~/hooks/useTheme';
 import Header from '~/components/Header';
-import { fetchNotificationsThunk, markNotificationReadThunk } from '~/store/notificationSlice';
-import { matchApi } from '~/services/api';
+import { fetchNotificationsThunk, markNotificationReadThunk, handleNotificationActionThunk } from '~/store/notificationSlice';
 
 function NotificationScreen({ navigation }) {
   const { colors, spacing, borderRadius, isDark } = useTheme();
@@ -29,71 +28,70 @@ function NotificationScreen({ navigation }) {
     dispatch(fetchNotificationsThunk());
   }, [dispatch]);
 
+  // Mark all as read when entering
+  useEffect(() => {
+    const unreadIds = notifications.filter(n => !n.read).map(n => n._id);
+    if (unreadIds.length > 0) {
+      unreadIds.forEach(id => {
+        dispatch(markNotificationReadThunk(id));
+      });
+    }
+  }, [notifications.length]);
+
   const onRefresh = async () => {
     setRefreshing(true);
     await dispatch(fetchNotificationsThunk());
     setRefreshing(false);
   };
 
-  const handleAction = async (notification, action) => {
-    try {
-      const matchId = notification.data?.matchId;
-      if (!matchId) {
-        Alert.alert('Error', 'Match ID not found in notification');
-        return;
-      }
-
-      let response;
-      if (notification.type === 'match_invitation') {
-        response = await matchApi.respondInvitation(matchId, action === 'accept' ? 'accepted' : 'rejected');
-      } else if (notification.type === 'scorer_request') {
-        response = await matchApi.respondScorerRequest(matchId, {
-          userId: notification.data.requesterId,
-          status: action === 'accept' ? 'accepted' : 'rejected',
-        });
-      }
-
-      if (response?.success) {
-        Alert.alert('Success', `Invitation ${action}ed`);
-        dispatch(markNotificationReadThunk(notification._id));
-        dispatch(fetchNotificationsThunk());
-      } else {
-        Alert.alert('Error', response?.message || 'Action failed');
-      }
-    } catch (error) {
-      console.error('Notification action error:', error);
-      Alert.alert('Error', 'An unexpected error occurred');
+  const onAction = async (id, action) => {
+    const resultAction = await dispatch(handleNotificationActionThunk({ id, action }));
+    if (handleNotificationActionThunk.fulfilled.match(resultAction)) {
+      Alert.alert('Success', `Invitation ${action}`);
+    } else {
+      Alert.alert('Error', resultAction.payload || 'Action failed');
     }
   };
 
   const renderNotification = ({ item }) => {
-    const isActionable = item.type === 'match_invitation' || item.type === 'scorer_request';
+    const isActionable = (item.type === 'player_invite' || item.type === 'scorer_request') && item.status === 'pending';
+    const isResponse = item.type === 'invite_response' || item.type === 'scorer_response';
     
     return (
       <View style={[styles.card, !item.read && styles.unreadCard]}>
         <View style={styles.iconContainer}>
           <Ionicons
-            name={item.type === 'match_invitation' ? 'mail' : 'person-add'}
+            name={item.type === 'player_invite' ? 'mail' : isResponse ? 'chatbubble-ellipses' : 'notifications'}
             size={24}
             color={colors.primary}
           />
         </View>
         <View style={styles.content}>
-          <Text style={styles.title}>{item.title}</Text>
+          <View style={styles.headerRow}>
+            <Text style={styles.title}>{item.title}</Text>
+            {!item.read && <View style={styles.unreadDot} />}
+          </View>
           <Text style={styles.message}>{item.message}</Text>
+          
+          {item.status !== 'none' && item.status !== 'pending' && (
+             <Text style={[styles.statusText, { color: item.status === 'accepted' ? colors.success : colors.error }]}>
+               Status: {item.status.toUpperCase()}
+             </Text>
+          )}
+
           <Text style={styles.time}>{new Date(item.createdAt).toLocaleString()}</Text>
 
-          {isActionable && !item.read && (
+          {isActionable && (
             <View style={styles.actions}>
               <TouchableOpacity
                 style={[styles.actionBtn, styles.acceptBtn]}
-                onPress={() => handleAction(item, 'accept')}
+                onPress={() => onAction(item._id, 'accepted')}
               >
                 <Text style={styles.acceptText}>Accept</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.actionBtn, styles.rejectBtn]}
-                onPress={() => handleAction(item, 'reject')}
+                onPress={() => onAction(item._id, 'rejected')}
               >
                 <Text style={styles.rejectText}>Reject</Text>
               </TouchableOpacity>
@@ -169,16 +167,32 @@ function createStyles(colors, spacing, borderRadius, isDark) {
     content: {
       flex: 1,
     },
+    headerRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 2,
+    },
+    unreadDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: colors.primary,
+    },
     title: {
       fontSize: 16,
       fontWeight: '700',
       color: colors.textPrimary,
-      marginBottom: 2,
     },
     message: {
       fontSize: 14,
       color: colors.textSecondary,
-      marginBottom: 8,
+      marginBottom: 4,
+    },
+    statusText: {
+      fontSize: 12,
+      fontWeight: '700',
+      marginBottom: 4,
     },
     time: {
       fontSize: 12,

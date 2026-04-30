@@ -32,6 +32,18 @@ export const markNotificationReadThunk = createAsyncThunk(
   }
 );
 
+export const handleNotificationActionThunk = createAsyncThunk(
+  'notifications/handleAction',
+  async ({ id, action }, { rejectWithValue }) => {
+    try {
+      const res = await notificationApi.handleAction(id, action);
+      return { id, notification: res.data.notification };
+    } catch (err) {
+      return rejectWithValue(err.message || 'Failed to process notification action');
+    }
+  }
+);
+
 const notificationSlice = createSlice({
   name: 'notifications',
   initialState,
@@ -60,6 +72,12 @@ const notificationSlice = createSlice({
         if (index !== -1 && !state.notifications[index].read) {
           state.notifications[index].read = true;
           state.unreadCount = Math.max(0, state.unreadCount - 1);
+        }
+      })
+      .addCase(handleNotificationActionThunk.fulfilled, (state, action) => {
+        const index = state.notifications.findIndex((n) => n._id === action.payload.id);
+        if (index !== -1) {
+          state.notifications[index] = action.payload.notification;
         }
       });
   },

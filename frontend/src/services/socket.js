@@ -59,12 +59,18 @@ export const listenToScoreUpdates = (callback) => {
 
 export const listenToNotifications = (callback) => {
   if (!socket) return;
-  socket.on('new-notification', callback);
+  socket.on('notification:new', callback);
+};
+
+export const listenToMatchUpdates = (callback) => {
+  if (!socket) return;
+  socket.on('match:update', callback);
 };
 
 export const removeEventListeners = () => {
   if (!socket) return;
   socket.off('score-updated');
   socket.off('match-started');
-  socket.off('new-notification');
+  socket.off('notification:new');
+  socket.off('match:update');
 };

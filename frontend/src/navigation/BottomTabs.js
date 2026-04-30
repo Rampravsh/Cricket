@@ -7,12 +7,15 @@ import { Feather } from '@expo/vector-icons';
 import { useTheme } from '~/hooks/useTheme';
 import { SCREENS } from '~/constants';
 
+import { useDispatch, useSelector } from 'react-redux';
+
 // Target Screens
 import HomeScreen from '~/screens/HomeScreen';
 import LiveMatchScreen from '~/screens/LiveMatchScreen';
 import QuickMatchScreen from '~/screens/QuickMatchScreen';
 import HistoryScreen from '~/screens/HistoryScreen';
 import ProfileScreen from '~/screens/ProfileScreen';
+import NotificationScreen from '~/screens/NotificationScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -121,6 +124,7 @@ function BottomTabs() {
           ),
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
+          const unreadCount = useSelector(state => state.notifications.unreadCount);
 
           if (route.name === SCREENS.HOME) {
             iconName = 'home';
@@ -130,6 +134,8 @@ function BottomTabs() {
             iconName = 'clock';
           } else if (route.name === SCREENS.PROFILE) {
             iconName = 'user';
+          } else if (route.name === SCREENS.NOTIFICATIONS) {
+            iconName = 'bell';
           }
 
           const iconSize = focused ? size + 2 : size;
@@ -137,6 +143,11 @@ function BottomTabs() {
           return (
             <View style={styles.iconContainer}>
               <Feather name={iconName} size={iconSize} color={color} />
+              {route.name === SCREENS.NOTIFICATIONS && unreadCount > 0 && (
+                <View style={[styles.badge, { backgroundColor: colors.error }]}>
+                  <Text style={styles.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                </View>
+              )}
               {focused && (
                 <View
                   style={[
@@ -176,6 +187,11 @@ function BottomTabs() {
         }}
       />
 
+      <Tab.Screen
+        name={SCREENS.NOTIFICATIONS}
+        component={NotificationScreen}
+      />
+      
       <Tab.Screen
         name={SCREENS.HISTORY}
         component={HistoryScreen}
@@ -231,6 +247,23 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.8,
     shadowRadius: 4,
     elevation: 2,
+  },
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -6,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1,
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold',
+    paddingHorizontal: 2,
   },
 });
 
