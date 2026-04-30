@@ -253,7 +253,7 @@ function HistoryScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <SafeAreaView style={styles.safeArea} edges={['bottom']}>
       <StatusBar
         barStyle={isDark ? 'light-content' : 'dark-content'}
         backgroundColor="transparent"
@@ -332,7 +332,7 @@ function createStyles(colors, spacing, borderRadius, isDark) {
     },
     listContent: {
       paddingHorizontal: 20,
-      paddingBottom: 40,
+      paddingBottom: 100,
     },
     matchCard: {
       backgroundColor: colors.surface,

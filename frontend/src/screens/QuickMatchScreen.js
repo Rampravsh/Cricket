@@ -362,7 +362,7 @@ function QuickMatchScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <SafeAreaView style={styles.safeArea} edges={['bottom']}>
       <StatusBar
         barStyle={colors.statusBar === 'dark' ? 'dark-content' : 'light-content'}
         backgroundColor="transparent"

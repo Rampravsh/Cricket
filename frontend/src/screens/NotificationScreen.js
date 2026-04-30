@@ -103,7 +103,7 @@ function NotificationScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <SafeAreaView style={styles.safeArea} edges={['bottom']}>
       <Header title="Notifications" showBack onBack={() => navigation.goBack()} />
       <View style={styles.container}>
         {isLoading && !refreshing ? (
