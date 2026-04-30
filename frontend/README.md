@@ -9,6 +9,7 @@ A premium, high-performance cricket scoring mobile application built with React 
 - **State Management:** [Redux Toolkit](https://redux-toolkit.js.org/)
 - **Authentication:** Google Sign-In (`@react-native-google-signin/google-signin`)
 - **Real-time Updates:** [Socket.IO Client](https://socket.io/)
+- **Push Notifications:** [Expo Notifications](https://docs.expo.dev/versions/latest/sdk/notifications/) & FCM
 - **Styling:** `StyleSheet.create()` + Custom Theme Engine
 - **Feedback:** Haptics (`expo-haptics`) and Audio (`expo-av`)
 
@@ -20,6 +21,7 @@ A premium, high-performance cricket scoring mobile application built with React 
 - **Invitations:** Manage match invitations and scorer requests from other users.
 - **Dynamic Theming:** Auto-switching light/dark mode based on system preferences.
 - **Interactive UI:** Premium motion design with scale animations and glassmorphism.
+- **Push Alerts:** Integration with Firebase Cloud Messaging for match invites and critical updates.
 - **Clean Architecture:** Service-based API layer and Redux-driven state.
 
 ## 📁 Directory Structure
@@ -73,6 +75,7 @@ The app communicates with the backend via a centralized service layer:
 - **apiService.js:** Handles all HTTP requests using Axios.
 - **socketService.js:** Manages WebSocket connections and event listeners.
 - **authService.js:** Integrates Google Sign-In and JWT handling.
+- **notificationService.js:** Manages FCM token registration and notification listeners.
 
 ## 🎨 UI/UX Design
 

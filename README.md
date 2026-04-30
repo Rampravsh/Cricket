@@ -65,6 +65,7 @@ npm run web
 - ✅ **Cricket scoring UI** — ScoreButton grid, over tracker, scoreboard
 - ✅ **Multi-Scorer Support** — Multiple users can request to score; host can approve.
 - ✅ **Match Invitations** — Invite players to matches via notifications.
+- ✅ **Real-time Notifications** — FCM for push alerts and Socket.IO for in-app state sync.
 
 ## 🧩 Key Decisions
 
@@ -81,8 +82,15 @@ Edit `src/constants/index.js` to set your API/WebSocket URLs:
 export const ENV = {
   API_BASE_URL: 'http://YOUR_IP:5000/api/v1',
   SOCKET_URL:   'ws://YOUR_IP:5000',
+  FCM_SERVER_KEY: '...', // Handled via google-services.json / firebase-admin
 };
 ```
+
+## 🔔 Notification System
+
+The app uses a dual-layer notification strategy:
+1. **Socket.IO**: For real-time updates while the app is in the foreground (e.g., score changes, live match status).
+2. **FCM (Firebase Cloud Messaging)**: For background/kill-state alerts (e.g., match invitations, scorer requests).
 
 ## 🔮 Roadmap
 
@@ -91,7 +99,8 @@ export const ENV = {
 - [x] Socket.IO integration for real-time scoring
 - [x] Authentication flow (Google Sign-In integration)
 - [x] Match history & stats (Backend API & Redux state)
-- [ ] Scorecard screen
-- [ ] Push notifications for wickets/milestones
+- [x] Push notifications for invitations and alerts
+- [ ] Detailed scorecard screen
 - [ ] Tournament management
+- [ ] Player leaderboards
 

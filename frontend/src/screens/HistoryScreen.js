@@ -284,7 +284,8 @@ function HistoryScreen() {
           <FlatList
             data={combinedMatches}
             renderItem={renderMatchCard}
-            keyExtractor={item => item.matchId}
+            keyExtractor={(item, index) => item.matchId || item._id || index.toString()}
+
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
             refreshControl={

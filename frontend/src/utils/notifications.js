@@ -45,11 +45,8 @@ export async function registerForPushNotificationsAsync() {
     }
 
     try {
-      const projectId = Constants.expoConfig?.extra?.eas?.projectId || Constants.easConfig?.projectId;
-      token = (await Notifications.getExpoPushTokenAsync({
-        projectId,
-      })).data;
-      console.log('Expo Push Token:', token);
+      token = (await Notifications.getDevicePushTokenAsync()).data;
+      console.log('Native Push Token (FCM):', token);
 
       // Send to backend
       await userApi.registerFCMToken(token);
@@ -81,7 +78,7 @@ export function setupNotificationListeners() {
   });
 
   return () => {
-    Notifications.removeNotificationSubscription(notificationListener);
-    Notifications.removeNotificationSubscription(responseListener);
+    notificationListener.remove();
+    responseListener.remove();
   };
 }

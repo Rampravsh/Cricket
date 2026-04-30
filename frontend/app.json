@@ -15,9 +15,9 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true,
-      "googleServicesFile": "./GoogleService-Info.plist"
+      "supportsTablet": true
     },
+
     "android": {
       "package": "com.rampr.cricket",
       "googleServicesFile": "./google-services.json",

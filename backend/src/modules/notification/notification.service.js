@@ -46,7 +46,12 @@ const sendNotification = async ({
       };
       
       try {
-        await admin.messaging().sendToDevice(user.fcmTokens, payload);
+        const messages = user.fcmTokens.map(token => ({
+          token,
+          notification: payload.notification,
+          data: payload.data
+        }));
+        await admin.messaging().sendEach(messages);
         logger.info(`FCM push sent to user ${userId}`);
       } catch (fcmError) {
         logger.error('FCM send error:', fcmError);

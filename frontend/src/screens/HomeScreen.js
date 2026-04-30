@@ -254,7 +254,8 @@ function HomeScreen() {
         ) : (
           matches.map((match, index) => (
             <MatchQuickCard
-              key={match.matchId || match._id || index}
+              key={`match-${match.matchId || match._id || index}-${index}`}
+
               teamA={match.teams?.[0]?.name || 'Team A'}
               teamB={match.teams?.[1]?.name || 'Team B'}
               status={match.status?.toUpperCase() || 'WAITING'}

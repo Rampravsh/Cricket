@@ -7,6 +7,7 @@ A production-ready Node.js backend using Express and MongoDB. Built with scalabi
 - **Node.js + Express** (v5.x) - Server framework
 - **MongoDB + Mongoose** - Database and ORM
 - **Socket.IO** - Real-time active match updates
+- **Firebase Admin SDK** - Push notifications (FCM)
 - **dotenv** - Environment variable management
 
 ## 📁 Architecture (MVC)
@@ -39,7 +40,8 @@ src/
 2. **Async Catch Wrapper**: The `catchAsync.js` utility automatically catches Promise rejections so the server never crashes on unhandled promise rejections.
 3. **Standardized Responses**: The `response.js` utility forces all endpoints to reply with a uniform `{ success, message, data }` response format.
 4. **WebSocket Foundation**: Pre-configured Socket.IO handling namespaces and rooms (via matchId) to enable instant score-board syncing logic.
-5. **Robust Booting Process**: Handled `uncaughtException` and `unhandledRejection` process events for professional-grade graceful shutdown implementations.
+5. **Push Notifications**: Integrated Firebase Cloud Messaging (FCM) for real-time alerts (match invites, scorer requests, and live updates).
+6. **Robust Booting Process**: Handled `uncaughtException` and `unhandledRejection` process events for professional-grade graceful shutdown implementations.
 
 ## 🏁 Getting Started
 
@@ -155,6 +157,35 @@ All endpoints respond with the standardized format: `{ success: boolean, message
 #### 5. Fetch a Specific Match
 - **Route:** `GET /api/v1/matches/:matchId`
 - **Description:** Returns the full comprehensive state of a match (score, ball logs, status). Also includes a `roles` array for the authenticated user (e.g., `['host', 'scorer']`).
+
+#### 6. Replace Player
+- **Route:** `PATCH /api/v1/matches/:matchId/replace-player`
+- **Body Example:** `{ "oldPlayerId": "ID1", "newPlayer": { "playerId": "ID2", "name": "Name" } }`
+- **Description:** Replace a waiting/absent player in a match.
+
+### 📊 Dashboard & Feed
+#### 1. Get Dashboard
+- **Route:** `GET /api/v1/users/me/dashboard`
+- **Description:** Returns aggregated stats, active matches, and recent activity for the user.
+
+#### 2. Social Feed
+- **Route:** `GET /api/v1/feed`
+- **Description:** Returns a global feed of recent match activities and milestones.
+
+### 👥 Player & Search
+#### 1. Search Players
+- **Route:** `GET /api/v1/players/search?q=query`
+- **Description:** Search for registered users to invite to matches.
+
+#### 2. Player Stats
+- **Route:** `GET /api/v1/players/:id`
+- **Description:** Returns comprehensive career stats for a specific player.
+
+### 🔔 Notifications
+#### 1. Register FCM Token
+- **Route:** `POST /api/v1/users/register-fcm-token`
+- **Body:** `{ "token": "FCM_TOKEN" }`
+- **Description:** Saves the user's device token for push notifications.
 
 ## 🔌 WebSockets / Socket.IO
 - **Connect:** Connect your socket instance to the server URL.

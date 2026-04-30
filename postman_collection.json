@@ -13,165 +13,455 @@
         "url": {
           "raw": "http://localhost:5000/api/v1/matches/health",
           "protocol": "http",
-          "host": [
-            "localhost"
-          ],
+          "host": ["localhost"],
           "port": "5000",
-          "path": [
-            "api",
-            "v1",
-            "matches",
-            "health"
-          ]
+          "path": ["api", "v1", "matches", "health"]
         }
       }
     },
     {
-      "name": "Create Match",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "x-device-id",
-            "value": "scorer-device-123",
-            "type": "text"
-          },
-          {
-            "key": "Content-Type",
-            "value": "application/json",
-            "type": "text"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"matchId\": \"match-101\",\n  \"teams\": [\n    {\n      \"name\": \"India\",\n      \"players\": [\n        { \"id\": \"p1\", \"name\": \"Virat Kohli\" },\n        { \"id\": \"p3\", \"name\": \"Rohit Sharma\" }\n      ]\n    },\n    {\n      \"name\": \"Australia\",\n      \"players\": [\n        { \"id\": \"p2\", \"name\": \"Steve Smith\" },\n        { \"id\": \"p4\", \"name\": \"Pat Cummins\" }\n      ]\n    }\n  ],\n  \"isPublic\": true,\n  \"toss\": {\n    \"winner\": \"India\",\n    \"decision\": \"bat\"\n  }\n}"
-        },
-        "url": {
-          "raw": "http://localhost:5000/api/v1/matches/create",
-          "protocol": "http",
-          "host": [
-            "localhost"
-          ],
-          "port": "5000",
-          "path": [
-            "api",
-            "v1",
-            "matches",
-            "create"
-          ]
-        }
-      }
-    },
-    {
-      "name": "Get Public Matches",
-      "request": {
-        "method": "GET",
-        "header": [],
-        "url": {
-          "raw": "http://localhost:5000/api/v1/matches/public?page=1&limit=10",
-          "protocol": "http",
-          "host": [
-            "localhost"
-          ],
-          "port": "5000",
-          "path": [
-            "api",
-            "v1",
-            "matches",
-            "public"
-          ],
-          "query": [
-            {
-              "key": "page",
-              "value": "1"
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Google Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idToken\": \"GOOGLE_ID_TOKEN\"\n}"
             },
-            {
-              "key": "limit",
-              "value": "10"
+            "url": {
+              "raw": "http://localhost:5000/api/v1/auth/google",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["api", "v1", "auth", "google"]
             }
-          ]
-        }
-      }
-    },
-    {
-      "name": "Get Match By ID",
-      "request": {
-        "method": "GET",
-        "header": [],
-        "url": {
-          "raw": "http://localhost:5000/api/v1/matches/match-101",
-          "protocol": "http",
-          "host": [
-            "localhost"
-          ],
-          "port": "5000",
-          "path": [
-            "api",
-            "v1",
-            "matches",
-            "match-101"
-          ]
-        }
-      }
-    },
-    {
-      "name": "Start Match",
-      "request": {
-        "method": "PATCH",
-        "header": [],
-        "url": {
-          "raw": "http://localhost:5000/api/v1/matches/match-101/start",
-          "protocol": "http",
-          "host": [
-            "localhost"
-          ],
-          "port": "5000",
-          "path": [
-            "api",
-            "v1",
-            "matches",
-            "match-101",
-            "start"
-          ]
-        }
-      }
-    },
-    {
-      "name": "Add Ball (Score)",
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "x-device-id",
-            "value": "scorer-device-123",
-            "type": "text"
-          },
-          {
-            "key": "Content-Type",
-            "value": "application/json",
-            "type": "text"
           }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"runs\": 4,\n  \"extra\": null,\n  \"wicket\": false,\n  \"strikerId\": \"player-bat-1\",\n  \"bowlerId\": \"player-bowl-1\"\n}"
-        },
-        "url": {
-          "raw": "http://localhost:5000/api/v1/matches/match-101/ball",
-          "protocol": "http",
-          "host": [
-            "localhost"
-          ],
-          "port": "5000",
-          "path": [
-            "api",
-            "v1",
-            "matches",
-            "match-101",
-            "ball"
-          ]
         }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Get My Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:5000/api/v1/users/me",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["api", "v1", "users", "me"]
+            }
+          }
+        },
+        {
+          "name": "Update My Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"New Name\",\n  \"bio\": \"Cricket Enthusiast\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5000/api/v1/users/me",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["api", "v1", "users", "me"]
+            }
+          }
+        },
+        {
+          "name": "Get My Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:5000/api/v1/users/me/dashboard",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["api", "v1", "users", "me", "dashboard"]
+            }
+          }
+        },
+        {
+          "name": "Get My Match History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:5000/api/v1/users/me/matches",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["api", "v1", "users", "me", "matches"]
+            }
+          }
+        },
+        {
+          "name": "Register FCM Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"FCM_DEVICE_TOKEN\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5000/api/v1/users/register-fcm-token",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["api", "v1", "users", "register-fcm-token"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Matches",
+      "item": [
+        {
+          "name": "Create Match",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-device-id",
+                "value": "scorer-device-123"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"matchId\": \"match-101\",\n  \"teams\": [\n    {\n      \"name\": \"India\",\n      \"players\": [\n        { \"playerId\": \"p1\", \"name\": \"Virat Kohli\" }\n      ]\n    },\n    {\n      \"name\": \"Australia\",\n      \"players\": [\n        { \"playerId\": \"p2\", \"name\": \"Steve Smith\" }\n      ]\n    }\n  ],\n  \"isPublic\": true,\n  \"toss\": {\n    \"winner\": \"India\",\n    \"decision\": \"bat\"\n  }\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5000/api/v1/matches/create",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["api", "v1", "matches", "create"]
+            }
+          }
+        },
+        {
+          "name": "Get Public Matches",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5000/api/v1/matches/public?page=1&limit=10",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["api", "v1", "matches", "public"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Match By ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:5000/api/v1/matches/match-101",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["api", "v1", "matches", "match-101"]
+            }
+          }
+        },
+        {
+          "name": "Start Match",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:5000/api/v1/matches/match-101/start",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["api", "v1", "matches", "match-101", "start"]
+            }
+          }
+        },
+        {
+          "name": "Add Ball (Score)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-device-id",
+                "value": "scorer-device-123"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"runs\": 4,\n  \"extra\": null,\n  \"wicket\": false,\n  \"strikerId\": \"player-bat-1\",\n  \"bowlerId\": \"player-bowl-1\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5000/api/v1/matches/match-101/ball",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["api", "v1", "matches", "match-101", "ball"]
+            }
+          }
+        },
+        {
+          "name": "Invite Player",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"USER_ID\",\n  \"name\": \"Player Name\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5000/api/v1/matches/match-101/invite-player",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["api", "v1", "matches", "match-101", "invite-player"]
+            }
+          }
+        },
+        {
+          "name": "Player Response",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"accepted\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5000/api/v1/matches/match-101/player-response",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["api", "v1", "matches", "match-101", "player-response"]
+            }
+          }
+        },
+        {
+          "name": "Request Scorer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:5000/api/v1/matches/match-101/request-scorer",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["api", "v1", "matches", "match-101", "request-scorer"]
+            }
+          }
+        },
+        {
+          "name": "Scorer Response",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"USER_ID\",\n  \"status\": \"accepted\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5000/api/v1/matches/match-101/scorer-response",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["api", "v1", "matches", "match-101", "scorer-response"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Players",
+      "item": [
+        {
+          "name": "Search Players",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:5000/api/v1/players/search?q=Virat",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["api", "v1", "players", "search"],
+              "query": [
+                { "key": "q", "value": "Virat" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Player Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5000/api/v1/players/USER_ID",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["api", "v1", "players", "USER_ID"]
+            }
+          }
+        },
+        {
+          "name": "Get Player Performance",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5000/api/v1/players/USER_ID/performance",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["api", "v1", "players", "USER_ID", "performance"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [""]
       }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [""]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "jwt_token",
+      "value": "YOUR_JWT_TOKEN_HERE"
     }
   ]
 }

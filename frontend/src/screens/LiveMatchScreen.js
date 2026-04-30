@@ -360,7 +360,8 @@ function LiveMatchScreen() {
             <View style={styles.playerStatusList}>
               <Text style={styles.statusSectionTitle}>Player Status</Text>
               {currentMatch.players?.map((p, idx) => (
-                <View key={p.playerId || idx} style={styles.playerStatusItem}>
+                <View key={`player-${p.playerId || idx}-${idx}`} style={styles.playerStatusItem}>
+
                   <View>
                     <Text style={styles.playerStatusName}>{p.name}</Text>
                     <View style={[
