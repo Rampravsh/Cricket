@@ -224,8 +224,8 @@ function LiveMatchScreen() {
       {/* Header */}
       <Header
         title="Live Match"
-        showBack
-        onBack={() => navigation.goBack()}
+        // showBack
+        // onBack={() => navigation.goBack()}
         rightComponent={
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             {!isWaiting && (
