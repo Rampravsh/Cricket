@@ -87,8 +87,24 @@ function HomeScreen() {
       const matchData = {
         matchId,
         teams: [
-          { name: 'India', players: [{ id: 'p1', name: 'Batter 1' }, { id: 'p2', name: 'Batter 2' }] },
-          { name: 'Australia', players: [{ id: 'p3', name: 'Bowler 1' }] }
+          { 
+            name: 'India', 
+            players: [
+              { playerId: '000000000000000000000001', nameSnapshot: 'Batter 1' }, 
+              { playerId: '000000000000000000000002', nameSnapshot: 'Batter 2' }
+            ] 
+          },
+          { 
+            name: 'Australia', 
+            players: [
+              { playerId: '000000000000000000000003', nameSnapshot: 'Bowler 1' }
+            ] 
+          }
+        ],
+        players: [
+          { playerId: '000000000000000000000001', name: 'Batter 1', status: 'accepted' },
+          { playerId: '000000000000000000000002', name: 'Batter 2', status: 'accepted' },
+          { playerId: '000000000000000000000003', name: 'Bowler 1', status: 'accepted' }
         ],
         isPublic: true,
         toss: { winner: 'India', decision: 'bat' }

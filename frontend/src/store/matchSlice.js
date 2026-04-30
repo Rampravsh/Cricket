@@ -89,6 +89,15 @@ export const addBallThunk = createAsyncThunk('match/addBall', async ({ matchId, 
   }
 });
 
+export const replacePlayerThunk = createAsyncThunk('match/replacePlayer', async ({ matchId, payload }, { rejectWithValue }) => {
+  try {
+    const res = await matchApi.replacePlayer(matchId, payload);
+    return res.data;
+  } catch (err) {
+    return rejectWithValue(err.message || 'Failed to replace player');
+  }
+});
+
 const matchSlice = createSlice({
   name: 'match',
   initialState,

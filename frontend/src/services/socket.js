@@ -44,14 +44,27 @@ export const joinMatch = (matchId) => {
   }
 };
 
+export const joinUser = (userId) => {
+  if (socket && userId) {
+    socket.emit('join-user', userId);
+    console.log(`[Socket] Joined user room: user_${userId}`);
+  }
+};
+
 export const listenToScoreUpdates = (callback) => {
   if (!socket) return;
   socket.on('score-updated', callback);
   socket.on('match-started', callback);
 };
 
+export const listenToNotifications = (callback) => {
+  if (!socket) return;
+  socket.on('new-notification', callback);
+};
+
 export const removeEventListeners = () => {
   if (!socket) return;
   socket.off('score-updated');
   socket.off('match-started');
+  socket.off('new-notification');
 };

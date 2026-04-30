@@ -78,6 +78,9 @@ export const matchApi = {
 
   /** Respond to a scorer request */
   respondScorerRequest: (id, payload) => apiClient.patch(`/matches/${id}/scorer-response`, payload),
+
+  /** Replace a player in a match */
+  replacePlayer: (id, payload) => apiClient.patch(`/matches/${id}/replace-player`, payload),
 };
 
 // ─── Player API ───────────────────────────────────────────────────────────────

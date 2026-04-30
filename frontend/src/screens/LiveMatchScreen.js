@@ -6,14 +6,20 @@ import {
   StyleSheet,
   StatusBar,
   Animated,
+  TouchableOpacity,
+  TextInput,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSelector, useDispatch } from 'react-redux';
 import { useTheme } from '~/hooks/useTheme';
 import useSocket from '~/hooks/useSocket';
-import { selectScore, selectCurrentOver, selectTarget, fetchMatchThunk, addBallThunk, selectCurrentMatch, selectIsLoading } from '~/store/matchSlice';
+import { selectScore, selectCurrentOver, selectTarget, fetchMatchThunk, addBallThunk, startMatchThunk, replacePlayerThunk, selectCurrentMatch, selectIsLoading } from '~/store/matchSlice';
+import { playerApi } from '~/services/api';
 import { formatOvers, calculateRunRate } from '~/utils/helpers';
 import { SCORE_VALUES } from '~/constants';
 import Header from '~/components/Header';
@@ -53,8 +59,18 @@ function LiveMatchScreen() {
   // Setup real-time socket connection
   useSocket(matchId);
 
+  const currentUser = useSelector(state => state.auth.user);
+  const isCreator = currentMatch?.createdByUserId?._id === currentUser?._id || currentMatch?.createdByUserId === currentUser?._id;
+  const isWaiting = currentMatch?.status === 'waiting';
+
   // Local state for demo — last pressed button
   const [lastPressed, setLastPressed] = useState(null);
+
+  // Player replacement state
+  const [replacingPlayer, setReplacingPlayer] = useState(null); // { id, name }
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
     if (matchId) {
@@ -85,6 +101,95 @@ function LiveMatchScreen() {
 
     if (matchId) {
       dispatch(addBallThunk({ matchId, payload: { runs, extra, wicket } }));
+    }
+  };
+
+  const handleStartMatch = () => {
+    if (!currentMatch) return;
+
+    const pendingPlayers = currentMatch.players?.filter(p => p.status === 'pending');
+    
+    if (pendingPlayers && pendingPlayers.length > 0) {
+      const names = pendingPlayers.map(p => p.name).join(', ');
+      Alert.alert(
+        'Players Pending',
+        `The following players have not accepted the invitation yet:\n\n${names}\n\nDo you want to start the match anyway or wait for them?`,
+        [
+          { text: 'Wait', style: 'cancel' },
+          { 
+            text: 'Start Anyway', 
+            style: 'destructive',
+            onPress: () => dispatch(startMatchThunk(matchId)) 
+          },
+        ]
+      );
+    } else {
+      dispatch(startMatchThunk(matchId));
+    }
+  };
+
+  const handleSearch = async (query) => {
+    setSearchQuery(query);
+    if (query.length < 3) {
+      setSearchResults([]);
+      return;
+    }
+    setIsSearching(true);
+    try {
+      const res = await playerApi.searchPlayers(query);
+      setSearchResults(res.data || []);
+    } catch (err) {
+      console.error('Search error:', err);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleReplacePlayer = async (newPlayer) => {
+    if (!replacingPlayer || !matchId) return;
+
+    try {
+      const payload = {
+        oldPlayerId: replacingPlayer.playerId,
+        oldPlayerName: replacingPlayer.name,
+        newPlayerId: newPlayer._id,
+        newName: newPlayer.displayName
+      };
+
+      const res = await dispatch(replacePlayerThunk({ matchId, payload })).unwrap();
+      if (res) {
+        Alert.alert('Success', 'Player replaced successfully');
+        setReplacingPlayer(null);
+        setSearchQuery('');
+        setSearchResults([]);
+        dispatch(fetchMatchThunk(matchId));
+      }
+    } catch (err) {
+      Alert.alert('Error', err.message || 'Failed to replace player');
+    }
+  };
+
+  const handleAddGuestReplacement = async () => {
+    if (!replacingPlayer || !matchId || !searchQuery) return;
+
+    try {
+      const payload = {
+        oldPlayerId: replacingPlayer.playerId,
+        oldPlayerName: replacingPlayer.name,
+        newPlayerId: null,
+        newName: searchQuery
+      };
+
+      const res = await dispatch(replacePlayerThunk({ matchId, payload })).unwrap();
+      if (res) {
+        Alert.alert('Success', 'Guest player added as replacement');
+        setReplacingPlayer(null);
+        setSearchQuery('');
+        setSearchResults([]);
+        dispatch(fetchMatchThunk(matchId));
+      }
+    } catch (err) {
+      Alert.alert('Error', err.message || 'Failed to add guest replacement');
     }
   };
 
@@ -121,10 +226,12 @@ function LiveMatchScreen() {
         showBack
         onBack={() => navigation.goBack()}
         rightComponent={
-          <View style={styles.liveBadge}>
-            <Animated.View style={[styles.liveDot, { opacity: blinkAnim }]} />
-            <Text style={styles.liveBadgeText}>LIVE</Text>
-          </View>
+          !isWaiting && (
+            <View style={styles.liveBadge}>
+              <Animated.View style={[styles.liveDot, { opacity: blinkAnim }]} />
+              <Text style={styles.liveBadgeText}>LIVE</Text>
+            </View>
+          )
         }
       />
 
@@ -236,45 +343,177 @@ function LiveMatchScreen() {
           </View>
         )}
 
-        {/* Score Buttons Grid */}
-        <Card style={styles.scoringCard} padding="md">
-          <Text style={styles.scoringTitle}>Scoring</Text>
-          <View style={styles.scoreGrid}>
-            {scoreButtons.map((btn) => (
-              <ScoreButton
-                key={String(btn.score)}
-                score={btn.score}
-                onPress={handleScorePress}
-                disabled={isLoading}
-              />
-            ))}
-          </View>
-        </Card>
+        {/* Waiting State UI */}
+        {isWaiting ? (
+          <Card style={styles.waitingCard} padding="xl">
+            <Ionicons name="hourglass-outline" size={60} color={colors.primary} style={styles.waitingIcon} />
+            <Text style={styles.waitingTitle}>Match is Waiting</Text>
+            <Text style={styles.waitingSubtitle}>
+              Wait for all players to accept their invitations or start the match now.
+            </Text>
 
-        {/* Batter / Bowler Info */}
-        <View style={styles.playersRow}>
-          <Card style={[styles.playerCard, styles.activeGlow]} padding="sm">
-            <View style={styles.playerRoleRow}>
-              <Text style={styles.playerRoleIcon}>🏏</Text>
-              <Text style={styles.playerRole}>Batting</Text>
+            {/* Players Status List */}
+            <View style={styles.playerStatusList}>
+              <Text style={styles.statusSectionTitle}>Player Status</Text>
+              {currentMatch.players?.map((p, idx) => (
+                <View key={p.playerId || idx} style={styles.playerStatusItem}>
+                  <View>
+                    <Text style={styles.playerStatusName}>{p.name}</Text>
+                    <View style={[
+                      styles.statusBadge, 
+                      { backgroundColor: p.status === 'accepted' ? colors.success + '20' : colors.warning + '20' }
+                    ]}>
+                      <Text style={[
+                        styles.statusBadgeText,
+                        { color: p.status === 'accepted' ? colors.success : colors.warning }
+                      ]}>
+                        {p.status === 'accepted' ? 'Accepted' : 'Pending'}
+                      </Text>
+                    </View>
+                  </View>
+                  
+                  {isCreator && p.status !== 'accepted' && (
+                    <TouchableOpacity 
+                      style={styles.replaceBtn}
+                      onPress={() => setReplacingPlayer(p)}
+                    >
+                      <Ionicons name="swap-horizontal" size={16} color={colors.primary} />
+                      <Text style={styles.replaceBtnText}>Replace</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              ))}
             </View>
-            <Text style={[styles.playerName, { color: colors.primary }]}>Batter 1 (Striker)</Text>
-            <Text style={styles.playerStat}>42 (38)</Text>
-            <Text style={styles.playerName}>Batter 2</Text>
-            <Text style={styles.playerStat}>18 (14)</Text>
+
+            {isCreator && (
+              <TouchableOpacity 
+                style={[styles.startBtn, { backgroundColor: colors.primary }]}
+                onPress={handleStartMatch}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <ActivityIndicator color={colors.textOnPrimary} />
+                ) : (
+                  <>
+                    <Ionicons name="play" size={20} color={colors.textOnPrimary} style={{ marginRight: 8 }} />
+                    <Text style={styles.startBtnText}>Start Match</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
           </Card>
-          <Card style={[styles.playerCard, styles.activeGlow]} padding="sm">
-            <View style={styles.playerRoleRow}>
-              <Text style={styles.playerRoleIcon}>⚾</Text>
-              <Text style={styles.playerRole}>Bowling</Text>
+        ) : (
+          <>
+            {/* Score Buttons Grid */}
+            <Card style={styles.scoringCard} padding="md">
+              <Text style={styles.scoringTitle}>Scoring</Text>
+              <View style={styles.scoreGrid}>
+                {scoreButtons.map((btn) => (
+                  <ScoreButton
+                    key={String(btn.score)}
+                    score={btn.score}
+                    onPress={handleScorePress}
+                    disabled={isLoading}
+                  />
+                ))}
+              </View>
+            </Card>
+
+            {/* Batter / Bowler Info */}
+            <View style={styles.playersRow}>
+              <Card style={[styles.playerCard, styles.activeGlow]} padding="sm">
+                <View style={styles.playerRoleRow}>
+                  <Text style={styles.playerRoleIcon}>🏏</Text>
+                  <Text style={styles.playerRole}>Batting</Text>
+                </View>
+                <Text style={[styles.playerName, { color: colors.primary }]}>
+                  {currentMatch?.current?.strikerId ? (currentMatch.teams.flatMap(t => t.players).find(p => (p.playerId?._id || p.playerId) === currentMatch.current.strikerId)?.nameSnapshot || 'Striker') : 'Batter 1'}
+                </Text>
+                <Text style={styles.playerStat}>0 (0)</Text>
+                <Text style={styles.playerName}>
+                  {currentMatch?.current?.nonStrikerId ? (currentMatch.teams.flatMap(t => t.players).find(p => (p.playerId?._id || p.playerId) === currentMatch.current.nonStrikerId)?.nameSnapshot || 'Non-Striker') : 'Batter 2'}
+                </Text>
+                <Text style={styles.playerStat}>0 (0)</Text>
+              </Card>
+              <Card style={[styles.playerCard, styles.activeGlow]} padding="sm">
+                <View style={styles.playerRoleRow}>
+                  <Text style={styles.playerRoleIcon}>⚾</Text>
+                  <Text style={styles.playerRole}>Bowling</Text>
+                </View>
+                <Text style={[styles.playerName, { color: colors.accent }]}>
+                   {currentMatch?.current?.bowlerId ? (currentMatch.teams.flatMap(t => t.players).find(p => (p.playerId?._id || p.playerId) === currentMatch.current.bowlerId)?.nameSnapshot || 'Bowler') : 'Bowler 1'}
+                </Text>
+                <Text style={styles.playerStat}>0-0 (0.0)</Text>
+              </Card>
             </View>
-            <Text style={[styles.playerName, { color: colors.accent }]}>Bowler 1</Text>
-            <Text style={styles.playerStat}>2-24 (3.2)</Text>
-          </Card>
-        </View>
+          </>
+        )}
 
         <View style={styles.bottomSpacer} />
       </ScrollView>
+
+      {/* Replacement Modal */}
+      {replacingPlayer && (
+        <View style={StyleSheet.absoluteFill}>
+          <TouchableOpacity 
+            style={styles.modalOverlay} 
+            activeOpacity={1} 
+            onPress={() => setReplacingPlayer(null)} 
+          />
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Replace {replacingPlayer.name}</Text>
+              <TouchableOpacity onPress={() => setReplacingPlayer(null)}>
+                <Ionicons name="close" size={24} color={colors.textPrimary} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.searchBox}>
+              <Ionicons name="search" size={20} color={colors.textTertiary} />
+              <TextInput
+                style={styles.modalSearchInput}
+                placeholder="Search new player..."
+                placeholderTextColor={colors.textTertiary}
+                value={searchQuery}
+                onChangeText={handleSearch}
+                autoFocus
+              />
+            </View>
+
+            {isSearching ? (
+              <ActivityIndicator color={colors.primary} style={{ marginVertical: 20 }} />
+            ) : (
+              <ScrollView style={styles.searchResults}>
+                {searchResults.map(player => (
+                  <TouchableOpacity 
+                    key={player._id} 
+                    style={styles.searchResultItem}
+                    onPress={() => handleReplacePlayer(player)}
+                  >
+                    <View style={styles.playerAvatar}>
+                      <Text style={styles.avatarText}>{player.displayName?.[0] || '?'}</Text>
+                    </View>
+                    <View>
+                      <Text style={styles.playerName}>{player.displayName}</Text>
+                      <Text style={styles.playerRole}>{player.role || 'Player'}</Text>
+                    </View>
+                    <Ionicons name="add-circle" size={24} color={colors.primary} style={{ marginLeft: 'auto' }} />
+                  </TouchableOpacity>
+                ))}
+                {searchQuery.length > 0 && searchResults.length === 0 && (
+                  <TouchableOpacity 
+                    style={styles.guestAddBtn}
+                    onPress={handleAddGuestReplacement}
+                  >
+                    <Ionicons name="person-add" size={20} color={colors.primary} />
+                    <Text style={styles.guestAddText}>Add "{searchQuery}" as guest</Text>
+                  </TouchableOpacity>
+                )}
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -645,6 +884,195 @@ function createStyles(colors, spacing, borderRadius, isDark) {
     },
 
     bottomSpacer: { height: 100 },
+
+    // ── Waiting State ────────────────────────────────────────────────────────
+    waitingCard: {
+      alignItems: 'center',
+      marginBottom: spacing[4],
+    },
+    waitingIcon: {
+      marginBottom: spacing[4],
+    },
+    waitingTitle: {
+      fontSize: 22,
+      fontWeight: '800',
+      color: colors.textPrimary,
+      marginBottom: spacing[2],
+    },
+    waitingSubtitle: {
+      fontSize: 14,
+      color: colors.textSecondary,
+      textAlign: 'center',
+      marginBottom: spacing[6],
+      lineHeight: 20,
+    },
+    playerStatusList: {
+      width: '100%',
+      marginBottom: spacing[6],
+      backgroundColor: colors.surfaceVariant,
+      borderRadius: borderRadius.lg,
+      padding: spacing[4],
+    },
+    statusSectionTitle: {
+      fontSize: 12,
+      fontWeight: '800',
+      color: colors.primary,
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+      marginBottom: spacing[3],
+    },
+    playerStatusItem: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: spacing[2],
+      borderBottomWidth: 1,
+      borderBottomColor: colors.divider,
+    },
+    playerStatusName: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: colors.textPrimary,
+    },
+    statusBadge: {
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 12,
+    },
+    statusBadgeText: {
+      fontSize: 11,
+      fontWeight: '800',
+    },
+    startBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: '100%',
+      paddingVertical: spacing[4],
+      borderRadius: borderRadius.xl,
+      elevation: 4,
+      shadowColor: colors.primary,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 10,
+    },
+    startBtnText: {
+      color: colors.textOnPrimary,
+      fontSize: 16,
+      fontWeight: '800',
+    },
+    replaceBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.primary + '10',
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: colors.primary + '20',
+    },
+    replaceBtnText: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: colors.primary,
+      marginLeft: 4,
+    },
+
+    // ── Modal ───────────────────────────────────────────────────────────────
+    modalOverlay: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: 'rgba(0,0,0,0.6)',
+    },
+    modalContainer: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      backgroundColor: colors.surface,
+      borderTopLeftRadius: borderRadius['2xl'],
+      borderTopRightRadius: borderRadius['2xl'],
+      padding: spacing[6],
+      maxHeight: '80%',
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: spacing[4],
+    },
+    modalTitle: {
+      fontSize: 20,
+      fontWeight: '800',
+      color: colors.textPrimary,
+    },
+    searchBox: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.background,
+      borderRadius: borderRadius.lg,
+      paddingHorizontal: spacing[3],
+      borderWidth: 1,
+      borderColor: colors.divider,
+      marginBottom: spacing[4],
+    },
+    modalSearchInput: {
+      flex: 1,
+      paddingVertical: spacing[3],
+      paddingHorizontal: spacing[2],
+      color: colors.textPrimary,
+      fontSize: 16,
+    },
+    searchResults: {
+      maxHeight: 400,
+    },
+    searchResultItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: spacing[3],
+      borderBottomWidth: 1,
+      borderBottomColor: colors.divider,
+    },
+    playerAvatar: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: colors.primary + '20',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: spacing[3],
+    },
+    avatarText: {
+      color: colors.primary,
+      fontWeight: '800',
+      fontSize: 16,
+    },
+    playerName: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: colors.textPrimary,
+    },
+    playerRole: {
+      fontSize: 12,
+      color: colors.textSecondary,
+    },
+    guestAddBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: spacing[4],
+      backgroundColor: colors.primary + '05',
+      borderRadius: borderRadius.lg,
+      marginTop: spacing[4],
+      borderStyle: 'dashed',
+      borderWidth: 1,
+      borderColor: colors.primary + '30',
+    },
+    guestAddText: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: colors.primary,
+      marginLeft: 8,
+    },
   });
 }
 

@@ -7,16 +7,33 @@ import store from '~/store';
 import { ThemeProvider } from '~/theme';
 import AppNavigator from '~/navigation/AppNavigator';
 
+import { useDispatch, useSelector } from 'react-redux';
 import authService from '~/services/authService';
+import { connectSocket, joinUser, listenToNotifications } from '~/services/socket';
+import { addNotification } from '~/store/notificationSlice';
 
 /**
  * Main app content to handle initialization
  */
 function AppContent() {
+  const dispatch = useDispatch();
+  const user = useSelector(state => state.auth.user);
+
   React.useEffect(() => {
     // Load persisted auth session on startup
     authService.loadAuthData();
   }, []);
+
+  React.useEffect(() => {
+    if (user?._id) {
+      connectSocket();
+      joinUser(user._id);
+
+      listenToNotifications((notification) => {
+        dispatch(addNotification(notification));
+      });
+    }
+  }, [user?._id, dispatch]);
 
   return <AppNavigator />;
 }
