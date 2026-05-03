@@ -98,6 +98,24 @@ export const replacePlayerThunk = createAsyncThunk('match/replacePlayer', async 
   }
 });
 
+export const requestScorerThunk = createAsyncThunk('match/requestScorer', async (matchId, { rejectWithValue }) => {
+  try {
+    const res = await matchApi.requestScorer(matchId);
+    return res.data;
+  } catch (err) {
+    return rejectWithValue(err.message || 'Failed to send scorer request');
+  }
+});
+
+export const scorerResponseThunk = createAsyncThunk('match/scorerResponse', async ({ matchId, payload }, { rejectWithValue }) => {
+  try {
+    const res = await matchApi.respondScorerRequest(matchId, payload);
+    return res.data;
+  } catch (err) {
+    return rejectWithValue(err.message || 'Failed to respond to scorer request');
+  }
+});
+
 const matchSlice = createSlice({
   name: 'match',
   initialState,

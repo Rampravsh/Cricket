@@ -34,11 +34,6 @@ export const disconnectSocket = () => {
 
 export const joinMatch = (matchId) => {
   if (socket && matchId) {
-    // Backend doesn't have an explicit 'join-match' listener yet, 
-    // it automatically broadcasts to matchId room.
-    // Assuming backend will eventually or already handles joining rooms via a custom event,
-    // actually, wait, the express backend uses io.to(matchId).emit()
-    // It means the client must join the room.
     socket.emit('join-match', matchId); 
     console.log(`[Socket] Joined match room: ${matchId}`);
   }
@@ -47,7 +42,7 @@ export const joinMatch = (matchId) => {
 export const joinUser = (userId) => {
   if (socket && userId) {
     socket.emit('join-user', userId);
-    console.log(`[Socket] Joined user room: user_${userId}`);
+    console.log(`[Socket] Joined user room: user:${userId}`);
   }
 };
 
@@ -55,6 +50,9 @@ export const listenToScoreUpdates = (callback) => {
   if (!socket) return;
   socket.on('score-updated', callback);
   socket.on('match-started', callback);
+  socket.on('toss-updated', callback);
+  socket.on('match-deleted', callback);
+  socket.on('match-created', callback);
 };
 
 export const listenToNotifications = (callback) => {
@@ -71,6 +69,9 @@ export const removeEventListeners = () => {
   if (!socket) return;
   socket.off('score-updated');
   socket.off('match-started');
+  socket.off('toss-updated');
+  socket.off('match-deleted');
+  socket.off('match-created');
   socket.off('notification:new');
   socket.off('match:update');
 };

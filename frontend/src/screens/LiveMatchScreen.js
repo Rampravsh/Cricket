@@ -11,15 +11,26 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useSelector, useDispatch } from 'react-redux';
 import { useTheme } from '~/hooks/useTheme';
 import useSocket from '~/hooks/useSocket';
-import { selectScore, selectCurrentOver, selectTarget, fetchMatchThunk, addBallThunk, startMatchThunk, replacePlayerThunk, selectCurrentMatch, selectIsLoading } from '~/store/matchSlice';
-import { playerApi } from '~/services/api';
+import { 
+  selectScore, 
+  selectCurrentOver, 
+  selectTarget, 
+  fetchMatchThunk, 
+  addBallThunk, 
+  startMatchThunk, 
+  replacePlayerThunk, 
+  requestScorerThunk,
+  selectCurrentMatch, 
+  selectIsLoading 
+} from '~/store/matchSlice';
+import { playerApi, matchApi } from '~/services/api';
 import { formatOvers, calculateRunRate } from '~/utils/helpers';
 import { SCORE_VALUES } from '~/constants';
 import Header from '~/components/Header';
@@ -29,6 +40,7 @@ import NotificationIcon from '~/components/NotificationIcon';
 
 /**
  * LiveMatchScreen — Live cricket match scoring UI (Neon Glassy)
+ * Now with Role-based views: Scorer vs Spectator
  */
 function LiveMatchScreen() {
   const { colors, spacing, borderRadius, isDark } = useTheme();
@@ -61,8 +73,17 @@ function LiveMatchScreen() {
   useSocket(matchId);
 
   const currentUser = useSelector(state => state.auth.user);
+  
+  // Role Detection
   const isCreator = currentMatch?.createdByUserId?._id === currentUser?._id || currentMatch?.createdByUserId === currentUser?._id;
+  const isScorer = currentMatch?.scorers?.some(s => (s._id || s) === currentUser?._id);
+  const canScore = isCreator || isScorer;
   const isWaiting = currentMatch?.status === 'waiting';
+  const isLive = currentMatch?.status === 'live';
+  const isCompleted = currentMatch?.status === 'completed';
+
+  // Check if current user has a pending scorer request
+  const hasPendingScorerRequest = currentMatch?.scorerRequests?.some(r => (r.userId?._id || r.userId) === currentUser?._id && r.status === 'pending');
 
   // Local state for demo — last pressed button
   const [lastPressed, setLastPressed] = useState(null);
@@ -221,6 +242,15 @@ function LiveMatchScreen() {
     );
   };
 
+  const handleRequestScorer = async () => {
+    try {
+      await dispatch(requestScorerThunk(matchId)).unwrap();
+      Alert.alert('Success', 'Scorer request sent to the creator');
+    } catch (err) {
+      Alert.alert('Error', err.message || 'Failed to send request');
+    }
+  };
+
   const battingTeamScore = score.teamA;
   const bowlingTeamScore = score.teamB;
   const runRate = calculateRunRate(battingTeamScore.runs, battingTeamScore.balls);
@@ -240,6 +270,287 @@ function LiveMatchScreen() {
     { score: SCORE_VALUES.BYE },
   ];
 
+  const renderScoringControls = () => {
+    if (!canScore) return null;
+
+    if (isWaiting) {
+      return (
+        <Card style={styles.waitingCard} padding="xl">
+          <Ionicons name="hourglass-outline" size={60} color={colors.primary} style={styles.waitingIcon} />
+          <Text style={styles.waitingTitle}>Match is Waiting</Text>
+          <Text style={styles.waitingSubtitle}>
+            Wait for all players to accept their invitations or start the match now.
+          </Text>
+
+          {/* Players Status List */}
+          <View style={styles.playerStatusList}>
+            <Text style={styles.statusSectionTitle}>Player Status</Text>
+            {currentMatch?.players?.map((p, idx) => (
+              <View key={`player-${p.playerId || idx}-${idx}`} style={styles.playerStatusItem}>
+                <View>
+                  <Text style={styles.playerStatusName}>{p.name}</Text>
+                  <View style={[
+                    styles.statusBadge,
+                    { backgroundColor: p.status === 'accepted' ? colors.success + '20' : colors.warning + '20' }
+                  ]}>
+                    <Text style={[
+                      styles.statusBadgeText,
+                      { color: p.status === 'accepted' ? colors.success : colors.warning }
+                    ]}>
+                      {p.status === 'accepted' ? 'Accepted' : 'Pending'}
+                    </Text>
+                  </View>
+                </View>
+
+                {isCreator && p.status !== 'accepted' && (
+                  <TouchableOpacity
+                    style={styles.replaceBtn}
+                    onPress={() => setReplacingPlayer(p)}
+                  >
+                    <Ionicons name="swap-horizontal" size={16} color={colors.primary} />
+                    <Text style={styles.replaceBtnText}>Replace</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            ))}
+          </View>
+
+          {isCreator && (
+            <TouchableOpacity
+              style={[styles.startBtn, { backgroundColor: colors.primary }]}
+              onPress={handleStartMatch}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator color={colors.textOnPrimary} />
+              ) : (
+                <>
+                  <Ionicons name="play" size={20} color={colors.textOnPrimary} style={{ marginRight: 8 }} />
+                  <Text style={styles.startBtnText}>Start Match</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          )}
+        </Card>
+      );
+    }
+
+    if (isLive) {
+      return (
+        <>
+          {/* Score Buttons Grid */}
+          <Card style={styles.scoringCard} padding="md">
+            <Text style={styles.scoringTitle}>Scoring Controls</Text>
+            <View style={styles.scoreGrid}>
+              {scoreButtons.map((btn) => (
+                <ScoreButton
+                  key={String(btn.score)}
+                  score={btn.score}
+                  onPress={handleScorePress}
+                  disabled={isLoading}
+                />
+              ))}
+            </View>
+          </Card>
+
+          {/* Last Pressed Feedback */}
+          {lastPressed !== null && (
+            <View style={styles.lastPressedRow}>
+              <Text style={styles.lastPressedLabel}>Last:</Text>
+              <Text style={styles.lastPressedValue}>{String(lastPressed)}</Text>
+            </View>
+          )}
+
+          {/* Batter / Bowler Info */}
+          <View style={styles.playersRow}>
+            <Card style={[styles.playerCard, styles.activeGlow]} padding="sm">
+              <View style={styles.playerRoleRow}>
+                <Text style={styles.playerRoleIcon}>🏏</Text>
+                <Text style={styles.playerRole}>Batting</Text>
+              </View>
+              <Text style={[styles.playerName, { color: colors.primary }]}>
+                {currentMatch?.current?.strikerId ? (currentMatch.teams.flatMap(t => t.players).find(p => (p.playerId?._id?.toString() || p.playerId?.toString() || p.nameSnapshot) === currentMatch.current.strikerId)?.nameSnapshot || 'Striker') : 'Batter 1'}
+              </Text>
+              <Text style={styles.playerStat}>0 (0)</Text>
+              <Text style={styles.playerName}>
+                {currentMatch?.current?.nonStrikerId ? (currentMatch.teams.flatMap(t => t.players).find(p => (p.playerId?._id?.toString() || p.playerId?.toString() || p.nameSnapshot) === currentMatch.current.nonStrikerId)?.nameSnapshot || 'Non-Striker') : 'Batter 2'}
+              </Text>
+              <Text style={styles.playerStat}>0 (0)</Text>
+            </Card>
+            <Card style={[styles.playerCard, styles.activeGlow]} padding="sm">
+              <View style={styles.playerRoleRow}>
+                <Text style={styles.playerRoleIcon}>⚾</Text>
+                <Text style={styles.playerRole}>Bowling</Text>
+              </View>
+              <Text style={[styles.playerName, { color: colors.accent }]}>
+                {currentMatch?.current?.bowlerId ? (currentMatch.teams.flatMap(t => t.players).find(p => (p.playerId?._id?.toString() || p.playerId?.toString() || p.nameSnapshot) === currentMatch.current.bowlerId)?.nameSnapshot || 'Bowler') : 'Bowler 1'}
+              </Text>
+              <Text style={styles.playerStat}>0-0 (0.0)</Text>
+            </Card>
+          </View>
+        </>
+      );
+    }
+
+    if (isCompleted) {
+      return (
+        <Card style={styles.completedCard} padding="xl">
+          <MaterialCommunityIcons name="trophy-outline" size={60} color={colors.warning} />
+          <Text style={styles.completedTitle}>Match Completed</Text>
+          <Text style={styles.completedSubtitle}>
+            Final Score: {battingTeamScore.runs}/{battingTeamScore.wickets} ({formatOvers(battingTeamScore.balls)})
+          </Text>
+          <TouchableOpacity 
+            style={[styles.startBtn, { backgroundColor: colors.surfaceVariant, marginTop: spacing[4] }]}
+            onPress={() => navigation.navigate('Home')}
+          >
+            <Text style={[styles.startBtnText, { color: colors.textPrimary }]}>Back to Home</Text>
+          </TouchableOpacity>
+        </Card>
+      );
+    }
+
+    return null;
+  };
+
+  const renderSpectatorView = () => {
+    if (canScore) return null;
+
+    return (
+      <View style={styles.spectatorContainer}>
+        {/* Real-time Score Alert */}
+        {isLive && (
+          <LinearGradient
+            colors={[colors.primary + '20', 'transparent']}
+            style={styles.liveAlert}
+          >
+            <Animated.View style={[styles.liveDot, { opacity: blinkAnim }]} />
+            <Text style={styles.liveAlertText}>Watching Live Updates</Text>
+          </LinearGradient>
+        )}
+
+        {/* Professional Scoreboard Card */}
+        <Card style={styles.proScoreboardCard} padding="md">
+          <View style={styles.proHeader}>
+            <Text style={styles.proMatchTitle}>Match: {currentMatch?.matchId}</Text>
+            <View style={styles.proStatusBadge}>
+              <Text style={styles.proStatusText}>{currentMatch?.status?.toUpperCase()}</Text>
+            </View>
+          </View>
+
+          <View style={styles.proScoreMain}>
+            <View style={styles.proTeamCol}>
+              <Text style={styles.proTeamName}>{battingTeamScore.name}</Text>
+              <Text style={styles.proScoreText}>
+                {battingTeamScore.runs}<Text style={styles.proWicketText}>/{battingTeamScore.wickets}</Text>
+              </Text>
+              <Text style={styles.proOversText}>Overs: {formatOvers(battingTeamScore.balls)}</Text>
+            </View>
+            <View style={styles.proVsCol}>
+              <Text style={styles.proVsText}>VS</Text>
+            </View>
+            <View style={[styles.proTeamCol, { alignItems: 'flex-end' }]}>
+              <Text style={styles.proTeamName}>{bowlingTeamScore.name}</Text>
+              <Text style={styles.proScoreText}>
+                {bowlingTeamScore.runs > 0 ? `${bowlingTeamScore.runs}/${bowlingTeamScore.wickets}` : 'Yet to Bat'}
+              </Text>
+              <Text style={styles.proOversText}>{bowlingTeamScore.balls > 0 ? formatOvers(bowlingTeamScore.balls) : ''}</Text>
+            </View>
+          </View>
+
+          {isLive && (
+            <View style={styles.proLiveStats}>
+              <View style={styles.proStatItem}>
+                <Text style={styles.proStatLabel}>CRR</Text>
+                <Text style={styles.proStatValue}>{runRate}</Text>
+              </View>
+              {target && (
+                <View style={styles.proStatItem}>
+                  <Text style={styles.proStatLabel}>REQ</Text>
+                  <Text style={styles.proStatValue}>{calculateRunRate(target - battingTeamScore.runs, Math.max(1, 120 - battingTeamScore.balls))}</Text>
+                </View>
+              )}
+            </View>
+          )}
+        </Card>
+
+        {/* Current Players (IPL Style) */}
+        {isLive && (
+          <View style={styles.proPlayersRow}>
+            <View style={styles.proPlayerCard}>
+              <Text style={styles.proPlayerRole}>BATTER</Text>
+              <Text style={styles.proPlayerName} numberOfLines={1}>
+                 * {currentMatch?.current?.strikerId ? (currentMatch.teams.flatMap(t => t.players).find(p => (p.playerId?._id?.toString() || p.playerId?.toString() || p.nameSnapshot) === currentMatch.current.strikerId)?.nameSnapshot || 'Striker') : '...'}
+              </Text>
+              <Text style={styles.proPlayerScore}>0(0)</Text>
+            </View>
+            <View style={styles.proPlayerCard}>
+              <Text style={styles.proPlayerRole}>BOWLER</Text>
+              <Text style={styles.proPlayerName} numberOfLines={1}>
+                {currentMatch?.current?.bowlerId ? (currentMatch.teams.flatMap(t => t.players).find(p => (p.playerId?._id?.toString() || p.playerId?.toString() || p.nameSnapshot) === currentMatch.current.bowlerId)?.nameSnapshot || 'Bowler') : '...'}
+              </Text>
+              <Text style={styles.proPlayerScore}>0-0(0.0)</Text>
+            </View>
+          </View>
+        )}
+
+        {/* Teams & Players List (Pre-match or Detailed View) */}
+        <Text style={styles.sectionTitle}>Team Lineups</Text>
+        <View style={styles.lineupsContainer}>
+          {currentMatch?.teams?.map((team, tIdx) => (
+            <Card key={`team-lineup-${tIdx}`} style={styles.teamLineupCard} padding="sm">
+              <View style={styles.teamLineupHeader}>
+                <Text style={styles.teamLineupName}>{team.name}</Text>
+                <Text style={styles.teamLineupCount}>{team.players?.length} Players</Text>
+              </View>
+              {team.players?.map((p, pIdx) => (
+                <View key={`p-lineup-${pIdx}`} style={styles.lineupPlayerItem}>
+                  <View style={styles.lineupAvatar}>
+                    <Text style={styles.lineupAvatarText}>{p.nameSnapshot?.[0]}</Text>
+                  </View>
+                  <View>
+                    <Text style={styles.lineupPlayerName}>{p.playerId?.displayName || p.nameSnapshot}</Text>
+                    <Text style={styles.lineupPlayerAbility}>{p.playerId?.role || 'All-Rounder'}</Text>
+                  </View>
+                  {(isLive && (p.playerId?._id === currentMatch?.current?.strikerId || p.playerId?._id === currentMatch?.current?.nonStrikerId || p.nameSnapshot === currentMatch?.current?.strikerId || p.playerId === currentMatch?.current?.strikerId)) && (
+                    <View style={styles.onStrikeBadge}>
+                      <Text style={styles.onStrikeText}>ON STRIKE</Text>
+                    </View>
+                  )}
+                </View>
+              ))}
+            </Card>
+          ))}
+        </View>
+
+        {/* Request Scorer Button */}
+        {!canScore && !isCompleted && (
+          <TouchableOpacity 
+            style={[styles.requestScorerBtn, hasPendingScorerRequest && styles.requestSentBtn]}
+            onPress={handleRequestScorer}
+            disabled={hasPendingScorerRequest || isLoading}
+          >
+            {isLoading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <>
+                <MaterialCommunityIcons 
+                  name={hasPendingScorerRequest ? "clock-outline" : "pencil-plus-outline"} 
+                  size={20} 
+                  color="#fff" 
+                  style={{ marginRight: 8 }} 
+                />
+                <Text style={styles.requestScorerBtnText}>
+                  {hasPendingScorerRequest ? 'Request Pending...' : 'Request to be a Scorer'}
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  };
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['bottom']}>
       <StatusBar
@@ -251,11 +562,11 @@ function LiveMatchScreen() {
       {/* Header */}
       <Header
         title="Live Match"
-        // showBack
-        // onBack={() => navigation.goBack()}
+        showBack
+        onBack={() => navigation.goBack()}
         rightComponent={
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            {!isWaiting && (
+            {!isWaiting && !isCompleted && (
               <View style={[styles.liveBadge, { marginRight: 8 }]}>
                 <Animated.View style={[styles.liveDot, { opacity: blinkAnim }]} />
                 <Text style={styles.liveBadgeText}>LIVE</Text>
@@ -277,7 +588,7 @@ function LiveMatchScreen() {
         showsVerticalScrollIndicator={false}
       >
 
-        {/* Scoreboard — Gradient Card */}
+        {/* Shared Score Summary (Always visible at top) */}
         <View style={styles.scoreboardWrapper}>
           <LinearGradient
             colors={isDark
@@ -346,145 +657,36 @@ function LiveMatchScreen() {
           </LinearGradient>
         </View>
 
-        {/* Current Over Tracker */}
-        <Card style={styles.overCard} padding="md">
-          <View style={styles.overHeader}>
-            <Text style={styles.overLabel}>Current Over</Text>
-            <Text style={styles.overCount}>{currentOver.length}/6</Text>
-          </View>
-          <View style={styles.overBalls}>
-            {currentOver.length === 0 ? (
-              <Text style={styles.overEmpty}>No deliveries yet</Text>
-            ) : (
-              currentOver.map((delivery, index) => (
-                <View key={index} style={[styles.ball, getBallStyle(delivery, colors, borderRadius, isDark)]}>
-                  <Text style={[styles.ballText, getBallTextStyle(delivery, colors)]}>
-                    {String(delivery)}
-                  </Text>
-                </View>
-              ))
-            )}
-            {/* Empty slots */}
-            {Array.from({ length: Math.max(0, 6 - currentOver.length) }).map((_, i) => (
-              <View key={`empty-${i}`} style={[styles.ball, styles.ballEmpty]} />
-            ))}
-          </View>
-        </Card>
-
-        {/* Last Pressed Feedback */}
-        {lastPressed !== null && (
-          <View style={styles.lastPressedRow}>
-            <Text style={styles.lastPressedLabel}>Last:</Text>
-            <Text style={styles.lastPressedValue}>{String(lastPressed)}</Text>
-          </View>
-        )}
-
-        {/* Waiting State UI */}
-        {isWaiting ? (
-          <Card style={styles.waitingCard} padding="xl">
-            <Ionicons name="hourglass-outline" size={60} color={colors.primary} style={styles.waitingIcon} />
-            <Text style={styles.waitingTitle}>Match is Waiting</Text>
-            <Text style={styles.waitingSubtitle}>
-              Wait for all players to accept their invitations or start the match now.
-            </Text>
-
-            {/* Players Status List */}
-            <View style={styles.playerStatusList}>
-              <Text style={styles.statusSectionTitle}>Player Status</Text>
-              {currentMatch.players?.map((p, idx) => (
-                <View key={`player-${p.playerId || idx}-${idx}`} style={styles.playerStatusItem}>
-
-                  <View>
-                    <Text style={styles.playerStatusName}>{p.name}</Text>
-                    <View style={[
-                      styles.statusBadge,
-                      { backgroundColor: p.status === 'accepted' ? colors.success + '20' : colors.warning + '20' }
-                    ]}>
-                      <Text style={[
-                        styles.statusBadgeText,
-                        { color: p.status === 'accepted' ? colors.success : colors.warning }
-                      ]}>
-                        {p.status === 'accepted' ? 'Accepted' : 'Pending'}
-                      </Text>
-                    </View>
+        {/* Over Tracker (Visible to all if match is live) */}
+        {isLive && (
+          <Card style={styles.overCard} padding="md">
+            <View style={styles.overHeader}>
+              <Text style={styles.overLabel}>Current Over</Text>
+              <Text style={styles.overCount}>{currentOver.length}/6</Text>
+            </View>
+            <View style={styles.overBalls}>
+              {currentOver.length === 0 ? (
+                <Text style={styles.overEmpty}>No deliveries yet</Text>
+              ) : (
+                currentOver.map((delivery, index) => (
+                  <View key={index} style={[styles.ball, getBallStyle(delivery, colors, borderRadius, isDark)]}>
+                    <Text style={[styles.ballText, getBallTextStyle(delivery, colors)]}>
+                      {String(delivery)}
+                    </Text>
                   </View>
-
-                  {isCreator && p.status !== 'accepted' && (
-                    <TouchableOpacity
-                      style={styles.replaceBtn}
-                      onPress={() => setReplacingPlayer(p)}
-                    >
-                      <Ionicons name="swap-horizontal" size={16} color={colors.primary} />
-                      <Text style={styles.replaceBtnText}>Replace</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
+                ))
+              )}
+              {/* Empty slots */}
+              {Array.from({ length: Math.max(0, 6 - currentOver.length) }).map((_, i) => (
+                <View key={`empty-${i}`} style={[styles.ball, styles.ballEmpty]} />
               ))}
             </View>
-
-            {isCreator && (
-              <TouchableOpacity
-                style={[styles.startBtn, { backgroundColor: colors.primary }]}
-                onPress={handleStartMatch}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <ActivityIndicator color={colors.textOnPrimary} />
-                ) : (
-                  <>
-                    <Ionicons name="play" size={20} color={colors.textOnPrimary} style={{ marginRight: 8 }} />
-                    <Text style={styles.startBtnText}>Start Match</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            )}
           </Card>
-        ) : (
-          <>
-            {/* Score Buttons Grid */}
-            <Card style={styles.scoringCard} padding="md">
-              <Text style={styles.scoringTitle}>Scoring</Text>
-              <View style={styles.scoreGrid}>
-                {scoreButtons.map((btn) => (
-                  <ScoreButton
-                    key={String(btn.score)}
-                    score={btn.score}
-                    onPress={handleScorePress}
-                    disabled={isLoading}
-                  />
-                ))}
-              </View>
-            </Card>
-
-            {/* Batter / Bowler Info */}
-            <View style={styles.playersRow}>
-              <Card style={[styles.playerCard, styles.activeGlow]} padding="sm">
-                <View style={styles.playerRoleRow}>
-                  <Text style={styles.playerRoleIcon}>🏏</Text>
-                  <Text style={styles.playerRole}>Batting</Text>
-                </View>
-                <Text style={[styles.playerName, { color: colors.primary }]}>
-                  {currentMatch?.current?.strikerId ? (currentMatch.teams.flatMap(t => t.players).find(p => (p.playerId?._id?.toString() || p.playerId?.toString() || p.nameSnapshot) === currentMatch.current.strikerId)?.nameSnapshot || 'Striker') : 'Batter 1'}
-                </Text>
-                <Text style={styles.playerStat}>0 (0)</Text>
-                <Text style={styles.playerName}>
-                  {currentMatch?.current?.nonStrikerId ? (currentMatch.teams.flatMap(t => t.players).find(p => (p.playerId?._id?.toString() || p.playerId?.toString() || p.nameSnapshot) === currentMatch.current.nonStrikerId)?.nameSnapshot || 'Non-Striker') : 'Batter 2'}
-                </Text>
-                <Text style={styles.playerStat}>0 (0)</Text>
-              </Card>
-              <Card style={[styles.playerCard, styles.activeGlow]} padding="sm">
-                <View style={styles.playerRoleRow}>
-                  <Text style={styles.playerRoleIcon}>⚾</Text>
-                  <Text style={styles.playerRole}>Bowling</Text>
-                </View>
-                <Text style={[styles.playerName, { color: colors.accent }]}>
-                  {currentMatch?.current?.bowlerId ? (currentMatch.teams.flatMap(t => t.players).find(p => (p.playerId?._id?.toString() || p.playerId?.toString() || p.nameSnapshot) === currentMatch.current.bowlerId)?.nameSnapshot || 'Bowler') : 'Bowler 1'}
-                </Text>
-                <Text style={styles.playerStat}>0-0 (0.0)</Text>
-              </Card>
-            </View>
-          </>
         )}
+
+        {/* Conditional Panels */}
+        {renderScoringControls()}
+        {renderSpectatorView()}
 
         <View style={styles.bottomSpacer} />
       </ScrollView>
@@ -601,7 +803,7 @@ function StatChip({ label, value, colors, spacing, borderRadius, isDark }) {
 
 function getBallStyle(delivery, colors, borderRadius, isDark) {
   const base = { borderRadius: borderRadius.full };
-  if (delivery === 'W') return {
+  if (delivery === 'W' || String(delivery).includes('W')) return {
     ...base,
     backgroundColor: colors.scoreWicket,
     borderColor: isDark ? 'rgba(255, 59, 92, 0.50)' : 'rgba(229, 57, 80, 0.35)',
@@ -628,12 +830,12 @@ function getBallStyle(delivery, colors, borderRadius, isDark) {
     shadowOpacity: isDark ? 0.35 : 0.1,
     shadowRadius: 6,
   };
-  if (delivery === 'WD' || delivery === 'NB') return { ...base, backgroundColor: colors.scoreExtra, borderColor: colors.glassBorder };
+  if (delivery === 'WD' || delivery === 'NB' || delivery === 'wide' || delivery === 'noBall') return { ...base, backgroundColor: colors.scoreExtra, borderColor: colors.glassBorder };
   return { ...base, backgroundColor: colors.scoreDefault, borderColor: colors.glassBorder };
 }
 
 function getBallTextStyle(delivery, colors) {
-  if (delivery === 'W') return { color: colors.scoreWicketText };
+  if (delivery === 'W' || String(delivery).includes('W')) return { color: colors.scoreWicketText };
   if (delivery === 4) return { color: colors.scoreFourText };
   if (delivery === 6) return { color: colors.scoreSixText };
   return { color: colors.scoreDefaultText };
@@ -920,6 +1122,24 @@ function createStyles(colors, spacing, borderRadius, isDark) {
       elevation: 4,
     },
 
+    // ── Completed State ──────────────────────────────────────────────────────
+    completedCard: {
+      alignItems: 'center',
+      marginBottom: spacing[4],
+      backgroundColor: colors.surface,
+    },
+    completedTitle: {
+      fontSize: 24,
+      fontWeight: '900',
+      color: colors.textPrimary,
+      marginTop: spacing[4],
+    },
+    completedSubtitle: {
+      fontSize: 16,
+      color: colors.textSecondary,
+      marginTop: spacing[2],
+    },
+
     bottomSpacer: { height: 100 },
 
     // ── Waiting State ────────────────────────────────────────────────────────
@@ -1013,6 +1233,239 @@ function createStyles(colors, spacing, borderRadius, isDark) {
       fontWeight: '700',
       color: colors.primary,
       marginLeft: 4,
+    },
+
+    // ── Spectator View ────────────────────────────────────────────────────────
+    spectatorContainer: {
+      flex: 1,
+    },
+    liveAlert: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: spacing[2],
+      marginBottom: spacing[3],
+      borderRadius: borderRadius.lg,
+      gap: 8,
+    },
+    liveAlertText: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: colors.primary,
+      textTransform: 'uppercase',
+      letterSpacing: 1,
+    },
+    proScoreboardCard: {
+      marginBottom: spacing[4],
+      backgroundColor: isDark ? 'rgba(20, 20, 25, 0.9)' : '#fff',
+      borderColor: colors.primary + '30',
+      borderWidth: 1,
+    },
+    proHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: spacing[4],
+    },
+    proMatchTitle: {
+      fontSize: 12,
+      fontWeight: '800',
+      color: colors.textSecondary,
+    },
+    proStatusBadge: {
+      backgroundColor: colors.primary,
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      borderRadius: 4,
+    },
+    proStatusText: {
+      fontSize: 10,
+      fontWeight: '900',
+      color: '#fff',
+    },
+    proScoreMain: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: spacing[2],
+    },
+    proTeamCol: {
+      flex: 2,
+    },
+    proVsCol: {
+      flex: 1,
+      alignItems: 'center',
+    },
+    proTeamName: {
+      fontSize: 16,
+      fontWeight: '900',
+      color: colors.textPrimary,
+      marginBottom: 4,
+    },
+    proScoreText: {
+      fontSize: 28,
+      fontWeight: '900',
+      color: colors.primary,
+    },
+    proWicketText: {
+      fontSize: 20,
+      color: colors.textSecondary,
+    },
+    proOversText: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      fontWeight: '600',
+    },
+    proVsText: {
+      fontSize: 14,
+      fontWeight: '900',
+      color: colors.textDisabled,
+    },
+    proLiveStats: {
+      flexDirection: 'row',
+      marginTop: spacing[4],
+      paddingTop: spacing[3],
+      borderTopWidth: 1,
+      borderTopColor: colors.divider,
+      gap: spacing[4],
+    },
+    proStatItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    proStatLabel: {
+      fontSize: 11,
+      fontWeight: '800',
+      color: colors.textSecondary,
+    },
+    proStatValue: {
+      fontSize: 13,
+      fontWeight: '700',
+      color: colors.textPrimary,
+    },
+    proPlayersRow: {
+      flexDirection: 'row',
+      gap: spacing[3],
+      marginBottom: spacing[4],
+    },
+    proPlayerCard: {
+      flex: 1,
+      backgroundColor: colors.surfaceVariant,
+      padding: spacing[3],
+      borderRadius: borderRadius.lg,
+      borderLeftWidth: 3,
+      borderLeftColor: colors.primary,
+    },
+    proPlayerRole: {
+      fontSize: 9,
+      fontWeight: '900',
+      color: colors.textSecondary,
+      marginBottom: 2,
+    },
+    proPlayerName: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: colors.textPrimary,
+    },
+    proPlayerScore: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: colors.primary,
+      marginTop: 2,
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: '800',
+      color: colors.textPrimary,
+      marginBottom: spacing[3],
+      marginTop: spacing[2],
+    },
+    lineupsContainer: {
+      gap: spacing[3],
+    },
+    teamLineupCard: {
+      marginBottom: spacing[2],
+    },
+    teamLineupHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: spacing[3],
+      borderBottomWidth: 1,
+      borderBottomColor: colors.divider,
+      paddingBottom: spacing[2],
+    },
+    teamLineupName: {
+      fontSize: 15,
+      fontWeight: '800',
+      color: colors.primary,
+    },
+    teamLineupCount: {
+      fontSize: 12,
+      color: colors.textSecondary,
+    },
+    lineupPlayerItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: spacing[2],
+    },
+    lineupAvatar: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: colors.surfaceVariant,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: spacing[3],
+    },
+    lineupAvatarText: {
+      fontSize: 14,
+      fontWeight: '800',
+      color: colors.textPrimary,
+    },
+    lineupPlayerName: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: colors.textPrimary,
+    },
+    lineupPlayerAbility: {
+      fontSize: 11,
+      color: colors.textSecondary,
+    },
+    onStrikeBadge: {
+      marginLeft: 'auto',
+      backgroundColor: colors.success + '20',
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 4,
+    },
+    onStrikeText: {
+      fontSize: 9,
+      fontWeight: '900',
+      color: colors.success,
+    },
+    requestScorerBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.primary,
+      paddingVertical: spacing[4],
+      borderRadius: borderRadius.xl,
+      marginTop: spacing[6],
+      elevation: 4,
+      shadowColor: colors.primary,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 8,
+    },
+    requestSentBtn: {
+      backgroundColor: colors.textDisabled,
+    },
+    requestScorerBtnText: {
+      fontSize: 16,
+      fontWeight: '800',
+      color: '#fff',
     },
 
     // ── Modal ───────────────────────────────────────────────────────────────
