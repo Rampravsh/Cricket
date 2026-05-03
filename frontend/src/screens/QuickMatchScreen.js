@@ -485,11 +485,11 @@ function createStyles(colors, spacing, borderRadius, isDark) {
     },
     teamTabActive: {
       backgroundColor: colors.surface,
-      elevation: 2,
-      shadowColor: '#000',
+      elevation: 4,
+      shadowColor: colors.shadowColor,
       shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
+      shadowOpacity: isDark ? 0.3 : 0.1,
+      shadowRadius: 6,
     },
     teamTabText: {
       fontSize: 14,
@@ -505,6 +505,8 @@ function createStyles(colors, spacing, borderRadius, isDark) {
       padding: spacing[4],
       borderRadius: borderRadius.xl,
       marginBottom: spacing[6],
+      borderWidth: 1,
+      borderColor: colors.divider,
     },
     searchContainer: {
       flexDirection: 'row',

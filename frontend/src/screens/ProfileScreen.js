@@ -54,6 +54,7 @@ const ProfileScreen = () => {
   const error = useSelector(selectAuthError);
   const dispatch = useDispatch();
   const navigation = useNavigation();
+  const styles = createStyles(colors, spacing, isDark);
 
   const [isRefreshing, setIsRefreshing] = React.useState(false);
 
@@ -244,7 +245,8 @@ const ProfileScreen = () => {
 };
 
 const StatItem = ({ label, value, color }) => {
-  const { colors } = useTheme();
+  const { colors, spacing, isDark } = useTheme();
+  const styles = createStyles(colors, spacing, isDark);
   return (
     <View style={styles.statItem}>
       <Text style={[styles.statValue, { color: color || colors.textPrimary }]}>{value}</Text>
@@ -253,266 +255,271 @@ const StatItem = ({ label, value, color }) => {
   );
 };
 
-const MenuOption = ({ icon, title, subtitle, onPress, colors, badge }) => (
-  <TouchableOpacity style={[styles.menuOption, { borderBottomColor: colors.divider }]} onPress={onPress}>
-    <View style={[styles.menuIconBox, { backgroundColor: colors.surfaceVariant }]}>
-      <Ionicons name={icon} size={22} color={colors.primary} />
-      {badge && (
-        <View style={[styles.menuBadge, { backgroundColor: colors.danger }]}>
-          <Text style={styles.menuBadgeText}>{badge}</Text>
-        </View>
-      )}
-    </View>
-    <View style={styles.menuTextBox}>
-      <Text style={[styles.menuTitle, { color: colors.textPrimary }]}>{title}</Text>
-      <Text style={[styles.menuSubtitle, { color: colors.textSecondary }]}>{subtitle}</Text>
-    </View>
-    <Ionicons name="chevron-forward" size={18} color={colors.textDisabled} />
-  </TouchableOpacity>
-);
+const MenuOption = ({ icon, title, subtitle, onPress, colors, badge, spacing, isDark }) => {
+  const styles = createStyles(colors, spacing, isDark);
+  return (
+    <TouchableOpacity style={[styles.menuOption, { borderBottomColor: colors.divider }]} onPress={onPress}>
+      <View style={[styles.menuIconBox, { backgroundColor: colors.surfaceVariant }]}>
+        <Ionicons name={icon} size={22} color={colors.primary} />
+        {badge && (
+          <View style={[styles.menuBadge, { backgroundColor: colors.danger }]}>
+            <Text style={styles.menuBadgeText}>{badge}</Text>
+          </View>
+        )}
+      </View>
+      <View style={styles.menuTextBox}>
+        <Text style={[styles.menuTitle, { color: colors.textPrimary }]}>{title}</Text>
+        <Text style={[styles.menuSubtitle, { color: colors.textSecondary }]}>{subtitle}</Text>
+      </View>
+      <Ionicons name="chevron-forward" size={18} color={colors.textDisabled} />
+    </TouchableOpacity>
+  );
+};
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  iconButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  centeredContent: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 30,
-  },
-  scrollContent: {
-    paddingBottom: 100,
-  },
-  loginCardGlow: {
-    position: 'absolute',
-    width: width * 0.8,
-    height: 300,
-    borderRadius: 40,
-    opacity: 0.15,
-    transform: [{ scale: 1.1 }],
-  },
-  loginCard: {
-    width: '100%',
-    borderRadius: 32,
-    padding: 32,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    overflow: 'hidden',
-  },
-  loginIconContainer: {
-    marginBottom: 20,
-  },
-  loginTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  loginSubtitle: {
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 32,
-    lineHeight: 22,
-  },
-  googleButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 16,
-    width: '100%',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 3,
-  },
-  googleIcon: {
-    width: 20,
-    height: 20,
-    marginRight: 12,
-  },
-  googleButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  errorText: {
-    color: '#FF3B5C',
-    marginTop: 16,
-    fontSize: 14,
-  },
-  profileCardContainer: {
-    marginHorizontal: 20,
-    borderRadius: 32,
-    padding: 24,
-    alignItems: 'center',
-    overflow: 'hidden',
-    marginBottom: 24,
-  },
-  profileCardBg: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  avatarContainer: {
-    position: 'relative',
-    marginBottom: 16,
-  },
-  avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    borderWidth: 3,
-  },
-  badge: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#fff',
-  },
-  userName: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  userEmail: {
-    fontSize: 14,
-    marginBottom: 24,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    width: '100%',
-    justifyContent: 'space-between',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 20,
-    padding: 16,
-  },
-  statItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: 18,
-    fontWeight: '800',
-    marginBottom: 2,
-  },
-  statLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  statDivider: {
-    width: 1,
-    height: '70%',
-    alignSelf: 'center',
-  },
-  menuContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 32,
-  },
-  menuOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-  },
-  menuIconBox: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-    position: 'relative',
-  },
-  menuBadge: {
-    position: 'absolute',
-    top: -4,
-    right: -4,
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 4,
-    borderWidth: 2,
-    borderColor: '#000', // Assuming black background or use theme
-  },
-  menuBadgeText: {
-    color: '#fff',
-    fontSize: 10,
-    fontWeight: 'bold',
-  },
-  menuTextBox: {
-    flex: 1,
-  },
-  menuTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 2,
-  },
-  menuSubtitle: {
-    fontSize: 13,
-  },
-  logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginHorizontal: 20,
-    paddingVertical: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    marginBottom: 20,
-  },
-  logoutText: {
-    fontSize: 16,
-    fontWeight: '700',
-    marginLeft: 8,
-  },
-  versionText: {
-    textAlign: 'center',
-    fontSize: 12,
-    marginBottom: 20,
-  },
-  historyButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginHorizontal: 20,
-    padding: 20,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
-  },
-  historyButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  historyButtonTextContainer: {
-    marginLeft: 16,
-  },
-  historyButtonTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 2,
-  },
-  historyButtonSubtitle: {
-    fontSize: 12,
-  },
-});
+function createStyles(colors, spacing, isDark) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+    },
+    iconButton: {
+      width: 44,
+      height: 44,
+      borderRadius: 12,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    centeredContent: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 30,
+    },
+    scrollContent: {
+      paddingBottom: 100,
+    },
+    loginCardGlow: {
+      position: 'absolute',
+      width: width * 0.8,
+      height: 300,
+      borderRadius: 40,
+      opacity: 0.15,
+      transform: [{ scale: 1.1 }],
+    },
+    loginCard: {
+      width: '100%',
+      borderRadius: 32,
+      padding: 32,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: colors.divider,
+      overflow: 'hidden',
+    },
+    loginIconContainer: {
+      marginBottom: 20,
+    },
+    loginTitle: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      marginBottom: 12,
+      textAlign: 'center',
+    },
+    loginSubtitle: {
+      fontSize: 16,
+      textAlign: 'center',
+      marginBottom: 32,
+      lineHeight: 22,
+    },
+    googleButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 14,
+      paddingHorizontal: 24,
+      borderRadius: 16,
+      width: '100%',
+      justifyContent: 'center',
+      shadowColor: colors.shadowColor,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: isDark ? 0.3 : 0.1,
+      shadowRadius: 10,
+      elevation: 4,
+    },
+    googleIcon: {
+      width: 20,
+      height: 20,
+      marginRight: 12,
+    },
+    googleButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    errorText: {
+      color: '#FF3B5C',
+      marginTop: 16,
+      fontSize: 14,
+    },
+    profileCardContainer: {
+      marginHorizontal: 20,
+      borderRadius: 32,
+      padding: 24,
+      alignItems: 'center',
+      overflow: 'hidden',
+      marginBottom: 24,
+    },
+    profileCardBg: {
+      ...StyleSheet.absoluteFillObject,
+    },
+    avatarContainer: {
+      position: 'relative',
+      marginBottom: 16,
+    },
+    avatar: {
+      width: 100,
+      height: 100,
+      borderRadius: 50,
+      borderWidth: 3,
+    },
+    badge: {
+      position: 'absolute',
+      bottom: 0,
+      right: 0,
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: 2,
+      borderColor: colors.surface,
+    },
+    userName: {
+      fontSize: 22,
+      fontWeight: 'bold',
+      marginBottom: 4,
+    },
+    userEmail: {
+      fontSize: 14,
+      marginBottom: 24,
+    },
+    statsRow: {
+      flexDirection: 'row',
+      width: '100%',
+      justifyContent: 'space-between',
+      backgroundColor: colors.surfaceVariant,
+      borderRadius: 20,
+      padding: 16,
+    },
+    statItem: {
+      flex: 1,
+      alignItems: 'center',
+    },
+    statValue: {
+      fontSize: 18,
+      fontWeight: '800',
+      marginBottom: 2,
+    },
+    statLabel: {
+      fontSize: 12,
+      fontWeight: '500',
+    },
+    statDivider: {
+      width: 1,
+      height: '70%',
+      alignSelf: 'center',
+    },
+    menuContainer: {
+      paddingHorizontal: 20,
+      marginBottom: 32,
+    },
+    menuOption: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 16,
+      borderBottomWidth: 1,
+    },
+    menuIconBox: {
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 16,
+      position: 'relative',
+    },
+    menuBadge: {
+      position: 'absolute',
+      top: -4,
+      right: -4,
+      minWidth: 18,
+      height: 18,
+      borderRadius: 9,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 4,
+      borderWidth: 2,
+      borderColor: colors.surfaceVariant, 
+    },
+    menuBadgeText: {
+      color: '#fff',
+      fontSize: 10,
+      fontWeight: 'bold',
+    },
+    menuTextBox: {
+      flex: 1,
+    },
+    menuTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      marginBottom: 2,
+    },
+    menuSubtitle: {
+      fontSize: 13,
+    },
+    logoutButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginHorizontal: 20,
+      paddingVertical: 16,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderStyle: 'dashed',
+      marginBottom: 20,
+    },
+    logoutText: {
+      fontSize: 16,
+      fontWeight: '700',
+      marginLeft: 8,
+    },
+    versionText: {
+      textAlign: 'center',
+      fontSize: 12,
+      marginBottom: 20,
+    },
+    historyButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginHorizontal: 20,
+      padding: 20,
+      borderRadius: 24,
+      borderWidth: 1,
+      borderColor: colors.divider,
+    },
+    historyButtonContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    historyButtonTextContainer: {
+      marginLeft: 16,
+    },
+    historyButtonTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      marginBottom: 2,
+    },
+    historyButtonSubtitle: {
+      fontSize: 12,
+    },
+  });
+}
 
 export default ProfileScreen;

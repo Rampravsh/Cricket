@@ -58,48 +58,48 @@ const SpectatorView = ({
   return (
     <View style={styles.container}>
       {/* 1. Main Scoreboard (Professional IPL Style) */}
-      <Card style={styles.proScoreCard}>
+      <Card style={[styles.proScoreCard, { borderColor: colors.primary + '40' }]}>
         <LinearGradient
           colors={isDark 
             ? ['rgba(0, 240, 255, 0.15)', 'rgba(191, 90, 242, 0.1)'] 
-            : ['rgba(0, 180, 216, 0.1)', 'rgba(123, 47, 240, 0.05)']
+            : [colors.primary + '10', colors.accent + '05']
           }
           style={styles.proGradient}
         >
           <View style={styles.proTopRow}>
             <View style={styles.proTeamInfo}>
-              <Text style={styles.proTeamName}>{battingTeamScore.name}</Text>
+              <Text style={[styles.proTeamName, { color: colors.textPrimary }]}>{battingTeamScore.name}</Text>
               <View style={styles.liveIndicatorRow}>
-                <Animated.View style={[styles.liveDot, { opacity: blinkAnim }]} />
-                <Text style={styles.liveText}>BATTING</Text>
+                <Animated.View style={[styles.liveDot, { opacity: blinkAnim, backgroundColor: colors.danger }]} />
+                <Text style={[styles.liveText, { color: colors.textSecondary }]}>BATTING</Text>
               </View>
             </View>
             <View style={styles.proScoreContainer}>
-              <Text style={styles.proScoreMain}>
-                {battingTeamScore.runs}<Text style={styles.proWicketText}>/{battingTeamScore.wickets}</Text>
+              <Text style={[styles.proScoreMain, { color: colors.primary }]}>
+                {battingTeamScore.runs}<Text style={[styles.proWicketText, { color: colors.textPrimary }]}>/{battingTeamScore.wickets}</Text>
               </Text>
-              <Text style={styles.proOversText}>({formatOvers(battingTeamScore.balls)})</Text>
+              <Text style={[styles.proOversText, { color: colors.textSecondary }]}>({formatOvers(battingTeamScore.balls)})</Text>
             </View>
           </View>
 
-          <View style={styles.proDivider} />
+          <View style={[styles.proDivider, { backgroundColor: colors.divider }]} />
 
           <View style={styles.proBottomRow}>
             <View style={styles.proStatItem}>
-              <Text style={styles.proStatLabel}>CRR</Text>
-              <Text style={styles.proStatValue}>{runRate}</Text>
+              <Text style={[styles.proStatLabel, { color: colors.textSecondary }]}>CRR</Text>
+              <Text style={[styles.proStatValue, { color: colors.textPrimary }]}>{runRate}</Text>
             </View>
             {target && (
               <View style={styles.proStatItem}>
-                <Text style={styles.proStatLabel}>REQ</Text>
-                <Text style={styles.proStatValue}>
+                <Text style={[styles.proStatLabel, { color: colors.textSecondary }]}>RRR</Text>
+                <Text style={[styles.proStatValue, { color: colors.textPrimary }]}>
                   {calculateRunRate(target - battingTeamScore.runs, Math.max(1, 120 - battingTeamScore.balls))}
                 </Text>
               </View>
             )}
             <View style={styles.proStatItem}>
-              <Text style={styles.proStatLabel}>OPPONENT</Text>
-              <Text style={styles.proStatValue}>{bowlingTeamScore.name}</Text>
+              <Text style={[styles.proStatLabel, { color: colors.textSecondary }]}>OPPONENT</Text>
+              <Text style={[styles.proStatValue, { color: colors.textPrimary }]}>{bowlingTeamScore.name}</Text>
             </View>
           </View>
         </LinearGradient>
@@ -108,9 +108,9 @@ const SpectatorView = ({
       {/* 2. Current Players & Bowler (Live Data) */}
       {isLive && (
         <View style={styles.livePlayersSection}>
-          <Card style={styles.playerStatsCard}>
+          <Card style={[styles.playerStatsCard, { borderColor: colors.primary + '20' }]}>
             <View style={styles.playerStatsHeader}>
-              <Text style={styles.sectionTitle}>CURRENT BATTING</Text>
+              <Text style={[styles.sectionTitle, { color: colors.primary }]}>CURRENT BATTING</Text>
               <MaterialCommunityIcons name="cricket" size={18} color={colors.primary} />
             </View>
             
@@ -119,9 +119,9 @@ const SpectatorView = ({
               <View style={styles.playerRow}>
                 <View style={styles.playerNameCol}>
                   <Ionicons name="flash" size={14} color={colors.primary} />
-                  <Text style={styles.playerNameActive}>{currentMatch?.current?.strikerName || 'Striker'}</Text>
+                  <Text style={[styles.playerNameActive, { color: colors.textPrimary }]}>{currentMatch?.current?.strikerName || 'Striker'}</Text>
                 </View>
-                <Text style={styles.playerRunsActive}>
+                <Text style={[styles.playerRunsActive, { color: colors.primary }]}>
                   {currentMatch?.scorecard?.batting[currentMatch?.current?.strikerId]?.runs || 0}
                   ({currentMatch?.scorecard?.batting[currentMatch?.current?.strikerId]?.balls || 0})
                 </Text>
@@ -131,25 +131,25 @@ const SpectatorView = ({
               <View style={styles.playerRow}>
                 <View style={styles.playerNameCol}>
                   <View style={{ width: 14 }} />
-                  <Text style={styles.playerNameInactive}>{currentMatch?.current?.nonStrikerName || 'Non-Striker'}</Text>
+                  <Text style={[styles.playerNameInactive, { color: colors.textSecondary }]}>{currentMatch?.current?.nonStrikerName || 'Non-Striker'}</Text>
                 </View>
-                <Text style={styles.playerRunsInactive}>
+                <Text style={[styles.playerRunsInactive, { color: colors.textTertiary }]}>
                   {currentMatch?.scorecard?.batting[currentMatch?.current?.nonStrikerId]?.runs || 0}
                   ({currentMatch?.scorecard?.batting[currentMatch?.current?.nonStrikerId]?.balls || 0})
                 </Text>
               </View>
             </View>
 
-            <View style={styles.proDividerSmall} />
+            <View style={[styles.proDividerSmall, { backgroundColor: colors.divider }]} />
 
             <View style={styles.bowlerInfo}>
-              <Text style={styles.sectionTitleSmall}>BOWLING</Text>
+              <Text style={[styles.sectionTitleSmall, { color: colors.accent }]}>BOWLING</Text>
               <View style={styles.playerRow}>
                 <View style={styles.playerNameCol}>
-                  <MaterialCommunityIcons name="baseball" size={14} color={colors.secondary} />
-                  <Text style={styles.playerNameActive}>{currentMatch?.current?.bowlerName || 'Bowler'}</Text>
+                  <MaterialCommunityIcons name="baseball" size={14} color={colors.accent} />
+                  <Text style={[styles.playerNameActive, { color: colors.textPrimary }]}>{currentMatch?.current?.bowlerName || 'Bowler'}</Text>
                 </View>
-                <Text style={styles.playerRunsActive}>
+                <Text style={[styles.playerRunsActive, { color: colors.accent }]}>
                   {currentMatch?.scorecard?.bowling[currentMatch?.current?.bowlerId]?.wickets || 0}/
                   {currentMatch?.scorecard?.bowling[currentMatch?.current?.bowlerId]?.runs || 0} 
                   ({formatOvers(currentMatch?.scorecard?.bowling[currentMatch?.current?.bowlerId]?.balls || 0)})
@@ -159,16 +159,16 @@ const SpectatorView = ({
           </Card>
 
           {/* 3. Current Over (Live Updates) */}
-          <Card style={styles.overCard}>
+          <Card style={[styles.overCard, { borderColor: colors.accent + '20' }]}>
             <View style={styles.overHeader}>
-              <Text style={styles.sectionTitle}>THIS OVER</Text>
-              <Text style={styles.overSummary}>Runs: {currentOver.reduce((a, b) => a + (parseInt(b) || 0), 0)}</Text>
+              <Text style={[styles.sectionTitle, { color: colors.accent }]}>THIS OVER</Text>
+              <Text style={[styles.overSummary, { color: colors.textPrimary }]}>Runs: {currentOver.reduce((a, b) => a + (parseInt(b) || 0), 0)}</Text>
             </View>
             <View style={styles.ballList}>
               {[...Array(6)].map((_, i) => {
                 const ball = currentOver[i];
                 return (
-                  <View key={i} style={[styles.ballCircle, ball ? getBallStyle(ball) : styles.ballEmpty]}>
+                  <View key={i} style={[styles.ballCircle, ball ? getBallStyle(ball) : [styles.ballEmpty, { backgroundColor: colors.surfaceVariant, borderColor: colors.divider }]]}>
                     <Text style={[styles.ballText, ball ? getBallTextStyle(ball) : { color: colors.textDisabled }]}>
                       {ball || ''}
                     </Text>
@@ -182,29 +182,29 @@ const SpectatorView = ({
 
       {/* 4. Team Lineups (Toggleable Left/Right) */}
       <View style={styles.lineupSection}>
-        <View style={styles.tabBar}>
+        <View style={[styles.tabBar, { backgroundColor: colors.surfaceVariant }]}>
           <TouchableOpacity 
-            style={[styles.tab, selectedTeamTab === 0 && styles.activeTab]} 
+            style={[styles.tab, selectedTeamTab === 0 && { backgroundColor: colors.primary + '20' }]} 
             onPress={() => setSelectedTeamTab(0)}
           >
-            <Text style={[styles.tabText, selectedTeamTab === 0 && styles.activeTabText]}>{teamAScore.name}</Text>
+            <Text style={[styles.tabText, selectedTeamTab === 0 && { color: colors.primary }]}>{teamAScore.name}</Text>
           </TouchableOpacity>
           <TouchableOpacity 
-            style={[styles.tab, selectedTeamTab === 1 && styles.activeTab]} 
+            style={[styles.tab, selectedTeamTab === 1 && { backgroundColor: colors.primary + '20' }]} 
             onPress={() => setSelectedTeamTab(1)}
           >
-            <Text style={[styles.tabText, selectedTeamTab === 1 && styles.activeTabText]}>{teamBScore.name}</Text>
+            <Text style={[styles.tabText, selectedTeamTab === 1 && { color: colors.primary }]}>{teamBScore.name}</Text>
           </TouchableOpacity>
         </View>
 
         <Card style={styles.lineupCard}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.lineupScroll}>
             <View style={styles.lineupTable}>
-              <View style={styles.tableHeader}>
-                <Text style={[styles.headerText, { flex: 3 }]}>PLAYER</Text>
-                <Text style={[styles.headerText, { flex: 1, textAlign: 'center' }]}>R</Text>
-                <Text style={[styles.headerText, { flex: 1, textAlign: 'center' }]}>B</Text>
-                <Text style={[styles.headerText, { flex: 2, textAlign: 'right' }]}>STATUS</Text>
+              <View style={[styles.tableHeader, { borderBottomColor: colors.divider }]}>
+                <Text style={[styles.headerText, { flex: 3, color: colors.textSecondary }]}>PLAYER</Text>
+                <Text style={[styles.headerText, { flex: 1, textAlign: 'center', color: colors.textSecondary }]}>R</Text>
+                <Text style={[styles.headerText, { flex: 1, textAlign: 'center', color: colors.textSecondary }]}>B</Text>
+                <Text style={[styles.headerText, { flex: 2, textAlign: 'right', color: colors.textSecondary }]}>STATUS</Text>
               </View>
               
               {(currentMatch?.teams[selectedTeamTab]?.players || []).map((p, idx) => {
@@ -213,25 +213,25 @@ const SpectatorView = ({
                 const isOut = stats?.status !== 'not out' && stats?.status !== 'yet to bat' && stats;
                 
                 return (
-                  <View key={idx} style={styles.tableRow}>
+                  <View key={idx} style={[styles.tableRow, { borderBottomColor: colors.divider }]}>
                     <View style={[styles.playerNameCol, { flex: 3 }]}>
-                      <View style={[styles.avatarSmall, isOut && { backgroundColor: 'rgba(255,255,255,0.05)' }]}>
-                        <Text style={[styles.avatarTextSmall, isOut && { color: colors.textDisabled }]}>{p.nameSnapshot?.[0]}</Text>
+                      <View style={[styles.avatarSmall, { backgroundColor: colors.primary + '10' }, isOut && { backgroundColor: colors.surfaceVariant }]}>
+                        <Text style={[styles.avatarTextSmall, { color: colors.primary }, isOut && { color: colors.textDisabled }]}>{p.nameSnapshot?.[0]}</Text>
                       </View>
                       <View>
-                        <Text style={[styles.lineupPlayerName, isOut && { color: colors.textDisabled }]}>
+                        <Text style={[styles.lineupPlayerName, { color: colors.textPrimary }, isOut && { color: colors.textDisabled }]}>
                           {p.playerId?.displayName || p.nameSnapshot}
                         </Text>
-                        <Text style={styles.lineupPlayerRole}>{p.playerId?.role || 'All-Rounder'}</Text>
+                        <Text style={[styles.lineupPlayerRole, { color: colors.textTertiary }]}>{p.playerId?.role || 'All-Rounder'}</Text>
                       </View>
                     </View>
-                    <Text style={[styles.lineupStat, { flex: 1, textAlign: 'center' }, isOut && { color: colors.textDisabled }]}>
+                    <Text style={[styles.lineupStat, { flex: 1, textAlign: 'center', color: colors.textPrimary }, isOut && { color: colors.textDisabled }]}>
                       {stats?.runs || 0}
                     </Text>
-                    <Text style={[styles.lineupStat, { flex: 1, textAlign: 'center' }, isOut && { color: colors.textDisabled }]}>
+                    <Text style={[styles.lineupStat, { flex: 1, textAlign: 'center', color: colors.textPrimary }, isOut && { color: colors.textDisabled }]}>
                       {stats?.balls || 0}
                     </Text>
-                    <Text style={[styles.lineupStatus, { flex: 2, textAlign: 'right' }, isOut && { color: colors.danger }]}>
+                    <Text style={[styles.lineupStatus, { flex: 2, textAlign: 'right', color: colors.primary }, isOut && { color: colors.danger }]}>
                       {isOut ? stats.status.toUpperCase() : (pId === currentMatch?.current?.strikerId || pId === currentMatch?.current?.nonStrikerId ? 'BATTING' : 'NOT OUT')}
                     </Text>
                   </View>
@@ -253,7 +253,6 @@ const styles = StyleSheet.create({
     padding: 0,
     overflow: 'hidden',
     borderWidth: 2,
-    borderColor: 'rgba(0, 240, 255, 0.3)',
     borderRadius: 24,
     marginBottom: 16,
   },
@@ -272,7 +271,6 @@ const styles = StyleSheet.create({
   proTeamName: {
     fontSize: 24,
     fontWeight: '900',
-    color: '#fff',
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
@@ -285,13 +283,11 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#ff2d78',
     marginRight: 6,
   },
   liveText: {
     fontSize: 10,
     fontWeight: '800',
-    color: 'rgba(255,255,255,0.7)',
     letterSpacing: 1,
   },
   proScoreContainer: {
@@ -300,25 +296,20 @@ const styles = StyleSheet.create({
   proScoreMain: {
     fontSize: 36,
     fontWeight: '900',
-    color: '#00f0ff',
   },
   proWicketText: {
     fontSize: 24,
-    color: '#fff',
   },
   proOversText: {
     fontSize: 14,
     fontWeight: '700',
-    color: 'rgba(255,255,255,0.6)',
   },
   proDivider: {
     height: 1,
-    backgroundColor: 'rgba(255,255,255,0.1)',
     marginVertical: 15,
   },
   proDividerSmall: {
     height: 1,
-    backgroundColor: 'rgba(255,255,255,0.05)',
     marginVertical: 12,
   },
   proBottomRow: {
@@ -331,14 +322,12 @@ const styles = StyleSheet.create({
   proStatLabel: {
     fontSize: 10,
     fontWeight: '800',
-    color: 'rgba(255,255,255,0.4)',
     marginBottom: 4,
     letterSpacing: 1,
   },
   proStatValue: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#fff',
   },
   livePlayersSection: {
     marginBottom: 20,
@@ -346,7 +335,6 @@ const styles = StyleSheet.create({
   playerStatsCard: {
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: 'rgba(0, 240, 255, 0.1)',
   },
   playerStatsHeader: {
     flexDirection: 'row',
@@ -357,13 +345,11 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 12,
     fontWeight: '900',
-    color: '#00f0ff',
     letterSpacing: 1.5,
   },
   sectionTitleSmall: {
     fontSize: 10,
     fontWeight: '900',
-    color: '#bf5af2',
     letterSpacing: 1,
     marginBottom: 8,
   },
@@ -383,29 +369,24 @@ const styles = StyleSheet.create({
   playerNameActive: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#fff',
   },
   playerNameInactive: {
     fontSize: 15,
     fontWeight: '600',
-    color: 'rgba(255,255,255,0.5)',
   },
   playerRunsActive: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#00f0ff',
   },
   playerRunsInactive: {
     fontSize: 15,
     fontWeight: '600',
-    color: 'rgba(255,255,255,0.4)',
   },
   bowlerInfo: {
     marginTop: 4,
   },
   overCard: {
     borderWidth: 1,
-    borderColor: 'rgba(191, 90, 242, 0.2)',
   },
   overHeader: {
     flexDirection: 'row',
@@ -416,7 +397,6 @@ const styles = StyleSheet.create({
   overSummary: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#fff',
   },
   ballList: {
     flexDirection: 'row',
@@ -432,8 +412,6 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   ballEmpty: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderColor: 'rgba(255,255,255,0.1)',
     borderStyle: 'dashed',
   },
   ballText: {
@@ -445,7 +423,6 @@ const styles = StyleSheet.create({
   },
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 12,
     padding: 4,
     marginBottom: 12,
@@ -456,16 +433,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 8,
   },
-  activeTab: {
-    backgroundColor: 'rgba(0, 240, 255, 0.2)',
-  },
   tabText: {
     fontSize: 13,
     fontWeight: '700',
-    color: 'rgba(255,255,255,0.5)',
-  },
-  activeTabText: {
-    color: '#00f0ff',
   },
   lineupCard: {
     padding: 0,
@@ -481,13 +451,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingBottom: 10,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.1)',
     marginBottom: 10,
   },
   headerText: {
     fontSize: 10,
     fontWeight: '900',
-    color: 'rgba(255,255,255,0.4)',
     letterSpacing: 1,
   },
   tableRow: {
@@ -495,40 +463,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.05)',
   },
   avatarSmall: {
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: 'rgba(0, 240, 255, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarTextSmall: {
-    color: '#00f0ff',
     fontWeight: '800',
     fontSize: 12,
   },
   lineupPlayerName: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#fff',
   },
   lineupPlayerRole: {
     fontSize: 10,
-    color: 'rgba(255,255,255,0.4)',
     fontWeight: '600',
   },
   lineupStat: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#fff',
   },
   lineupStatus: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#00f0ff',
   },
 });
 

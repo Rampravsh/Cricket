@@ -37,8 +37,8 @@ import Header from '~/components/Header';
 import NotificationIcon from '~/components/NotificationIcon';
 
 // Modular Views
-import ScoringView from './ScoringView';
-import SpectatorView from './SpectatorView';
+import ScoringView from './LiveMatch/ScoringView';
+import SpectatorView from './LiveMatch/SpectatorView';
 
 /**
  * LiveMatchScreen — Controller for live cricket match
@@ -178,8 +178,8 @@ function LiveMatchScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['bottom']}>
-      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['bottom']}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} translucent backgroundColor="transparent" />
       
       <Header
         title={viewMode === 'scoring' ? "Scoring Center" : "Live Scoreboard"}
@@ -206,7 +206,7 @@ function LiveMatchScreen() {
 
       <ScrollView 
         style={styles.scroll} 
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 }]}
         showsVerticalScrollIndicator={false}
       >
         {viewMode === 'scoring' ? (
@@ -246,7 +246,7 @@ function LiveMatchScreen() {
         transparent={true}
         onRequestClose={() => setReplacingPlayer(null)}
       >
-        <View style={styles.modalOverlay}>
+        <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.6)' }]}>
           <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
@@ -273,7 +273,7 @@ function LiveMatchScreen() {
                 keyExtractor={(item) => item._id}
                 renderItem={({ item }) => (
                   <TouchableOpacity 
-                    style={styles.playerItem}
+                    style={[styles.playerItem, { borderBottomColor: colors.divider }]}
                     onPress={() => handleReplace(item.userId)}
                   >
                     <View style={[styles.avatar, { backgroundColor: colors.primary + '20' }]}>
@@ -286,7 +286,7 @@ function LiveMatchScreen() {
                   </TouchableOpacity>
                 )}
                 ListEmptyComponent={
-                  <Text style={styles.emptyText}>
+                  <Text style={[styles.emptyText, { color: colors.textDisabled }]}>
                     {searchQuery.length < 2 ? 'Type at least 2 characters' : 'No players found'}
                   </Text>
                 }
@@ -302,7 +302,6 @@ function LiveMatchScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#050505',
   },
   centered: {
     flex: 1,
@@ -326,7 +325,6 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.8)',
     justifyContent: 'flex-end',
   },
   modalContent: {
@@ -357,7 +355,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.05)',
     gap: 12,
   },
   avatar: {
@@ -374,7 +371,6 @@ const styles = StyleSheet.create({
   emptyText: {
     textAlign: 'center',
     marginTop: 40,
-    color: 'rgba(255,255,255,0.3)',
   },
 });
 

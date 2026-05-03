@@ -160,14 +160,14 @@ function TossScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['bottom']}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
-      <Header title="Match Toss" />
+      <Header title="Match Toss" showBack onBack={() => navigation.goBack()} />
 
       <View style={styles.content}>
-        <View style={styles.matchCard}>
-          <Text style={styles.matchVs}>
+        <View style={[styles.matchCard, { backgroundColor: colors.surface, borderColor: colors.divider }]}>
+          <Text style={[styles.matchVs, { color: colors.textPrimary }]}>
             {match.teams[0].name} <Text style={{ color: colors.primary }}>VS</Text> {match.teams[1].name}
           </Text>
-          <Text style={styles.matchInfo}>{match.format} • {match.overs} Overs</Text>
+          <Text style={[styles.matchInfo, { color: colors.textSecondary }]}>{match.format} • {match.overs} Overs</Text>
         </View>
 
         {tossStep === 1 && (
@@ -179,6 +179,7 @@ function TossScreen() {
               <TouchableOpacity
                 style={[
                   styles.selectionBtn,
+                  { backgroundColor: colors.surface, borderColor: colors.divider },
                   selection === 'heads' && { backgroundColor: colors.primary, borderColor: colors.primary }
                 ]}
                 onPress={() => setSelection('heads')}
@@ -186,14 +187,15 @@ function TossScreen() {
                 <MaterialCommunityIcons 
                   name="face-man" 
                   size={32} 
-                  color={selection === 'heads' ? '#fff' : colors.textSecondary} 
+                  color={selection === 'heads' ? colors.textOnPrimary : colors.textSecondary} 
                 />
-                <Text style={[styles.selectionText, selection === 'heads' && { color: '#fff' }]}>HEADS</Text>
+                <Text style={[styles.selectionText, { color: colors.textSecondary }, selection === 'heads' && { color: colors.textOnPrimary }]}>HEADS</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={[
                   styles.selectionBtn,
+                  { backgroundColor: colors.surface, borderColor: colors.divider },
                   selection === 'tails' && { backgroundColor: colors.primary, borderColor: colors.primary }
                 ]}
                 onPress={() => setSelection('tails')}
@@ -201,9 +203,9 @@ function TossScreen() {
                 <MaterialCommunityIcons 
                   name="alpha-t-circle-outline" 
                   size={32} 
-                  color={selection === 'tails' ? '#fff' : colors.textSecondary} 
+                  color={selection === 'tails' ? colors.textOnPrimary : colors.textSecondary} 
                 />
-                <Text style={[styles.selectionText, selection === 'tails' && { color: '#fff' }]}>TAILS</Text>
+                <Text style={[styles.selectionText, { color: colors.textSecondary }, selection === 'tails' && { color: colors.textOnPrimary }]}>TAILS</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -235,8 +237,8 @@ function TossScreen() {
           </Animated.View>
           
           {result && !flipping && (
-            <Animated.View style={styles.resultBadge}>
-              <Text style={styles.resultText}>{result.toUpperCase()}</Text>
+            <Animated.View style={[styles.resultBadge, { backgroundColor: colors.warning }]}>
+              <Text style={[styles.resultText, { color: colors.textOnPrimary }]}>{result.toUpperCase()}</Text>
             </Animated.View>
           )}
         </View>
@@ -267,28 +269,28 @@ function TossScreen() {
         )}
 
         {tossStep === 3 && (
-          <View style={styles.decisionBox}>
-            <Text style={styles.winnerMsg}>
+          <View style={[styles.decisionBox, { backgroundColor: colors.surface, borderColor: colors.divider }]}>
+            <Text style={[styles.winnerMsg, { color: colors.textPrimary }]}>
               <Text style={{ color: colors.primary, fontWeight: '900' }}>{winner}</Text> won the toss!
             </Text>
-            <Text style={styles.decisionLabel}>Choose what to do:</Text>
+            <Text style={[styles.decisionLabel, { color: colors.textSecondary }]}>Choose what to do:</Text>
             <View style={styles.decisionRow}>
               <TouchableOpacity
-                style={[styles.decisionBtn, decision === 'bat' && { backgroundColor: colors.success }]}
+                style={[styles.decisionBtn, { backgroundColor: colors.surfaceVariant }, decision === 'bat' && { backgroundColor: colors.success }]}
                 onPress={() => handleDecision('bat')}
                 disabled={saving}
               >
-                <MaterialCommunityIcons name="cricket" size={32} color="#fff" />
-                <Text style={styles.decisionText}>BAT</Text>
+                <MaterialCommunityIcons name="cricket" size={32} color={decision === 'bat' ? "#fff" : colors.primary} />
+                <Text style={[styles.decisionText, { color: colors.textPrimary }, decision === 'bat' && { color: "#fff" }]}>BAT</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.decisionBtn, decision === 'bowl' && { backgroundColor: colors.info }]}
+                style={[styles.decisionBtn, { backgroundColor: colors.surfaceVariant }, decision === 'bowl' && { backgroundColor: colors.primary }]}
                 onPress={() => handleDecision('bowl')}
                 disabled={saving}
               >
-                <MaterialCommunityIcons name="baseball" size={32} color="#fff" />
-                <Text style={styles.decisionText}>BOWL</Text>
+                <MaterialCommunityIcons name="baseball" size={32} color={decision === 'bowl' ? "#fff" : colors.accent} />
+                <Text style={[styles.decisionText, { color: colors.textPrimary }, decision === 'bowl' && { color: "#fff" }]}>BOWL</Text>
               </TouchableOpacity>
             </View>
             {saving && <ActivityIndicator color={colors.primary} style={{ marginTop: 20 }} />}
@@ -316,22 +318,18 @@ const styles = StyleSheet.create({
   matchCard: {
     width: '100%',
     padding: 20,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 24,
     alignItems: 'center',
     marginBottom: 30,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
   },
   matchVs: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#fff',
     marginBottom: 5,
   },
   matchInfo: {
     fontSize: 14,
-    color: 'rgba(255,255,255,0.6)',
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
@@ -352,18 +350,15 @@ const styles = StyleSheet.create({
   selectionBtn: {
     width: 120,
     height: 100,
-    borderRadius: 15,
+    borderRadius: 16,
     borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.1)',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.02)',
   },
   selectionText: {
     marginTop: 8,
     fontSize: 14,
     fontWeight: '800',
-    color: 'rgba(255,255,255,0.6)',
   },
   coinContainer: {
     height: 200,
@@ -401,14 +396,12 @@ const styles = StyleSheet.create({
   resultBadge: {
     position: 'absolute',
     bottom: -20,
-    backgroundColor: '#FFD700',
     paddingHorizontal: 20,
     paddingVertical: 5,
     borderRadius: 20,
     elevation: 5,
   },
   resultText: {
-    color: '#000',
     fontWeight: '900',
     fontSize: 18,
   },
@@ -440,18 +433,16 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     padding: 20,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 24,
+    borderWidth: 1,
   },
   winnerMsg: {
     fontSize: 22,
-    color: '#fff',
     textAlign: 'center',
     marginBottom: 20,
   },
   decisionLabel: {
     fontSize: 14,
-    color: 'rgba(255,255,255,0.6)',
     marginBottom: 20,
     textTransform: 'uppercase',
   },
@@ -462,14 +453,12 @@ const styles = StyleSheet.create({
   decisionBtn: {
     flex: 1,
     height: 100,
-    borderRadius: 15,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
   },
   decisionText: {
     marginTop: 10,
-    color: '#fff',
     fontWeight: '900',
     fontSize: 16,
   },
