@@ -20,6 +20,7 @@ import { useTheme } from '~/hooks/useTheme';
 import Header from '~/components/Header';
 import Button from '~/components/Button';
 import { matchApi, playerApi } from '~/services/api';
+import { SCREENS } from '~/constants';
 
 const MATCH_FORMATS = [
   { id: 'T10', label: 'T10', overs: 10 },
@@ -166,7 +167,7 @@ function QuickMatchScreen() {
 
       const response = await matchApi.createMatch(matchData);
       if (response.success) {
-        navigation.navigate('LiveMatch', { matchId: response.data.matchId });
+        navigation.navigate(SCREENS.TOSS, { matchId: response.data.matchId });
       } else {
         Alert.alert('Error', response.message || 'Failed to create match');
       }
@@ -248,10 +249,16 @@ function QuickMatchScreen() {
 
   const renderStep2 = () => (
     <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === 'ios' ? 'padding' : null}
       style={{ flex: 1 }}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
     >
-      <ScrollView style={styles.stepContainer} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.stepContainer} 
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ paddingBottom: spacing[20] }}
+      >
         <Text style={styles.stepTitle}>Team Setup</Text>
 
         {/* Team Selector */}

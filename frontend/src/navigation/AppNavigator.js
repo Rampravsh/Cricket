@@ -5,7 +5,7 @@ import { useTheme } from '~/hooks/useTheme';
 import { SCREENS } from '~/constants';
 import BottomTabs from './BottomTabs';
 import NotificationScreen from '~/screens/NotificationScreen';
-
+import TossScreen from '~/screens/TossScreen';
 import { navigationRef } from './navigationRef';
 
 const Stack = createStackNavigator();
@@ -74,6 +74,7 @@ function AppNavigator() {
             }),
           }}
         />
+        <Stack.Screen name={SCREENS.TOSS} component={TossScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

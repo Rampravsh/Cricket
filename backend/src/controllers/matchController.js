@@ -454,6 +454,35 @@ const replacePlayer = catchAsync(async (req, res) => {
   res.status(200).json(sendResponse(true, 'Player replaced successfully', match));
 });
 
+/**
+ * @desc    Update match toss result
+ * @route   PATCH /api/v1/matches/:matchId/toss
+ * @access  Private
+ */
+const updateToss = catchAsync(async (req, res) => {
+  const { winner, decision, chosenCoin } = req.body;
+  const match = req.match || await Match.findOne({ matchId: req.params.matchId });
+
+  if (!match) {
+    return res.status(404).json(sendResponse(false, 'Match not found'));
+  }
+
+  match.toss = {
+    winner,
+    decision,
+    meta: { chosenCoin }
+  };
+
+  await match.save();
+
+  const io = req.app.get('io');
+  if (io) {
+    io.to(match.matchId).emit('toss-updated', match);
+  }
+
+  res.status(200).json(sendResponse(true, 'Toss result updated', match));
+});
+
 module.exports = {
   checkHealth,
   createMatch,
@@ -467,4 +496,5 @@ module.exports = {
   requestScorer,
   scorerResponse,
   replacePlayer,
+  updateToss,
 };

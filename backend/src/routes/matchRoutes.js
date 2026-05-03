@@ -11,6 +11,7 @@ const {
   requestScorer,
   scorerResponse,
   replacePlayer,
+  updateToss,
 } = require('../controllers/matchController');
 
 const { protect } = require('../middleware/auth');
@@ -39,5 +40,6 @@ router.patch('/:id/player-response', playerResponse);
 router.post('/:id/request-scorer', requestScorer);
 router.patch('/:id/scorer-response', scorerResponse);
 router.patch('/:id/replace-player', replacePlayer);
+router.patch('/:matchId/toss', canScoreMatch, updateToss);
 
 module.exports = router;

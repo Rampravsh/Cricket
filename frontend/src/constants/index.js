@@ -61,5 +61,6 @@ export const SCREENS = {
   HISTORY: 'History',
   PROFILE: 'Profile',
   NOTIFICATIONS: 'Notifications',
+  TOSS: 'Toss',
   MAIN_TABS: 'MainTabs',
 };
