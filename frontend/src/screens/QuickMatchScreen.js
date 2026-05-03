@@ -130,8 +130,8 @@ function QuickMatchScreen() {
   };
 
   const createMatch = async () => {
-    if (teams.teamA.players.length === 0 || teams.teamB.players.length === 0) {
-      Alert.alert('Error', 'Each team must have at least one player');
+    if (teams.teamA.players.length < 2 || teams.teamB.players.length < 2) {
+      Alert.alert('Error', 'Each team must have at least 2 players');
       return;
     }
 

@@ -30,6 +30,16 @@ const checkHealth = catchAsync(async (req, res) => {
 const createMatch = catchAsync(async (req, res) => {
   const { matchId, teams, isPublic, toss, format, overs, maxPlayers, players } = req.body;
 
+  if (!teams || teams.length < 2) {
+    return res.status(400).json(sendResponse(false, 'Match must have two teams'));
+  }
+
+  for (const team of teams) {
+    if (!team.players || team.players.length < 2) {
+      return res.status(400).json(sendResponse(false, `Team ${team.name} must have at least 2 players`));
+    }
+  }
+
   const newMatch = await Match.create({
     matchId,
     teams,
@@ -171,15 +181,15 @@ const startMatch = catchAsync(async (req, res) => {
     return res.status(400).json(sendResponse(false, 'Batting team must have at least 2 players'));
   }
 
-  if (!bowlingTeam.players || bowlingTeam.players.length < 1) {
-    return res.status(400).json(sendResponse(false, 'Bowling team must have at least 1 player'));
+  if (!bowlingTeam.players || bowlingTeam.players.length < 2) {
+    return res.status(400).json(sendResponse(false, 'Bowling team must have at least 2 players'));
   }
 
   match.status = 'live';
   match.current = {
-    strikerId: battingTeam.players[0].playerId,
-    nonStrikerId: battingTeam.players[1].playerId,
-    bowlerId: bowlingTeam.players[0].playerId,
+    strikerId: battingTeam.players[0]?.playerId || battingTeam.players[0]?.nameSnapshot,
+    nonStrikerId: battingTeam.players[1]?.playerId || battingTeam.players[1]?.nameSnapshot || null,
+    bowlerId: bowlingTeam.players[0]?.playerId || bowlingTeam.players[0]?.nameSnapshot,
   };
 
   await match.save();

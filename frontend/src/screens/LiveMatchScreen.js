@@ -432,11 +432,11 @@ function LiveMatchScreen() {
                   <Text style={styles.playerRole}>Batting</Text>
                 </View>
                 <Text style={[styles.playerName, { color: colors.primary }]}>
-                  {currentMatch?.current?.strikerId ? (currentMatch.teams.flatMap(t => t.players).find(p => (p.playerId?._id || p.playerId) === currentMatch.current.strikerId)?.nameSnapshot || 'Striker') : 'Batter 1'}
+                  {currentMatch?.current?.strikerId ? (currentMatch.teams.flatMap(t => t.players).find(p => (p.playerId?._id?.toString() || p.playerId?.toString() || p.nameSnapshot) === currentMatch.current.strikerId)?.nameSnapshot || 'Striker') : 'Batter 1'}
                 </Text>
                 <Text style={styles.playerStat}>0 (0)</Text>
                 <Text style={styles.playerName}>
-                  {currentMatch?.current?.nonStrikerId ? (currentMatch.teams.flatMap(t => t.players).find(p => (p.playerId?._id || p.playerId) === currentMatch.current.nonStrikerId)?.nameSnapshot || 'Non-Striker') : 'Batter 2'}
+                  {currentMatch?.current?.nonStrikerId ? (currentMatch.teams.flatMap(t => t.players).find(p => (p.playerId?._id?.toString() || p.playerId?.toString() || p.nameSnapshot) === currentMatch.current.nonStrikerId)?.nameSnapshot || 'Non-Striker') : 'Batter 2'}
                 </Text>
                 <Text style={styles.playerStat}>0 (0)</Text>
               </Card>
@@ -446,7 +446,7 @@ function LiveMatchScreen() {
                   <Text style={styles.playerRole}>Bowling</Text>
                 </View>
                 <Text style={[styles.playerName, { color: colors.accent }]}>
-                   {currentMatch?.current?.bowlerId ? (currentMatch.teams.flatMap(t => t.players).find(p => (p.playerId?._id || p.playerId) === currentMatch.current.bowlerId)?.nameSnapshot || 'Bowler') : 'Bowler 1'}
+                   {currentMatch?.current?.bowlerId ? (currentMatch.teams.flatMap(t => t.players).find(p => (p.playerId?._id?.toString() || p.playerId?.toString() || p.nameSnapshot) === currentMatch.current.bowlerId)?.nameSnapshot || 'Bowler') : 'Bowler 1'}
                 </Text>
                 <Text style={styles.playerStat}>0-0 (0.0)</Text>
               </Card>
