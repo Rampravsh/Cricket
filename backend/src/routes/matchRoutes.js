@@ -12,10 +12,11 @@ const {
   scorerResponse,
   replacePlayer,
   updateToss,
+  deleteMatch,
 } = require('../controllers/matchController');
 
 const { protect } = require('../middleware/auth');
-const { canScoreMatch } = require('../middleware/matchMiddleware');
+const { canScoreMatch, isMatchCreator } = require('../middleware/matchMiddleware');
 
 const router = express.Router();
 
@@ -41,5 +42,6 @@ router.post('/:id/request-scorer', requestScorer);
 router.patch('/:id/scorer-response', scorerResponse);
 router.patch('/:id/replace-player', replacePlayer);
 router.patch('/:matchId/toss', canScoreMatch, updateToss);
+router.delete('/:matchId', isMatchCreator, deleteMatch);
 
 module.exports = router;

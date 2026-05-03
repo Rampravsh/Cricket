@@ -42,7 +42,7 @@ const matchService = {
 
     // 4. Update balls & overs
     const recordedBallIndex = match.score.balls; // current legal balls (0-5)
-    
+
     if (isLegalDelivery) {
       match.score.balls += 1;
     }
@@ -61,7 +61,7 @@ const matchService = {
     if (runs % 2 !== 0) {
       rotateStrike = true;
     }
-    
+
     if (overCompleted) {
       rotateStrike = !rotateStrike;
     }
@@ -83,14 +83,14 @@ const matchService = {
       wicket,
       ts: Date.now(),
     };
-    
+
     match.balls.push(ballRecord);
 
     // 7. Update currentOver array
     if (!match.currentOver) {
       match.currentOver = [];
     }
-    
+
     if (wicket) {
       match.currentOver.push('W');
     } else if (extra) {
@@ -129,7 +129,7 @@ const matchService = {
       roles.push('scorer');
     }
 
-    const isPlayer = match.teams && match.teams.some(team => 
+    const isPlayer = match.teams && match.teams.some(team =>
       team.players && team.players.some(p => p.playerId && p.playerId.toString() === playerProfileId?.toString())
     );
 
@@ -268,9 +268,9 @@ const matchService = {
   recomputePlayerStats: async (playerProfileId) => {
     const Performance = require('../models/Performance');
     const PlayerProfile = require('../models/PlayerProfile');
-    
+
     const performances = await Performance.find({ playerId: playerProfileId });
-    
+
     const stats = {
       totalRuns: 0,
       totalWickets: 0,
@@ -289,11 +289,11 @@ const matchService = {
       // Preserve created/scored counts as they aren't in Performance
       stats.matchesCreated = profile.stats.matchesCreated;
       stats.matchesScored = profile.stats.matchesScored;
-      
+
       profile.stats = stats;
       await profile.save();
     }
-    
+
     return stats;
   },
 

@@ -28,6 +28,29 @@ const canScoreMatch = catchAsync(async (req, res, next) => {
   next();
 });
 
+/**
+ * Middleware to check if the user is the creator of the match.
+ */
+const isMatchCreator = catchAsync(async (req, res, next) => {
+  const matchId = req.params.matchId || req.params.id;
+  const match = await Match.findOne({ matchId });
+
+  if (!match) {
+    return res.status(404).json(sendResponse(false, 'Match not found'));
+  }
+
+  const userId = req.user._id.toString();
+  const isCreator = match.createdByUserId.toString() === userId;
+
+  if (!isCreator) {
+    return res.status(403).json(sendResponse(false, 'Only the match creator can perform this action'));
+  }
+
+  req.match = match;
+  next();
+});
+
 module.exports = {
   canScoreMatch,
+  isMatchCreator,
 };

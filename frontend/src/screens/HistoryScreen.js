@@ -92,6 +92,33 @@ function HistoryScreen() {
     }
   };
 
+  const handleDeleteMatch = async (matchId) => {
+    Alert.alert(
+      'Delete Match',
+      'Are you sure you want to delete this match? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Delete', 
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const response = await matchApi.deleteMatch(matchId);
+              if (response.success) {
+                Alert.alert('Success', 'Match deleted successfully');
+                fetchAllMatches(false);
+              } else {
+                Alert.alert('Error', response.message || 'Failed to delete match');
+              }
+            } catch (err) {
+              Alert.alert('Error', err.message || 'Something went wrong');
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const combinedMatches = useMemo(() => {
     const map = new Map();
     // Add history matches first (they have performance data)
@@ -226,8 +253,21 @@ function HistoryScreen() {
             </TouchableOpacity>
           )}
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Text style={styles.viewDetailsText}>View Match</Text>
-            <Ionicons name="chevron-forward" size={14} color={colors.primary} />
+            {isOwner && (
+              <TouchableOpacity 
+                style={[styles.deleteBtn, { marginRight: 12 }]}
+                onPress={() => handleDeleteMatch(item.matchId)}
+              >
+                <Ionicons name="trash-outline" size={20} color={colors.danger} />
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity 
+              style={{ flexDirection: 'row', alignItems: 'center' }}
+              onPress={() => navigation.navigate('LiveMatch', { matchId: item.matchId })}
+            >
+              <Text style={styles.viewDetailsText}>View Match</Text>
+              <Ionicons name="chevron-forward" size={14} color={colors.primary} />
+            </TouchableOpacity>
           </View>
         </View>
       </TouchableOpacity>
@@ -444,6 +484,9 @@ function createStyles(colors, spacing, borderRadius, isDark) {
       fontSize: 11,
       fontWeight: '800',
       color: colors.primary,
+    },
+    deleteBtn: {
+      padding: 4,
     },
     viewDetailsText: {
       fontSize: 12,

@@ -83,6 +83,8 @@ export const matchApi = {
   replacePlayer: (id, payload) => apiClient.patch(`/matches/${id}/replace-player`, payload),
   /** Update toss result */
   updateToss: (matchId, payload) => apiClient.patch(`/matches/${matchId}/toss`, payload),
+  /** Delete a match */
+  deleteMatch: (matchId) => apiClient.delete(`/matches/${matchId}`),
 };
 
 // ─── Player API ───────────────────────────────────────────────────────────────

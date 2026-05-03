@@ -182,7 +182,7 @@ function QuickMatchScreen() {
   const renderStep1 = () => (
     <ScrollView style={styles.stepContainer} showsVerticalScrollIndicator={false}>
       <Text style={styles.stepTitle}>Match Configuration</Text>
-      
+
       <Text style={styles.label}>Match Format</Text>
       <View style={styles.formatGrid}>
         {MATCH_FORMATS.map((f) => (
@@ -253,8 +253,8 @@ function QuickMatchScreen() {
       style={{ flex: 1 }}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
     >
-      <ScrollView 
-        style={styles.stepContainer} 
+      <ScrollView
+        style={styles.stepContainer}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ paddingBottom: spacing[20] }}
@@ -336,10 +336,10 @@ function QuickMatchScreen() {
             </View>
           )}
 
-        <View style={styles.playersList}>
-          {teams[activeTeam].players.map((p, index) => (
-            <View key={p._id || p.id || `${p.name}-${index}`} style={styles.playerChip}>
-              <Text style={styles.playerChipText}>{p.displayName || p.name}</Text>
+          <View style={styles.playersList}>
+            {teams[activeTeam].players.map((p, index) => (
+              <View key={p._id || p.id || `${p.name}-${index}`} style={styles.playerChip}>
+                <Text style={styles.playerChipText}>{p.displayName || p.name}</Text>
                 {p._id && <Ionicons name="checkmark-circle" size={14} color={colors.success} style={{ marginLeft: 4 }} />}
                 <TouchableOpacity onPress={() => removePlayer(activeTeam, p._id || p.id || p.name)}>
                   <Ionicons name="close-circle" size={18} color={colors.textTertiary} style={{ marginLeft: 8 }} />

@@ -35,7 +35,7 @@ function LiveMatchScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const dispatch = useDispatch();
-  
+
   const blinkAnim = useRef(new Animated.Value(1)).current;
 
   // Blinking dot animation
@@ -47,7 +47,7 @@ function LiveMatchScreen() {
       ])
     ).start();
   }, [blinkAnim]);
-  
+
   const score = useSelector(selectScore);
   const currentOver = useSelector(selectCurrentOver);
   const target = useSelector(selectTarget);
@@ -81,7 +81,7 @@ function LiveMatchScreen() {
 
   const handleScorePress = (value) => {
     setLastPressed(value);
-    
+
     let runs = 0;
     let extra = null;
     let wicket = false;
@@ -97,7 +97,7 @@ function LiveMatchScreen() {
     } else if (typeof value === 'number') {
       runs = value;
     } else if (value === SCORE_VALUES.LEG_BYE || value === SCORE_VALUES.BYE) {
-       runs = 1;
+      runs = 1;
     }
 
     if (matchId) {
@@ -109,7 +109,7 @@ function LiveMatchScreen() {
     if (!currentMatch) return;
 
     const pendingPlayers = currentMatch.players?.filter(p => p.status === 'pending');
-    
+
     if (pendingPlayers && pendingPlayers.length > 0) {
       const names = pendingPlayers.map(p => p.name).join(', ');
       Alert.alert(
@@ -117,10 +117,10 @@ function LiveMatchScreen() {
         `The following players have not accepted the invitation yet:\n\n${names}\n\nDo you want to start the match anyway or wait for them?`,
         [
           { text: 'Wait', style: 'cancel' },
-          { 
-            text: 'Start Anyway', 
+          {
+            text: 'Start Anyway',
             style: 'destructive',
-            onPress: () => dispatch(startMatchThunk(matchId)) 
+            onPress: () => dispatch(startMatchThunk(matchId))
           },
         ]
       );
@@ -194,6 +194,33 @@ function LiveMatchScreen() {
     }
   };
 
+  const handleDeleteMatch = async () => {
+    Alert.alert(
+      'Delete Match',
+      'Are you sure you want to delete this match? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Delete', 
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const response = await matchApi.deleteMatch(matchId);
+              if (response.success) {
+                Alert.alert('Success', 'Match deleted successfully');
+                navigation.navigate('Home');
+              } else {
+                Alert.alert('Error', response.message || 'Failed to delete match');
+              }
+            } catch (err) {
+              Alert.alert('Error', err.message || 'Something went wrong');
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const battingTeamScore = score.teamA;
   const bowlingTeamScore = score.teamB;
   const runRate = calculateRunRate(battingTeamScore.runs, battingTeamScore.balls);
@@ -233,6 +260,11 @@ function LiveMatchScreen() {
                 <Animated.View style={[styles.liveDot, { opacity: blinkAnim }]} />
                 <Text style={styles.liveBadgeText}>LIVE</Text>
               </View>
+            )}
+            {isCreator && (
+              <TouchableOpacity onPress={handleDeleteMatch} style={{ marginRight: 16 }}>
+                <Ionicons name="trash-outline" size={24} color={colors.danger} />
+              </TouchableOpacity>
             )}
             <NotificationIcon />
           </View>
@@ -365,7 +397,7 @@ function LiveMatchScreen() {
                   <View>
                     <Text style={styles.playerStatusName}>{p.name}</Text>
                     <View style={[
-                      styles.statusBadge, 
+                      styles.statusBadge,
                       { backgroundColor: p.status === 'accepted' ? colors.success + '20' : colors.warning + '20' }
                     ]}>
                       <Text style={[
@@ -376,9 +408,9 @@ function LiveMatchScreen() {
                       </Text>
                     </View>
                   </View>
-                  
+
                   {isCreator && p.status !== 'accepted' && (
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={styles.replaceBtn}
                       onPress={() => setReplacingPlayer(p)}
                     >
@@ -391,7 +423,7 @@ function LiveMatchScreen() {
             </View>
 
             {isCreator && (
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[styles.startBtn, { backgroundColor: colors.primary }]}
                 onPress={handleStartMatch}
                 disabled={isLoading}
@@ -446,7 +478,7 @@ function LiveMatchScreen() {
                   <Text style={styles.playerRole}>Bowling</Text>
                 </View>
                 <Text style={[styles.playerName, { color: colors.accent }]}>
-                   {currentMatch?.current?.bowlerId ? (currentMatch.teams.flatMap(t => t.players).find(p => (p.playerId?._id?.toString() || p.playerId?.toString() || p.nameSnapshot) === currentMatch.current.bowlerId)?.nameSnapshot || 'Bowler') : 'Bowler 1'}
+                  {currentMatch?.current?.bowlerId ? (currentMatch.teams.flatMap(t => t.players).find(p => (p.playerId?._id?.toString() || p.playerId?.toString() || p.nameSnapshot) === currentMatch.current.bowlerId)?.nameSnapshot || 'Bowler') : 'Bowler 1'}
                 </Text>
                 <Text style={styles.playerStat}>0-0 (0.0)</Text>
               </Card>
@@ -460,10 +492,10 @@ function LiveMatchScreen() {
       {/* Replacement Modal */}
       {replacingPlayer && (
         <View style={StyleSheet.absoluteFill}>
-          <TouchableOpacity 
-            style={styles.modalOverlay} 
-            activeOpacity={1} 
-            onPress={() => setReplacingPlayer(null)} 
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setReplacingPlayer(null)}
           />
           <View style={styles.modalContainer}>
             <View style={styles.modalHeader}>
@@ -490,8 +522,8 @@ function LiveMatchScreen() {
             ) : (
               <ScrollView style={styles.searchResults}>
                 {searchResults.map(player => (
-                  <TouchableOpacity 
-                    key={player._id} 
+                  <TouchableOpacity
+                    key={player._id}
                     style={styles.searchResultItem}
                     onPress={() => handleReplacePlayer(player)}
                   >
@@ -506,7 +538,7 @@ function LiveMatchScreen() {
                   </TouchableOpacity>
                 ))}
                 {searchQuery.length > 0 && searchResults.length === 0 && (
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.guestAddBtn}
                     onPress={handleAddGuestReplacement}
                   >
@@ -601,9 +633,9 @@ function getBallStyle(delivery, colors, borderRadius, isDark) {
 }
 
 function getBallTextStyle(delivery, colors) {
-  if (delivery === 'W')  return { color: colors.scoreWicketText };
-  if (delivery === 4)    return { color: colors.scoreFourText };
-  if (delivery === 6)    return { color: colors.scoreSixText };
+  if (delivery === 'W') return { color: colors.scoreWicketText };
+  if (delivery === 4) return { color: colors.scoreFourText };
+  if (delivery === 6) return { color: colors.scoreSixText };
   return { color: colors.scoreDefaultText };
 }
 

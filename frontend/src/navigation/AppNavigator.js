@@ -6,6 +6,7 @@ import { SCREENS } from '~/constants';
 import BottomTabs from './BottomTabs';
 import NotificationScreen from '~/screens/NotificationScreen';
 import TossScreen from '~/screens/TossScreen';
+import LiveMatchScreen from '~/screens/LiveMatchScreen';
 import { navigationRef } from './navigationRef';
 
 const Stack = createStackNavigator();
@@ -75,6 +76,7 @@ function AppNavigator() {
           }}
         />
         <Stack.Screen name={SCREENS.TOSS} component={TossScreen} />
+        <Stack.Screen name={SCREENS.LIVE_MATCH} component={LiveMatchScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

@@ -87,18 +87,18 @@ const createMatch = catchAsync(async (req, res) => {
 const getMyMatches = catchAsync(async (req, res) => {
   const playerProfile = await PlayerProfile.findOne({ userId: req.user._id });
   const matches = await matchService.getMatchHistory(req.user._id, playerProfile?._id);
-  
+
   // Fetch performances for this user across these matches
-  const performances = playerProfile 
+  const performances = playerProfile
     ? await Performance.find({ playerId: playerProfile._id, matchId: { $in: matches.map(m => m._id) } })
     : [];
-    
+
   const perfMap = new Map(performances.map(p => [p.matchId.toString(), p]));
 
   const matchesWithRoles = matches.map(match => {
     const matchObj = match.toObject();
     matchObj.roles = matchService.computeUserRoles(match, req.user._id, playerProfile?._id);
-    
+
     const performance = perfMap.get(match._id.toString());
     if (performance) {
       matchObj.performance = {
@@ -110,7 +110,7 @@ const getMyMatches = catchAsync(async (req, res) => {
     } else {
       matchObj.performance = null;
     }
-    
+
     return matchObj;
   });
 
@@ -438,9 +438,9 @@ const replacePlayer = catchAsync(async (req, res) => {
     team.players = team.players.map(p => {
       const matchIdAttr = p.playerId?.toString();
       if ((oldPlayerId && matchIdAttr === oldPlayerId.toString()) || (oldPlayerName && p.nameSnapshot === oldPlayerName)) {
-        return { 
-          playerId: newPlayerId || null, 
-          nameSnapshot: newName 
+        return {
+          playerId: newPlayerId || null,
+          nameSnapshot: newName
         };
       }
       return p;
@@ -493,6 +493,36 @@ const updateToss = catchAsync(async (req, res) => {
   res.status(200).json(sendResponse(true, 'Toss result updated', match));
 });
 
+/**
+ * @desc    Delete a match
+ * @route   DELETE /api/v1/matches/:matchId
+ * @access  Private (Creator only)
+ */
+const deleteMatch = catchAsync(async (req, res) => {
+  const match = req.match || await Match.findOne({ matchId: req.params.matchId });
+
+  if (!match) {
+    return res.status(404).json(sendResponse(false, 'Match not found'));
+  }
+
+  // Double check authorization (redundant if middleware is used but safe)
+  if (match.createdByUserId.toString() !== req.user._id.toString()) {
+    return res.status(403).json(sendResponse(false, 'Not authorized to delete this match'));
+  }
+
+  await Match.deleteOne({ _id: match._id });
+
+  // Clean up associated performances (optional but good)
+  await Performance.deleteMany({ matchId: match._id });
+
+  const io = req.app.get('io');
+  if (io) {
+    io.to(match.matchId).emit('match-deleted', { matchId: match.matchId });
+  }
+
+  res.status(200).json(sendResponse(true, 'Match deleted successfully'));
+});
+
 module.exports = {
   checkHealth,
   createMatch,
@@ -507,4 +537,5 @@ module.exports = {
   scorerResponse,
   replacePlayer,
   updateToss,
+  deleteMatch,
 };
