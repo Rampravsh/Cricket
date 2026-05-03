@@ -203,7 +203,14 @@ const matchSlice = createSlice({
       
       if (matchData.balls && matchData.balls.length > 0) {
         const currentOverNumber = matchData.balls[matchData.balls.length - 1].over;
-        state.currentOver = matchData.balls.filter(b => b.over === currentOverNumber).map(b => b.runs + (b.wicket ? 'W' : ''));
+        state.currentOver = matchData.balls
+          .filter(b => b.over === currentOverNumber)
+          .map(b => {
+            if (b.wicket) return 'W';
+            if (b.extra === 'wide') return (b.runs || '') + 'WD';
+            if (b.extra === 'noBall') return (b.runs || '') + 'NB';
+            return String(b.runs);
+          });
       }
     },
 
@@ -265,7 +272,13 @@ const matchSlice = createSlice({
                // Update currentOver by taking the most recent ball's over and finding all balls in that over
                if (matchData.balls.length > 0) {
                  const currentOverNumber = matchData.balls[matchData.balls.length - 1].over;
-                 state.currentOver = matchData.balls.filter(b => b.over === currentOverNumber).map(b => b.runs + (b.wicket ? 'W' : ''));
+                 state.currentOver = matchData.balls.filter(b => b.over === currentOverNumber).map(b => {
+                    if (b.wicket) return 'W';
+                    if (b.extra === 'wide') return (b.runs || '') + 'WD';
+                    if (b.extra === 'noBall') return (b.runs || '') + 'NB';
+                    return String(b.runs);
+                  });
+
                }
             }
           }

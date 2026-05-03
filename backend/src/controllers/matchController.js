@@ -134,7 +134,7 @@ const getMatchById = catchAsync(async (req, res) => {
   }
 
   // Include roles if user is authenticated
-  const matchObj = match.toObject();
+  let matchObj = matchService.enrichMatchWithNames(match);
   if (req.user) {
     const playerProfile = await PlayerProfile.findOne({ userId: req.user._id });
     matchObj.roles = matchService.computeUserRoles(match, req.user._id, playerProfile?._id);
@@ -194,12 +194,14 @@ const startMatch = catchAsync(async (req, res) => {
 
   await match.save();
 
+  const enrichedMatch = matchService.enrichMatchWithNames(match);
+
   const io = req.app.get('io');
   if (io) {
-    io.to(match.matchId).emit('match-started', match);
+    io.to(match.matchId).emit('match-started', enrichedMatch);
   }
 
-  res.status(200).json(sendResponse(true, 'Match started', match));
+  res.status(200).json(sendResponse(true, 'Match started', enrichedMatch));
 });
 
 /**
@@ -228,12 +230,14 @@ const addBall = catchAsync(async (req, res) => {
     await matchService.finalizeMatch(updatedMatch);
   }
 
+  const enrichedMatch = matchService.enrichMatchWithNames(updatedMatch);
+
   const io = req.app.get('io');
   if (io) {
-    io.to(updatedMatch.matchId).emit('score-updated', updatedMatch);
+    io.to(updatedMatch.matchId).emit('score-updated', enrichedMatch);
   }
 
-  res.status(200).json(sendResponse(true, 'Ball added successfully', updatedMatch));
+  res.status(200).json(sendResponse(true, 'Ball added successfully', enrichedMatch));
 });
 
 /**

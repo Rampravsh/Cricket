@@ -16,7 +16,16 @@ const matchService = {
       throw new AppError('Match is not live or does not exist', 400);
     }
 
-    const { runs = 0, extra = null, wicket = false, strikerId, bowlerId } = ballData;
+    const { 
+      runs = 0, 
+      extra = null, 
+      extraRuns = 0,
+      wicket = false, 
+      wicketType = null,
+      fielderId = null,
+      strikerId, 
+      bowlerId 
+    } = ballData;
 
     // Capture IDs before potential modifications
     const currentStrikerId = strikerId || match.current.strikerId;
@@ -29,17 +38,19 @@ const matchService = {
     const isLegalDelivery = extra !== 'wide' && extra !== 'noBall';
 
     // 2. Update score
-    if (!isLegalDelivery) {
-      // Extra runs + 1 penalty for wide/no-ball
-      match.score.runs += 1 + runs;
+    if (extra === 'wide' || extra === 'noBall') {
+      // 1 penalty run + any additional runs (e.g., wide + 4 byes)
+      match.score.runs += 1 + runs + extraRuns;
     } else {
-      match.score.runs += runs;
+      // Normal runs or byes/leg-byes
+      match.score.runs += runs + extraRuns;
     }
 
     // 3. Handle wicket
     if (wicket) {
       match.score.wickets += 1;
-      // Striker is out, will be replaced by the next player
+      // Striker is out unless it's a run out of the non-striker
+      // For now, assume striker is out
       match.current.strikerId = null;
       
       if (match.score.wickets >= (match.maxPlayers || 11) - 1) {
@@ -69,10 +80,9 @@ const matchService = {
     }
 
     // 5. Handle strike rotation
-    // Wickets usually don't rotate strike based on runs (unless it's run out, but we don't track that yet)
-    // If it's a wicket, we let the scorer decide the new striker.
-    if (!wicket) {
+    if (!wicket || (wicket && wicketType === 'runOut')) {
       let rotateStrike = false;
+      // Normal runs rotate strike if odd
       if (runs % 2 !== 0) {
         rotateStrike = true;
       }
@@ -88,7 +98,6 @@ const matchService = {
       }
     } else {
       // If over completes on a wicket, the non-striker becomes the striker for the next over
-      // but the current striker is already null.
       if (overCompleted && match.current.nonStrikerId) {
          match.current.strikerId = match.current.nonStrikerId;
          match.current.nonStrikerId = null;
@@ -103,7 +112,10 @@ const matchService = {
       bowlerId: currentBowlerId,
       runs,
       extra,
+      extraRuns,
       wicket,
+      wicketType,
+      fielderId,
       ts: Date.now(),
     };
 
@@ -333,6 +345,107 @@ const matchService = {
         { 'teams.players.playerId': playerProfileId }
       ]
     }).sort({ createdAt: -1 });
+  },
+
+  /**
+   * Calculate detailed scorecard from balls array
+   */
+  calculateScorecard: (match) => {
+    const scorecard = {
+      batting: {}, // playerId -> { runs, balls, sixes, fours, status, dismissedBy, fielder }
+      bowling: {}, // playerId -> { runs, balls, wickets, maidens, dots }
+      extras: { wide: 0, noBall: 0, bye: 0, legBye: 0, total: 0 }
+    };
+
+    if (!match.balls) return scorecard;
+
+    match.balls.forEach(ball => {
+      const { strikerId, bowlerId, runs, extra, wicket, wicketType, fielderId } = ball;
+
+      // 1. Batting Stats
+      if (!scorecard.batting[strikerId]) {
+        scorecard.batting[strikerId] = { runs: 0, balls: 0, sixes: 0, fours: 0, status: 'not out' };
+      }
+      
+      const isLegal = extra !== 'wide';
+      if (isLegal) {
+        scorecard.batting[strikerId].balls += 1;
+        scorecard.batting[strikerId].runs += runs;
+        if (runs === 4) scorecard.batting[strikerId].fours += 1;
+        if (runs === 6) scorecard.batting[strikerId].sixes += 1;
+      }
+
+      if (wicket) {
+        scorecard.batting[strikerId].status = wicketType || 'out';
+        scorecard.batting[strikerId].dismissedBy = bowlerId;
+        scorecard.batting[strikerId].fielder = fielderId;
+      }
+
+      // 2. Bowling Stats
+      if (!scorecard.bowling[bowlerId]) {
+        scorecard.bowling[bowlerId] = { runs: 0, balls: 0, wickets: 0, maidens: 0, dots: 0 };
+      }
+      
+      if (isLegal) {
+        scorecard.bowling[bowlerId].balls += 1;
+      }
+      
+      // Runs conceded by bowler (wide and no-ball runs count, but byes/leg-byes don't)
+      const isExtraConceded = extra === 'wide' || extra === 'noBall';
+      const penalty = isExtraConceded ? 1 : 0;
+      if (extra !== 'bye' && extra !== 'legBye') {
+        scorecard.bowling[bowlerId].runs += penalty + runs;
+      }
+
+      if (wicket && wicketType !== 'runOut' && wicketType !== 'retired') {
+        scorecard.bowling[bowlerId].wickets += 1;
+      }
+      
+      if (runs === 0 && !isExtraConceded) {
+        scorecard.bowling[bowlerId].dots += 1;
+      }
+
+      // 3. Extras
+      if (extra) {
+        scorecard.extras[extra] = (scorecard.extras[extra] || 0) + 1;
+        scorecard.extras.total += 1;
+      }
+    });
+
+    return scorecard;
+  },
+
+  /**
+   * Enrich match object with human-readable names for current players
+   */
+  enrichMatchWithNames: (match) => {
+    const matchObj = match.toObject ? match.toObject() : match;
+    const playerMap = new Map();
+    
+    // Create a map of all players in both teams
+    match.teams.forEach(team => {
+      team.players.forEach(p => {
+        playerMap.set(p.playerId?.toString() || p.nameSnapshot, p.playerId?.displayName || p.nameSnapshot);
+      });
+    });
+
+    if (matchObj.current) {
+      matchObj.current.strikerName = playerMap.get(matchObj.current.strikerId) || 'Striker';
+      matchObj.current.nonStrikerName = playerMap.get(matchObj.current.nonStrikerId) || 'Non-Striker';
+      matchObj.current.bowlerName = playerMap.get(matchObj.current.bowlerId) || 'Bowler';
+    }
+
+    matchObj.scorecard = matchService.calculateScorecard(match);
+    
+    // Map scorecard IDs to names for easier display
+    const enrichedBatting = {};
+    Object.keys(matchObj.scorecard.batting).forEach(id => {
+      const name = playerMap.get(id) || id;
+      enrichedBatting[id] = { ...matchObj.scorecard.batting[id], name };
+    });
+    matchObj.scorecard.batting = enrichedBatting;
+
+    return matchObj;
   }
 };
 

@@ -57,8 +57,11 @@ const matchSchema = new mongoose.Schema(
         strikerId: { type: String, required: true },
         bowlerId: { type: String, required: true },
         runs: { type: Number, default: 0 },
-        extra: { type: String, enum: ['wide', 'noBall', null], default: null },
+        extra: { type: String, enum: ['wide', 'noBall', 'bye', 'legBye', null], default: null },
+        extraRuns: { type: Number, default: 0 },
         wicket: { type: Boolean, default: false },
+        wicketType: { type: String, enum: ['bowled', 'caught', 'lbw', 'runOut', 'stumped', 'hitWicket', 'retired', null], default: null },
+        fielderId: { type: String }, // Id or name of the fielder involved
         ts: { type: Number, default: Date.now },
       },
     ],
