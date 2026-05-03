@@ -49,6 +49,9 @@ exports.markAsRead = async (req, res) => {
 /**
  * Handle actionable notifications (accept/reject)
  */
+/**
+ * Handle actionable notifications (accept/reject)
+ */
 exports.handleAction = async (req, res) => {
   try {
     const { action } = req.body; // 'accepted' or 'rejected'
@@ -56,22 +59,58 @@ exports.handleAction = async (req, res) => {
       return res.status(400).json({ message: 'Invalid action' });
     }
 
-    const notification = await Notification.findOneAndUpdate(
-      { _id: req.params.id, userId: req.user.id },
-      { status: action, read: true },
-      { new: true }
-    );
-
+    const notification = await Notification.findOne({ _id: req.params.id, userId: req.user.id });
     if (!notification) {
       return res.status(404).json({ message: 'Notification not found' });
     }
 
-    // If it's a match-related action, we might need to notify the creator
+    // Perform the actual business logic update
+    const Match = require('../../models/Match');
+    const match = await Match.findById(notification.matchId);
+    
+    if (match) {
+      if (notification.type === 'player_invite') {
+        const playerIndex = match.players.findIndex(p => p.playerId?.toString() === req.user.id.toString());
+        if (playerIndex !== -1) {
+          match.players[playerIndex].status = action;
+          await match.save();
+        }
+      } else if (notification.type === 'scorer_request') {
+        const requestIndex = match.scorerRequests.findIndex(r => r.userId?.toString() === notification.userId.toString());
+        // Wait, for scorer_request, the notification is for the CREATOR.
+        // The action is taken by the creator on behalf of the requester.
+        // We need the requesterId from meta.
+        const requesterId = notification.meta?.requesterId;
+        const matchScorerReqIndex = match.scorerRequests.findIndex(r => r.userId?.toString() === requesterId?.toString());
+        
+        if (matchScorerReqIndex !== -1) {
+          match.scorerRequests[matchScorerReqIndex].status = action;
+          if (action === 'accepted') {
+            if (!match.scorers.includes(requesterId)) {
+              match.scorers.push(requesterId);
+            }
+          }
+          await match.save();
+        }
+      }
+      
+      // Emit update to match room
+      const io = getIO();
+      if (io) {
+        io.to(match.matchId).emit('score-updated', match);
+      }
+    }
+
+    notification.status = action;
+    notification.read = true;
+    await notification.save();
+
+    // If it's a match-related action, we might need to notify the creator or requester
     if (notification.type === 'player_invite' || notification.type === 'scorer_request') {
       const io = getIO();
-      if (io && notification.meta && notification.meta.creatorId) {
-        // Notify creator about the response
-        const { sendNotification } = require('./notification.service');
+      const { sendNotification } = require('./notification.service');
+      
+      if (notification.type === 'player_invite' && notification.meta?.creatorId) {
         await sendNotification({
           userId: notification.meta.creatorId,
           type: 'invite_response',
@@ -80,13 +119,18 @@ exports.handleAction = async (req, res) => {
           matchId: notification.matchId,
           meta: { responderId: req.user.id, action }
         });
-
-        // Emit match:update to sync UI for the creator
-        io.to(`user:${notification.meta.creatorId}`).emit("match:update", {
-          matchId: notification.matchId,
-          action,
-          responderId: req.user.id
-        });
+      } else if (notification.type === 'scorer_request') {
+        const requesterId = notification.meta?.requesterId;
+        if (requesterId) {
+          await sendNotification({
+            userId: requesterId,
+            type: 'scorer_response',
+            title: `Scorer Request ${action}`,
+            message: `Your request to score match ${match?.matchId || ''} was ${action}`,
+            matchId: notification.matchId,
+            meta: { status: action, creatorId: req.user.id }
+          });
+        }
       }
     }
 
