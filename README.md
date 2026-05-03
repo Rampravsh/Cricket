@@ -66,6 +66,10 @@ npm run web
 - ✅ **Multi-Scorer Support** — Multiple users can request to score; host can approve.
 - ✅ **Match Invitations** — Invite players to matches via notifications.
 - ✅ **Real-time Notifications** — FCM for push alerts and Socket.IO for in-app state sync.
+- ✅ **Toss Management** — Interactive coin flip and decision tracking.
+- ✅ **Single-Player Support** — Ability to score matches with single-player teams (1v1 or solo).
+- ✅ **Match Deletion** — Secure deletion of matches by the original creator.
+- ✅ **Premium UI** — Standardized light/dark mode with glassmorphism and haptic feedback.
 
 ## 🧩 Key Decisions
 
@@ -100,6 +104,9 @@ The app uses a dual-layer notification strategy:
 - [x] Authentication flow (Google Sign-In integration)
 - [x] Match history & stats (Backend API & Redux state)
 - [x] Push notifications for invitations and alerts
+- [x] Toss screen with interactive coin flip
+- [x] Single-player match support
+- [x] Secure match deletion functionality
 - [ ] Detailed scorecard screen
 - [ ] Tournament management
 - [ ] Player leaderboards

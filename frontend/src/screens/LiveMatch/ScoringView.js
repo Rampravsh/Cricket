@@ -31,6 +31,10 @@ const ScoringView = ({
   const isWaiting = currentMatch?.status === 'waiting';
   const isLive = currentMatch?.status === 'live';
 
+  // Rate metrics from the backend engine (single source of truth)
+  const crr = currentMatch?.computed?.crr ?? 0;
+  const rrr = currentMatch?.computed?.rrr ?? null;
+
   if (isWaiting) {
     return (
       <View style={styles.waitingContainer}>
@@ -72,6 +76,28 @@ const ScoringView = ({
               <Text style={[styles.miniLiveText, { color: colors.danger }]}>SCORING LIVE</Text>
             </View>
           </View>
+        </View>
+
+        {/* CRR / RRR row */}
+        <View style={styles.miniRateRow}>
+          <View style={styles.miniRateItem}>
+            <Text style={[styles.miniRateLabel, { color: colors.textSecondary }]}>CRR</Text>
+            <Text style={[styles.miniRateValue, { color: colors.primary }]}>{crr.toFixed(2)}</Text>
+          </View>
+          {rrr !== null && (
+            <View style={styles.miniRateItem}>
+              <Text style={[styles.miniRateLabel, { color: colors.textSecondary }]}>RRR</Text>
+              <Text style={[styles.miniRateValue, { color: rrr > crr ? colors.danger : colors.success || colors.primary }]}>
+                {rrr.toFixed(2)}
+              </Text>
+            </View>
+          )}
+          {currentMatch?.overs && (
+            <View style={styles.miniRateItem}>
+              <Text style={[styles.miniRateLabel, { color: colors.textSecondary }]}>FORMAT</Text>
+              <Text style={[styles.miniRateValue, { color: colors.textPrimary }]}>{currentMatch.overs} Ov</Text>
+            </View>
+          )}
         </View>
       </Card>
 
@@ -210,6 +236,27 @@ const styles = StyleSheet.create({
   },
   miniLiveText: {
     fontSize: 8,
+    fontWeight: '900',
+  },
+  miniRateRow: {
+    flexDirection: 'row',
+    marginTop: 12,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.08)',
+    gap: 20,
+  },
+  miniRateItem: {
+    alignItems: 'center',
+  },
+  miniRateLabel: {
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 1,
+    marginBottom: 2,
+  },
+  miniRateValue: {
+    fontSize: 15,
     fontWeight: '900',
   },
   waitingContainer: {

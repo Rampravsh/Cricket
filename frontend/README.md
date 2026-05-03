@@ -19,9 +19,12 @@ A premium, high-performance cricket scoring mobile application built with React 
 - **Match Creation:** Comprehensive multi-step flow for configuring teams, toss, and match format.
 - **Profile Hub:** Personalized dashboard showing stats (runs, wickets) and match history.
 - **Invitations:** Manage match invitations and scorer requests from other users.
+- **Toss Experience:** Interactive coin flip animation with real-time decision sync.
+- **Single-Player Mode:** Support for scoring matches with single-player teams.
 - **Dynamic Theming:** Auto-switching light/dark mode based on system preferences.
 - **Interactive UI:** Premium motion design with scale animations and glassmorphism.
 - **Push Alerts:** Integration with Firebase Cloud Messaging for match invites and critical updates.
+- **Match Deletion:** Secure "Delete Match" functionality for creators.
 - **Clean Architecture:** Service-based API layer and Redux-driven state.
 
 ## 📁 Directory Structure

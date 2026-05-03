@@ -254,6 +254,25 @@
           }
         },
         {
+          "name": "Delete Match",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:5000/api/v1/matches/match-101",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["api", "v1", "matches", "match-101"]
+            }
+          }
+        },
+        {
           "name": "Add Ball (Score)",
           "request": {
             "method": "POST",

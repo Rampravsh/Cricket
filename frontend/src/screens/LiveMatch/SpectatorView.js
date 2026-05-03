@@ -10,7 +10,7 @@ import {
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import Card from '~/components/Card';
-import { formatOvers, calculateRunRate } from '~/utils/helpers';
+import { formatOvers } from '~/utils/helpers';
 
 /**
  * SpectatorView — Professional IPL-style scoreboard for public viewing
@@ -39,7 +39,9 @@ const SpectatorView = ({
   const battingTeamScore = currentMatch?.battingTeam === 'teamB' ? teamBScore : teamAScore;
   const bowlingTeamScore = currentMatch?.battingTeam === 'teamB' ? teamAScore : teamBScore;
 
-  const runRate = calculateRunRate(battingTeamScore.runs, battingTeamScore.balls);
+  // Read pre-computed rates from the backend engine snapshot
+  const crr = currentMatch?.computed?.crr ?? 0;
+  const rrr = currentMatch?.computed?.rrr ?? null; // null means 1st innings or not yet available
 
   const getBallStyle = (ball) => {
     if (ball.includes('W')) return { backgroundColor: colors.danger + '30', borderColor: colors.danger };
@@ -87,13 +89,13 @@ const SpectatorView = ({
           <View style={styles.proBottomRow}>
             <View style={styles.proStatItem}>
               <Text style={[styles.proStatLabel, { color: colors.textSecondary }]}>CRR</Text>
-              <Text style={[styles.proStatValue, { color: colors.textPrimary }]}>{runRate}</Text>
+              <Text style={[styles.proStatValue, { color: colors.textPrimary }]}>{crr.toFixed(2)}</Text>
             </View>
-            {target && (
+            {rrr !== null && (
               <View style={styles.proStatItem}>
                 <Text style={[styles.proStatLabel, { color: colors.textSecondary }]}>RRR</Text>
-                <Text style={[styles.proStatValue, { color: colors.textPrimary }]}>
-                  {calculateRunRate(target - battingTeamScore.runs, Math.max(1, 120 - battingTeamScore.balls))}
+                <Text style={[styles.proStatValue, { color: rrr > crr ? colors.danger : colors.success || colors.primary }]}>
+                  {rrr.toFixed(2)}
                 </Text>
               </View>
             )}

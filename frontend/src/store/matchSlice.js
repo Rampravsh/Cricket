@@ -311,4 +311,12 @@ export const selectMatchStatus = (state) => state.match.status;
 export const selectTarget = (state) => state.match.target;
 export const selectIsLoading = (state) => state.match.isLoading;
 
+// Rate selectors — derived from the backend engine snapshot (currentMatch.computed)
+/** Current Run Rate — runs per over scored so far */
+export const selectCRR = (state) => state.match.currentMatch?.computed?.crr ?? null;
+/** Required Run Rate — runs per over needed to win (2nd innings only, null in 1st) */
+export const selectRRR = (state) => state.match.currentMatch?.computed?.rrr ?? null;
+/** Full computed engine snapshot */
+export const selectComputed = (state) => state.match.currentMatch?.computed ?? null;
+
 export default matchSlice.reducer;

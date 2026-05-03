@@ -1,9 +1,82 @@
 const AppError = require('../utils/AppError');
 
+// ─── Pure Engine ──────────────────────────────────────────────────────────────
+
+/**
+ * Compute match state from raw ball events (pure function, no side effects).
+ * Derives: totalRuns, wickets, legalBalls, totalOvers format, CRR, RRR.
+ *
+ * @param {Array}  balls       - Array of ball event objects
+ * @param {number} totalOvers  - Match length in overs (e.g. 20 for T20)
+ * @param {number} maxPlayers  - Players per team (e.g. 11)
+ * @param {number|null} target - Run target set by first innings (null for 1st innings)
+ * @returns {Object}           - Computed match state snapshot
+ */
+function computeMatchState(balls = [], totalOvers = 20, maxPlayers = 11, target = null) {
+  let totalRuns = 0;
+  let wickets = 0;
+  let legalBalls = 0; // balls that count toward overs
+
+  for (const ball of balls) {
+    const isLegal = ball.extra !== 'wide' && ball.extra !== 'noBall';
+
+    // Run accumulation
+    if (ball.extra === 'wide' || ball.extra === 'noBall') {
+      totalRuns += 1 + (ball.runs || 0) + (ball.extraRuns || 0); // 1 penalty + batted runs
+    } else {
+      totalRuns += (ball.runs || 0) + (ball.extraRuns || 0);
+    }
+
+    if (ball.wicket) wickets += 1;
+    if (isLegal) legalBalls += 1;
+  }
+
+  // Overs in standard cricket format (e.g. 12.3 = 12 complete overs + 3 balls)
+  const completedOvers = Math.floor(legalBalls / 6);
+  const remainingBallsInOver = legalBalls % 6;
+  const oversFormatted = completedOvers + remainingBallsInOver / 10; // e.g. 12.3
+
+  // CRR = runs / overs bowled (in decimal overs)
+  const oversAsDecimal = completedOvers + remainingBallsInOver / 6;
+  const crr = oversAsDecimal > 0
+    ? parseFloat((totalRuns / oversAsDecimal).toFixed(2))
+    : 0;
+
+  // RRR = runs needed / overs remaining (only meaningful when a target exists)
+  const totalMatchBalls = totalOvers * 6;
+  const ballsRemaining = Math.max(0, totalMatchBalls - legalBalls);
+  const oversRemaining = ballsRemaining / 6;
+
+  let rrr = null;
+  if (target !== null && ballsRemaining > 0) {
+    const runsNeeded = target - totalRuns;
+    rrr = runsNeeded <= 0
+      ? 0
+      : parseFloat((runsNeeded / oversRemaining).toFixed(2));
+  }
+
+  return {
+    totalRuns,
+    wickets,
+    legalBalls,
+    overs: oversFormatted,           // e.g. 12.3
+    oversAsDecimal,                   // e.g. 12.5
+    ballsRemaining,
+    oversRemaining: parseFloat(oversRemaining.toFixed(1)),
+    crr,
+    rrr,
+    target,
+  };
+}
+
+// ─── Service ──────────────────────────────────────────────────────────────────
+
 /**
  * Service to handle match logic
  */
 const matchService = {
+  // Expose pure engine so controllers/tests can use it directly
+  computeMatchState,
   /**
    * Process a new ball event
    * @param {Object} match Mongoose Match document
@@ -416,7 +489,8 @@ const matchService = {
   },
 
   /**
-   * Enrich match object with human-readable names for current players
+   * Enrich match object with human-readable names for current players.
+   * Also attaches `computed` snapshot from the pure engine (CRR, RRR, etc.).
    */
   enrichMatchWithNames: (match) => {
     const matchObj = match.toObject ? match.toObject() : match;
@@ -444,6 +518,16 @@ const matchService = {
       enrichedBatting[id] = { ...matchObj.scorecard.batting[id], name };
     });
     matchObj.scorecard.batting = enrichedBatting;
+
+    // ── Attach computed engine snapshot (CRR / RRR) ──
+    // target is only relevant in 2nd innings — read from match if stored, else null
+    const target = matchObj.target ?? null;
+    matchObj.computed = computeMatchState(
+      match.balls || [],
+      match.overs || 20,
+      match.maxPlayers || 11,
+      target
+    );
 
     return matchObj;
   }

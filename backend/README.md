@@ -51,6 +51,9 @@ npm install
 npm run dev     # Runs with nodemon for hot-reloading
 ```
 
+### 🔔 Firebase Configuration
+For push notifications to work, you must place your Firebase service account JSON file in the `backend/` root directory. The application expects a file named `cricket-*-firebase-adminsdk-*.json`.
+
 ### Health Check Endpoint
 To ensure the backend is active, ping the health route:
 `GET http://localhost:5000/api/v1/matches/health`
@@ -104,6 +107,7 @@ All endpoints respond with the standardized format: `{ success: boolean, message
     ]
   }
   ```
+- **Note:** Now supports single-player teams (min 1 player per team).
 
 #### 2. Get My Match History
 - **Route:** `GET /api/v1/matches/my-history` (or `GET /api/v1/users/me/matches`)
@@ -113,6 +117,11 @@ All endpoints respond with the standardized format: `{ success: boolean, message
 #### 2. Start a Match
 - **Route:** `PATCH /api/v1/matches/:matchId/start`
 - **Description:** Transitions a match status from `waiting` to `live` and initializes the current on-field players. Emits the `match-started` socket event.
+
+#### 3. Delete a Match
+- **Route:** `DELETE /api/v1/matches/:matchId`
+- **Headers Needed:** `Authorization: Bearer <token>`
+- **Description:** Permanently deletes a match. **Restricted to the match creator only.**
 
 #### 3. Process a New Ball
 - **Route:** `POST /api/v1/matches/:matchId/ball`
@@ -199,4 +208,5 @@ All endpoints respond with the standardized format: `{ success: boolean, message
 
 - **`protect`**: Ensures the user is authenticated via JWT.
 - **`canScoreMatch`**: Ensures only the host or an approved scorer can perform scoring actions (start match, add ball).
+- **`isMatchCreator`**: Ensures only the original creator of the match can perform destructive actions like deletion.
 

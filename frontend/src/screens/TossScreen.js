@@ -22,11 +22,7 @@ import Button from '~/components/Button';
 
 const { width } = Dimensions.get('window');
 
-const COIN_TYPES = [
-  { id: 'gold', color1: '#FFD700', color2: '#DAA520', icon: 'currency-usd' },
-  { id: 'silver', color1: '#C0C0C0', color2: '#A9A9A9', icon: 'circle-outline' },
-  { id: 'cricket', color1: '#8B0000', color2: '#4B0000', icon: 'cricket' },
-];
+// Remove COIN_TYPES as we now only have one premium 3D coin
 
 function TossScreen() {
   const { colors, spacing, borderRadius, isDark } = useTheme();
@@ -40,7 +36,6 @@ function TossScreen() {
   const [result, setResult] = useState(null); // 'heads' or 'tails'
   const [tossStep, setTossStep] = useState(1); // 1: Select Side, 2: Flip, 3: Decision
   const [selection, setSelection] = useState(null); // Team A selection
-  const [coinType, setCoinType] = useState(COIN_TYPES[0]);
   const [winner, setWinner] = useState(null);
   const [decision, setDecision] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -80,33 +75,36 @@ function TossScreen() {
     setResult(null);
 
     // Coin flip animation sequence
+    const rounds = 8;
+    const outcome = Math.random() > 0.5 ? 'heads' : 'tails';
+    const toValue = outcome === 'heads' ? rounds : rounds + 1; // Even rounds = heads (0), Odd rounds = tails (180)
+
     Animated.sequence([
       Animated.parallel([
         Animated.timing(flipAnim, {
-          toValue: 1,
-          duration: 1000,
+          toValue: toValue / 2,
+          duration: 800,
           useNativeDriver: true,
         }),
         Animated.timing(scaleAnim, {
-          toValue: 1.5,
-          duration: 500,
+          toValue: 1.6,
+          duration: 400,
           useNativeDriver: true,
         }),
       ]),
       Animated.parallel([
         Animated.timing(flipAnim, {
-          toValue: 10,
-          duration: 1500,
+          toValue: toValue,
+          duration: 1200,
           useNativeDriver: true,
         }),
         Animated.timing(scaleAnim, {
           toValue: 1,
-          duration: 1000,
+          duration: 800,
           useNativeDriver: true,
         }),
       ]),
     ]).start(() => {
-      const outcome = Math.random() > 0.5 ? 'heads' : 'tails';
       setResult(outcome);
       setFlipping(false);
       
@@ -123,7 +121,7 @@ function TossScreen() {
       const response = await matchApi.updateToss(matchId, {
         winner,
         decision: choice,
-        chosenCoin: coinType.id
+        chosenCoin: 'premium_3d'
       });
       if (response.success) {
         // Now start the match
@@ -152,9 +150,20 @@ function TossScreen() {
     );
   }
 
-  const spin = flipAnim.interpolate({
-    inputRange: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-    outputRange: ['0deg', '180deg', '360deg', '540deg', '720deg', '900deg', '1080deg', '1260deg', '1440deg', '1620deg', '1800deg'],
+  const rotateY = flipAnim.interpolate({
+    inputRange: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+    outputRange: [
+      '0deg', '180deg', '360deg', '540deg', '720deg', '900deg', '1080deg', '1260deg', 
+      '1440deg', '1620deg', '1800deg', '1980deg', '2160deg', '2340deg', '2520deg', '2700deg'
+    ],
+  });
+
+  const rotateYBack = flipAnim.interpolate({
+    inputRange: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+    outputRange: [
+      '180deg', '360deg', '540deg', '720deg', '900deg', '1080deg', '1260deg', '1440deg', 
+      '1620deg', '1800deg', '1980deg', '2160deg', '2340deg', '2520deg', '2700deg', '2880deg'
+    ],
   });
 
   return (
@@ -184,11 +193,9 @@ function TossScreen() {
                 ]}
                 onPress={() => setSelection('heads')}
               >
-                <MaterialCommunityIcons 
-                  name="face-man" 
-                  size={32} 
-                  color={selection === 'heads' ? colors.textOnPrimary : colors.textSecondary} 
-                />
+                <View style={[styles.selectionIcon, selection === 'heads' && { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+                  <Text style={[styles.selectionIconText, { color: selection === 'heads' ? colors.textOnPrimary : colors.primary }]}>H</Text>
+                </View>
                 <Text style={[styles.selectionText, { color: colors.textSecondary }, selection === 'heads' && { color: colors.textOnPrimary }]}>HEADS</Text>
               </TouchableOpacity>
 
@@ -200,11 +207,9 @@ function TossScreen() {
                 ]}
                 onPress={() => setSelection('tails')}
               >
-                <MaterialCommunityIcons 
-                  name="alpha-t-circle-outline" 
-                  size={32} 
-                  color={selection === 'tails' ? colors.textOnPrimary : colors.textSecondary} 
-                />
+                <View style={[styles.selectionIcon, selection === 'tails' && { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+                  <Text style={[styles.selectionIconText, { color: selection === 'tails' ? colors.textOnPrimary : colors.primary }]}>T</Text>
+                </View>
                 <Text style={[styles.selectionText, { color: colors.textSecondary }, selection === 'tails' && { color: colors.textOnPrimary }]}>TAILS</Text>
               </TouchableOpacity>
             </View>
@@ -214,50 +219,69 @@ function TossScreen() {
         <View style={styles.coinContainer}>
           <Animated.View
             style={[
-              styles.coin,
+              styles.coinWrapper,
               {
                 transform: [
-                  { rotateY: spin },
+                  { perspective: 1000 },
                   { scale: scaleAnim }
                 ],
               },
             ]}
           >
-            <LinearGradient
-              colors={[coinType.color1, coinType.color2]}
-              style={styles.coinGradient}
+            {/* Front Face (Heads) */}
+            <Animated.View
+              style={[
+                styles.coinFace,
+                {
+                  transform: [{ rotateY: rotateY }],
+                  backfaceVisibility: 'hidden',
+                },
+              ]}
             >
-              <MaterialCommunityIcons 
-                name={result === 'tails' ? 'alpha-t-circle-outline' : 'face-man'} 
-                size={80} 
-                color="rgba(255,255,255,0.9)" 
-              />
-              <View style={styles.coinRing} />
-            </LinearGradient>
+              <LinearGradient
+                colors={['#FDB931', '#9E7E38', '#FDB931']}
+                style={styles.coinGradient}
+              >
+                <View style={styles.coinInner}>
+                  <Text style={styles.coinText}>H</Text>
+                  <Text style={styles.coinLabel}>HEADS</Text>
+                </View>
+                <View style={styles.coinRing} />
+                <View style={styles.coinBorder} />
+              </LinearGradient>
+            </Animated.View>
+
+            {/* Back Face (Tails) */}
+            <Animated.View
+              style={[
+                styles.coinFace,
+                {
+                  position: 'absolute',
+                  transform: [{ rotateY: rotateYBack }],
+                  backfaceVisibility: 'hidden',
+                },
+              ]}
+            >
+              <LinearGradient
+                colors={['#FDB931', '#9E7E38', '#FDB931']}
+                style={styles.coinGradient}
+              >
+                <View style={styles.coinInner}>
+                  <Text style={styles.coinText}>T</Text>
+                  <Text style={styles.coinLabel}>TAILS</Text>
+                </View>
+                <View style={styles.coinRing} />
+                <View style={styles.coinBorder} />
+              </LinearGradient>
+            </Animated.View>
           </Animated.View>
           
           {result && !flipping && (
             <Animated.View style={[styles.resultBadge, { backgroundColor: colors.warning }]}>
-              <Text style={[styles.resultText, { color: colors.textOnPrimary }]}>{result.toUpperCase()}</Text>
+              <Text style={[styles.resultText, { color: '#000' }]}>{result.toUpperCase()}</Text>
             </Animated.View>
           )}
         </View>
-
-        {tossStep === 1 && (
-          <View style={styles.coinPicker}>
-             {COIN_TYPES.map((c) => (
-               <TouchableOpacity 
-                key={c.id} 
-                onPress={() => setCoinType(c)}
-                style={[styles.coinTypeBtn, coinType.id === c.id && { borderColor: colors.primary }]}
-               >
-                 <LinearGradient colors={[c.color1, c.color2]} style={styles.coinTypeIcon}>
-                   <MaterialCommunityIcons name={c.icon} size={20} color="#fff" />
-                 </LinearGradient>
-               </TouchableOpacity>
-             ))}
-          </View>
-        )}
 
         {tossStep === 1 && (
           <Button
@@ -360,16 +384,35 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '800',
   },
-  coinContainer: {
-    height: 200,
+  selectionIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
-    marginVertical: 40,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.05)',
   },
-  coin: {
-    width: 150,
-    height: 150,
-    borderRadius: 75,
+  selectionIconText: {
+    fontSize: 24,
+    fontWeight: '900',
+  },
+  coinContainer: {
+    height: 220,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginVertical: 30,
+  },
+  coinWrapper: {
+    width: 180,
+    height: 180,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  coinFace: {
+    width: 180,
+    height: 180,
+    borderRadius: 90,
     elevation: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
@@ -379,31 +422,67 @@ const styles = StyleSheet.create({
   coinGradient: {
     width: '100%',
     height: '100%',
-    borderRadius: 75,
+    borderRadius: 90,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 4,
-    borderColor: 'rgba(255,255,255,0.3)',
+    padding: 10,
+  },
+  coinInner: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 80,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,215,0,0.1)',
+  },
+  coinText: {
+    fontSize: 72,
+    fontWeight: '900',
+    color: '#8A6E2F',
+    textShadowColor: 'rgba(255,255,255,0.5)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+  },
+  coinLabel: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#8A6E2F',
+    letterSpacing: 2,
+    marginTop: -5,
   },
   coinRing: {
     position: 'absolute',
-    width: '90%',
-    height: '90%',
-    borderRadius: 70,
-    borderWidth: 1,
+    width: '88%',
+    height: '88%',
+    borderRadius: 80,
+    borderWidth: 2,
+    borderColor: 'rgba(138,110,47,0.3)',
+    borderStyle: 'dashed',
+  },
+  coinBorder: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    borderRadius: 90,
+    borderWidth: 8,
     borderColor: 'rgba(255,255,255,0.2)',
   },
   resultBadge: {
     position: 'absolute',
-    bottom: -20,
-    paddingHorizontal: 20,
-    paddingVertical: 5,
-    borderRadius: 20,
-    elevation: 5,
+    bottom: -30,
+    paddingHorizontal: 30,
+    paddingVertical: 8,
+    borderRadius: 25,
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
   },
   resultText: {
     fontWeight: '900',
-    fontSize: 18,
+    fontSize: 20,
+    letterSpacing: 1,
   },
   coinPicker: {
     flexDirection: 'row',
