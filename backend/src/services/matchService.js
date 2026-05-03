@@ -22,10 +22,15 @@ const matchService = {
     const currentStrikerId = strikerId || match.current.strikerId;
     const currentBowlerId = bowlerId || match.current.bowlerId;
 
+    if (!currentStrikerId || !currentBowlerId) {
+       throw new AppError('Striker or Bowler ID missing', 400);
+    }
+
     const isLegalDelivery = extra !== 'wide' && extra !== 'noBall';
 
     // 2. Update score
     if (!isLegalDelivery) {
+      // Extra runs + 1 penalty for wide/no-ball
       match.score.runs += 1 + runs;
     } else {
       match.score.runs += runs;
@@ -34,8 +39,10 @@ const matchService = {
     // 3. Handle wicket
     if (wicket) {
       match.score.wickets += 1;
+      // Striker is out, will be replaced by the next player
       match.current.strikerId = null;
-      if (match.score.wickets >= 10) {
+      
+      if (match.score.wickets >= (match.maxPlayers || 11) - 1) {
         match.status = 'completed';
       }
     }
@@ -54,22 +61,38 @@ const matchService = {
       match.score.overs += 1;
       match.score.balls = 0;
       overCompleted = true;
+      
+      // Check if match completed by overs
+      if (match.score.overs >= (match.overs || 20)) {
+        match.status = 'completed';
+      }
     }
 
     // 5. Handle strike rotation
-    let rotateStrike = false;
-    if (runs % 2 !== 0) {
-      rotateStrike = true;
-    }
+    // Wickets usually don't rotate strike based on runs (unless it's run out, but we don't track that yet)
+    // If it's a wicket, we let the scorer decide the new striker.
+    if (!wicket) {
+      let rotateStrike = false;
+      if (runs % 2 !== 0) {
+        rotateStrike = true;
+      }
 
-    if (overCompleted) {
-      rotateStrike = !rotateStrike;
-    }
+      if (overCompleted) {
+        rotateStrike = !rotateStrike;
+      }
 
-    if (rotateStrike) {
-      const tempId = match.current.strikerId;
-      match.current.strikerId = match.current.nonStrikerId;
-      match.current.nonStrikerId = tempId;
+      if (rotateStrike && match.current.nonStrikerId) {
+        const tempId = match.current.strikerId;
+        match.current.strikerId = match.current.nonStrikerId;
+        match.current.nonStrikerId = tempId;
+      }
+    } else {
+      // If over completes on a wicket, the non-striker becomes the striker for the next over
+      // but the current striker is already null.
+      if (overCompleted && match.current.nonStrikerId) {
+         match.current.strikerId = match.current.nonStrikerId;
+         match.current.nonStrikerId = null;
+      }
     }
 
     // 6. Push ball record
@@ -86,18 +109,17 @@ const matchService = {
 
     match.balls.push(ballRecord);
 
-    // 7. Update currentOver array
+    // 7. Update currentOver array for real-time display
     if (!match.currentOver) {
       match.currentOver = [];
     }
 
-    if (wicket) {
-      match.currentOver.push('W');
-    } else if (extra) {
-      match.currentOver.push(extra);
-    } else {
-      match.currentOver.push(runs);
-    }
+    let ballText = String(runs);
+    if (wicket) ballText = 'W';
+    else if (extra === 'wide') ballText = runs > 0 ? `${runs}wd` : 'WD';
+    else if (extra === 'noBall') ballText = runs > 0 ? `${runs}nb` : 'NB';
+    
+    match.currentOver.push(ballText);
 
     if (overCompleted) {
       match.currentOver = [];

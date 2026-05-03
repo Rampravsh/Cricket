@@ -355,6 +355,11 @@ const requestScorer = catchAsync(async (req, res) => {
   match.scorerRequests.push({ userId: req.user._id, status: 'pending' });
   await match.save();
 
+  const io = req.app.get('io');
+  if (io) {
+    io.to(match.matchId).emit('score-updated', match);
+  }
+
   await notificationService.sendNotification({
     userId: match.createdByUserId,
     type: 'scorer_request',
@@ -393,6 +398,11 @@ const scorerResponse = catchAsync(async (req, res) => {
     }
   }
   await match.save();
+
+  const io = req.app.get('io');
+  if (io) {
+    io.to(match.matchId).emit('score-updated', match);
+  }
 
   await notificationService.sendNotification({
     userId,
