@@ -85,6 +85,8 @@ export const matchApi = {
   updateToss: (matchId, payload) => apiClient.patch(`/matches/${matchId}/toss`, payload),
   /** Delete a match */
   deleteMatch: (matchId) => apiClient.delete(`/matches/${matchId}`),
+  /** Set current striker/non-striker/bowler from team roster */
+  setCurrentPlayers: (matchId, payload) => apiClient.patch(`/matches/${matchId}/set-players`, payload),
 };
 
 // ─── Player API ───────────────────────────────────────────────────────────────

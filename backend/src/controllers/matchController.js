@@ -537,6 +537,77 @@ const deleteMatch = catchAsync(async (req, res) => {
   res.status(200).json(sendResponse(true, 'Match deleted successfully'));
 });
 
+/**
+ * @desc    Set current players (striker, non-striker, bowler) from team roster
+ * @route   PATCH /api/v1/matches/:matchId/set-players
+ * @access  Private (Scorer/Creator)
+ */
+const setCurrentPlayers = catchAsync(async (req, res) => {
+  const match = req.match || await Match.findOne({ matchId: req.params.matchId });
+
+  if (!match) {
+    return res.status(404).json(sendResponse(false, 'Match not found'));
+  }
+
+  if (match.status !== 'live') {
+    return res.status(400).json(sendResponse(false, 'Match is not live'));
+  }
+
+  const { role, playerId } = req.body;
+
+  if (!role || !playerId) {
+    return res.status(400).json(sendResponse(false, 'role and playerId are required'));
+  }
+
+  if (!['striker', 'nonStriker', 'bowler'].includes(role)) {
+    return res.status(400).json(sendResponse(false, 'Invalid role. Must be striker, nonStriker, or bowler'));
+  }
+
+  // Determine batting/bowling team from toss (same logic as startMatch)
+  let battingTeamIndex = 0;
+  if (match.toss && match.toss.winner && match.toss.decision) {
+    const isWinnerBatting = match.toss.decision === 'bat';
+    if (match.teams[0].name === match.toss.winner) {
+      battingTeamIndex = isWinnerBatting ? 0 : 1;
+    } else if (match.teams[1].name === match.toss.winner) {
+      battingTeamIndex = isWinnerBatting ? 1 : 0;
+    }
+  }
+  const bowlingTeamIndex = battingTeamIndex === 0 ? 1 : 0;
+
+  const teamToCheck = (role === 'bowler') ? match.teams[bowlingTeamIndex] : match.teams[battingTeamIndex];
+
+  const playerInTeam = teamToCheck?.players?.find(p =>
+    (p.playerId?.toString() === playerId) || (p.nameSnapshot === playerId)
+  );
+
+  if (!playerInTeam) {
+    return res.status(400).json(sendResponse(false, 'Player not found in the correct team'));
+  }
+
+  // Update current player based on role
+  if (!match.current) match.current = {};
+
+  if (role === 'striker') {
+    match.current.strikerId = playerId;
+  } else if (role === 'nonStriker') {
+    match.current.nonStrikerId = playerId;
+  } else if (role === 'bowler') {
+    match.current.bowlerId = playerId;
+  }
+
+  await match.save();
+
+  const enrichedMatch = matchService.enrichMatchWithNames(match);
+
+  const io = req.app.get('io');
+  if (io) {
+    io.to(match.matchId).emit('score-updated', enrichedMatch);
+  }
+
+  res.status(200).json(sendResponse(true, 'Player updated successfully', enrichedMatch));
+});
+
 module.exports = {
   checkHealth,
   createMatch,
@@ -552,4 +623,5 @@ module.exports = {
   replacePlayer,
   updateToss,
   deleteMatch,
+  setCurrentPlayers,
 };

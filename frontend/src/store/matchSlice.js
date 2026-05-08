@@ -116,6 +116,15 @@ export const scorerResponseThunk = createAsyncThunk('match/scorerResponse', asyn
   }
 });
 
+export const setCurrentPlayersThunk = createAsyncThunk('match/setCurrentPlayers', async ({ matchId, payload }, { rejectWithValue }) => {
+  try {
+    const res = await matchApi.setCurrentPlayers(matchId, payload);
+    return res.data;
+  } catch (err) {
+    return rejectWithValue(err.message || 'Failed to update player');
+  }
+});
+
 const matchSlice = createSlice({
   name: 'match',
   initialState,

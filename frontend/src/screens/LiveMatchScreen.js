@@ -7,7 +7,6 @@ import {
   StatusBar,
   Animated,
   TouchableOpacity,
-  TextInput,
   Alert,
   ActivityIndicator,
   FlatList,
@@ -30,9 +29,9 @@ import {
   requestScorerThunk,
   resetMatch,
   selectCurrentMatch, 
-  selectIsLoading 
+  selectIsLoading,
+  setCurrentPlayersThunk,
 } from '~/store/matchSlice';
-import { playerApi } from '~/services/api';
 import Header from '~/components/Header';
 import NotificationIcon from '~/components/NotificationIcon';
 
@@ -99,14 +98,62 @@ function LiveMatchScreen() {
     }
   }, [canScore]);
 
-  // Local state for last action
   const [lastPressed, setLastPressed] = useState(null);
 
   // Player replacement state
-  const [replacingPlayer, setReplacingPlayer] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
-  const [isSearching, setIsSearching] = useState(false);
+  const [replacingPlayer, setReplacingPlayer] = useState(null); // { role: 'striker' | 'nonStriker' | 'bowler' }
+
+  // Get team players for the modal based on role
+  // battingTeam index is derived from toss (same as backend logic)
+  const getBattingTeamIdx = () => {
+    if (!currentMatch?.teams || currentMatch.teams.length < 2) return 0;
+    const { toss, teams } = currentMatch;
+    if (toss?.winner && toss?.decision) {
+      const isWinnerBatting = toss.decision === 'bat';
+      if (teams[1].name === toss.winner) return isWinnerBatting ? 1 : 0;
+      return isWinnerBatting ? 0 : 1; // teams[0] is winner
+    }
+    return 0; // default: teams[0] bats
+  };
+
+  const getPlayersForRole = (role) => {
+    if (!currentMatch?.teams || currentMatch.teams.length < 2) return [];
+    const battingTeamIdx = getBattingTeamIdx();
+    const bowlingTeamIdx = battingTeamIdx === 0 ? 1 : 0;
+    const teamIdx = role === 'bowler' ? bowlingTeamIdx : battingTeamIdx;
+    return currentMatch.teams[teamIdx]?.players || [];
+  };
+
+  // Get team name for modal title
+  const getTeamNameForRole = (role) => {
+    if (!currentMatch?.teams || currentMatch.teams.length < 2) return '';
+    const battingTeamIdx = getBattingTeamIdx();
+    const bowlingTeamIdx = battingTeamIdx === 0 ? 1 : 0;
+    const teamIdx = role === 'bowler' ? bowlingTeamIdx : battingTeamIdx;
+    return currentMatch.teams[teamIdx]?.name || '';
+  };
+
+  // Get player's display ID (playerId or nameSnapshot)
+  const getPlayerId = (player) => {
+    return player.playerId?.toString() || player.nameSnapshot;
+  };
+
+  // Check if player is currently active (striker, non-striker, or bowler)
+  const isCurrentPlayer = (player, role) => {
+    const pid = getPlayerId(player);
+    const cur = currentMatch?.current;
+    if (role === 'striker') return pid === cur?.strikerId;
+    if (role === 'nonStriker') return pid === cur?.nonStrikerId;
+    if (role === 'bowler') return pid === cur?.bowlerId;
+    return false;
+  };
+
+  // Check if player is already on field in a different role
+  const isOnField = (player) => {
+    const pid = getPlayerId(player);
+    const cur = currentMatch?.current;
+    return pid === cur?.strikerId || pid === cur?.nonStrikerId || pid === cur?.bowlerId;
+  };
 
   const handleAddBall = async (ballData) => {
     if (!matchId) return;
@@ -124,36 +171,20 @@ function LiveMatchScreen() {
     await dispatch(requestScorerThunk(matchId));
   };
 
-  const handleSearchPlayers = async (text) => {
-    setSearchQuery(text);
-    if (text.length < 2) {
-      setSearchResults([]);
-      return;
-    }
-    setIsSearching(true);
-    try {
-      const res = await playerApi.searchPlayers(text);
-      setSearchResults(res.data || []);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
-  const handleReplace = async (newPlayerId) => {
+  const handleReplace = async (player) => {
     if (!matchId || !replacingPlayer) return;
+    const playerId = getPlayerId(player);
     try {
-      await dispatch(replacePlayerThunk({
+      await dispatch(setCurrentPlayersThunk({
         matchId,
         payload: {
           role: replacingPlayer.role,
-          playerId: newPlayerId
+          playerId,
         }
       }));
       setReplacingPlayer(null);
     } catch (err) {
-      Alert.alert('Error', 'Failed to replace player');
+      Alert.alert('Error', 'Failed to set player');
     }
   };
 
@@ -239,7 +270,7 @@ function LiveMatchScreen() {
         )}
       </ScrollView>
 
-      {/* Player Selection Modal */}
+      {/* Player Selection Modal — shows team roster */}
       <Modal
         visible={!!replacingPlayer}
         animationType="slide"
@@ -249,49 +280,82 @@ function LiveMatchScreen() {
         <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.6)' }]}>
           <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
-                Select New {replacingPlayer?.role?.toUpperCase()}
-              </Text>
+              <View>
+                <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
+                  {replacingPlayer?.role === 'striker' ? '⚡ STRIKER' : 
+                   replacingPlayer?.role === 'nonStriker' ? '🏏 NON-STRIKER' : 'BOWLER'}
+                </Text>
+                <Text style={[styles.modalTeamLabel, { color: colors.textSecondary }]}>
+                  {getTeamNameForRole(replacingPlayer?.role)}
+                </Text>
+              </View>
               <TouchableOpacity onPress={() => setReplacingPlayer(null)}>
                 <Ionicons name="close" size={24} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
 
-            <TextInput
-              style={[styles.searchInput, { color: colors.textPrimary, borderColor: colors.divider }]}
-              placeholder="Search by name..."
-              placeholderTextColor={colors.textDisabled}
-              value={searchQuery}
-              onChangeText={handleSearchPlayers}
-            />
-
-            {isSearching ? (
-              <ActivityIndicator style={{ marginTop: 20 }} color={colors.primary} />
-            ) : (
-              <FlatList
-                data={searchResults}
-                keyExtractor={(item) => item._id}
-                renderItem={({ item }) => (
+            <FlatList
+              data={getPlayersForRole(replacingPlayer?.role)}
+              keyExtractor={(item, index) => getPlayerId(item) || String(index)}
+              renderItem={({ item }) => {
+                const pid = getPlayerId(item);
+                const isCurrent = isCurrentPlayer(item, replacingPlayer?.role);
+                const onField = isOnField(item);
+                return (
                   <TouchableOpacity 
-                    style={[styles.playerItem, { borderBottomColor: colors.divider }]}
-                    onPress={() => handleReplace(item.userId)}
+                    style={[
+                      styles.playerItem, 
+                      { borderBottomColor: colors.divider },
+                      isCurrent && { backgroundColor: colors.primary + '15' },
+                    ]}
+                    onPress={() => !isCurrent && handleReplace(item)}
+                    disabled={isCurrent}
                   >
-                    <View style={[styles.avatar, { backgroundColor: colors.primary + '20' }]}>
-                      <Text style={{ color: colors.primary, fontWeight: '700' }}>{item.displayName[0]}</Text>
+                    <View style={[
+                      styles.avatar, 
+                      { backgroundColor: isCurrent ? colors.primary + '30' : onField ? colors.accent + '20' : colors.surfaceVariant }
+                    ]}>
+                      <Text style={{ 
+                        color: isCurrent ? colors.primary : onField ? colors.accent : colors.textSecondary, 
+                        fontWeight: '900',
+                        fontSize: 16,
+                      }}>
+                        {(item.nameSnapshot || '?')[0].toUpperCase()}
+                      </Text>
                     </View>
-                    <View>
-                      <Text style={[styles.playerName, { color: colors.textPrimary }]}>{item.displayName}</Text>
-                      <Text style={{ color: colors.textTertiary, fontSize: 12 }}>{item.role}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.playerName, { color: isCurrent ? colors.primary : colors.textPrimary }]}>
+                        {item.nameSnapshot || 'Unknown'}
+                      </Text>
+                      {isCurrent && (
+                        <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '700' }}>
+                          ✓ {replacingPlayer?.role === 'striker' ? 'Striker' : replacingPlayer?.role === 'nonStriker' ? 'Non-Striker' : 'Bowler'}
+                        </Text>
+                      )}
+                      {!isCurrent && onField && (
+                        <Text style={{ color: colors.accent, fontSize: 11, fontWeight: '700' }}>
+                          • on field
+                        </Text>
+                      )}
                     </View>
+                    {isCurrent && (
+                      <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
+                    )}
+                    {!isCurrent && (
+                      <Ionicons name="chevron-forward" size={18} color={colors.textDisabled} />
+                    )}
                   </TouchableOpacity>
-                )}
-                ListEmptyComponent={
+                );
+              }}
+              ListEmptyComponent={
+                <View style={styles.emptyContainer}>
+                  <MaterialCommunityIcons name="account-group-outline" size={50} color={colors.textDisabled} />
                   <Text style={[styles.emptyText, { color: colors.textDisabled }]}>
-                    {searchQuery.length < 2 ? 'Type at least 2 characters' : 'No players found'}
+                    No players found in this team.
                   </Text>
-                }
-              />
-            )}
+                </View>
+              }
+            />
           </View>
         </View>
       </Modal>
@@ -340,8 +404,13 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '800',
+  },
+  modalTeamLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 2,
   },
   searchInput: {
     height: 50,
@@ -353,24 +422,31 @@ const styles = StyleSheet.create({
   playerItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 4,
     borderBottomWidth: 1,
     gap: 12,
   },
   avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
   },
   playerName: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    paddingTop: 40,
+    gap: 12,
   },
   emptyText: {
     textAlign: 'center',
-    marginTop: 40,
+    marginTop: 8,
+    fontSize: 14,
   },
 });
 

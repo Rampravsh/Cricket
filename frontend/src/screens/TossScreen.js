@@ -34,11 +34,12 @@ function TossScreen() {
   const [loading, setLoading] = useState(true);
   const [flipping, setFlipping] = useState(false);
   const [result, setResult] = useState(null); // 'heads' or 'tails'
-  const [tossStep, setTossStep] = useState(1); // 1: Select Side, 2: Flip, 3: Decision
+  const [tossStep, setTossStep] = useState(1); // 1: Select Side, 3: Decision
   const [selection, setSelection] = useState(null); // Team A selection
   const [winner, setWinner] = useState(null);
   const [decision, setDecision] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [tossCount, setTossCount] = useState(0); // how many times tossed
 
   const flipAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(1)).current;
@@ -110,6 +111,7 @@ function TossScreen() {
       
       const won = outcome === selection ? match.teams[0].name : match.teams[1].name;
       setWinner(won);
+      setTossCount(prev => prev + 1);
       setTossStep(3);
     });
   };
@@ -294,6 +296,14 @@ function TossScreen() {
 
         {tossStep === 3 && (
           <View style={[styles.decisionBox, { backgroundColor: colors.surface, borderColor: colors.divider }]}>
+            {tossCount > 1 && (
+              <View style={[styles.retossCountBadge, { backgroundColor: colors.primary + '22', borderColor: colors.primary }]}>
+                <Ionicons name="refresh" size={14} color={colors.primary} />
+                <Text style={[styles.retossCountText, { color: colors.primary }]}>
+                  Toss #{tossCount}
+                </Text>
+              </View>
+            )}
             <Text style={[styles.winnerMsg, { color: colors.textPrimary }]}>
               <Text style={{ color: colors.primary, fontWeight: '900' }}>{winner}</Text> won the toss!
             </Text>
@@ -318,6 +328,26 @@ function TossScreen() {
               </TouchableOpacity>
             </View>
             {saving && <ActivityIndicator color={colors.primary} style={{ marginTop: 20 }} />}
+
+            {/* Re-Toss Button */}
+            {!saving && (
+              <TouchableOpacity
+                style={[styles.retossBtn, { borderColor: colors.divider }]}
+                onPress={() => {
+                  // Reset all toss state, keep tossCount so we track retosses
+                  setResult(null);
+                  setWinner(null);
+                  setDecision(null);
+                  setSelection(null);
+                  flipAnim.setValue(0);
+                  scaleAnim.setValue(1);
+                  setTossStep(1);
+                }}
+              >
+                <Ionicons name="refresh" size={18} color={colors.textSecondary} />
+                <Text style={[styles.retossBtnText, { color: colors.textSecondary }]}>Re-Toss</Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
       </View>
@@ -540,6 +570,34 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontWeight: '900',
     fontSize: 16,
+  },
+  retossBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 20,
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  retossBtnText: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  retossCountBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 20,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  retossCountText: {
+    fontSize: 13,
+    fontWeight: '700',
   },
 });
 

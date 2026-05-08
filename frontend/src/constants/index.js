@@ -8,10 +8,10 @@ import {
 
 export const ENV = {
   // Base API URL
-  API_BASE_URL: API_BASE_URL || 'http://10.78.113.72:5000/api/v1',
+  API_BASE_URL: API_BASE_URL || 'http://10.235.109.72:5000/api/v1',
 
   // WebSocket URL for live match updates
-  SOCKET_URL: SOCKET_URL || 'ws://10.78.113.72:5000',
+  SOCKET_URL: SOCKET_URL || 'http://10.235.109.72:5000',
 
   // App version
   APP_VERSION: '1.0.0',

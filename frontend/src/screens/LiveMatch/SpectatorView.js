@@ -117,27 +117,56 @@ const SpectatorView = ({
             </View>
             
             <View style={styles.battingRows}>
+              <View style={[styles.playerRow, { paddingBottom: 4, borderBottomWidth: 1, borderBottomColor: colors.divider }]}>
+                <Text style={[styles.playerNameActive, { color: colors.textSecondary, flex: 3, fontSize: 11 }]}>BATTER</Text>
+                <Text style={[styles.playerRunsActive, { color: colors.textSecondary, flex: 1, textAlign: 'center', fontSize: 11 }]}>R(B)</Text>
+                <Text style={[styles.playerRunsActive, { color: colors.textSecondary, flex: 1, textAlign: 'center', fontSize: 11 }]}>4s</Text>
+                <Text style={[styles.playerRunsActive, { color: colors.textSecondary, flex: 1, textAlign: 'center', fontSize: 11 }]}>6s</Text>
+                <Text style={[styles.playerRunsActive, { color: colors.textSecondary, flex: 1, textAlign: 'right', fontSize: 11 }]}>SR</Text>
+              </View>
               {/* Striker */}
               <View style={styles.playerRow}>
-                <View style={styles.playerNameCol}>
+                <View style={[styles.playerNameCol, { flex: 3 }]}>
                   <Ionicons name="flash" size={14} color={colors.primary} />
-                  <Text style={[styles.playerNameActive, { color: colors.textPrimary }]}>{currentMatch?.current?.strikerName || 'Striker'}</Text>
+                  <Text style={[styles.playerNameActive, { color: colors.textPrimary }]} numberOfLines={1}>
+                    {currentMatch?.current?.strikerName || 'Striker'}
+                  </Text>
                 </View>
-                <Text style={[styles.playerRunsActive, { color: colors.primary }]}>
+                <Text style={[styles.playerRunsActive, { color: colors.primary, flex: 1, textAlign: 'center' }]}>
                   {currentMatch?.scorecard?.batting[currentMatch?.current?.strikerId]?.runs || 0}
-                  ({currentMatch?.scorecard?.batting[currentMatch?.current?.strikerId]?.balls || 0})
+                  <Text style={{ fontSize: 11, color: colors.textSecondary }}>({currentMatch?.scorecard?.batting[currentMatch?.current?.strikerId]?.balls || 0})</Text>
+                </Text>
+                <Text style={[styles.playerRunsInactive, { color: colors.textPrimary, flex: 1, textAlign: 'center' }]}>
+                  {currentMatch?.scorecard?.batting[currentMatch?.current?.strikerId]?.fours || 0}
+                </Text>
+                <Text style={[styles.playerRunsInactive, { color: colors.textPrimary, flex: 1, textAlign: 'center' }]}>
+                  {currentMatch?.scorecard?.batting[currentMatch?.current?.strikerId]?.sixes || 0}
+                </Text>
+                <Text style={[styles.playerRunsInactive, { color: colors.textPrimary, flex: 1, textAlign: 'right' }]}>
+                  {((currentMatch?.scorecard?.batting[currentMatch?.current?.strikerId]?.runs || 0) / Math.max(1, currentMatch?.scorecard?.batting[currentMatch?.current?.strikerId]?.balls || 1) * 100).toFixed(1)}
                 </Text>
               </View>
               
               {/* Non-Striker */}
               <View style={styles.playerRow}>
-                <View style={styles.playerNameCol}>
+                <View style={[styles.playerNameCol, { flex: 3 }]}>
                   <View style={{ width: 14 }} />
-                  <Text style={[styles.playerNameInactive, { color: colors.textSecondary }]}>{currentMatch?.current?.nonStrikerName || 'Non-Striker'}</Text>
+                  <Text style={[styles.playerNameInactive, { color: colors.textSecondary }]} numberOfLines={1}>
+                    {currentMatch?.current?.nonStrikerName || 'Non-Striker'}
+                  </Text>
                 </View>
-                <Text style={[styles.playerRunsInactive, { color: colors.textTertiary }]}>
+                <Text style={[styles.playerRunsInactive, { color: colors.textTertiary, flex: 1, textAlign: 'center' }]}>
                   {currentMatch?.scorecard?.batting[currentMatch?.current?.nonStrikerId]?.runs || 0}
-                  ({currentMatch?.scorecard?.batting[currentMatch?.current?.nonStrikerId]?.balls || 0})
+                  <Text style={{ fontSize: 11, color: colors.textSecondary }}>({currentMatch?.scorecard?.batting[currentMatch?.current?.nonStrikerId]?.balls || 0})</Text>
+                </Text>
+                <Text style={[styles.playerRunsInactive, { color: colors.textTertiary, flex: 1, textAlign: 'center' }]}>
+                  {currentMatch?.scorecard?.batting[currentMatch?.current?.nonStrikerId]?.fours || 0}
+                </Text>
+                <Text style={[styles.playerRunsInactive, { color: colors.textTertiary, flex: 1, textAlign: 'center' }]}>
+                  {currentMatch?.scorecard?.batting[currentMatch?.current?.nonStrikerId]?.sixes || 0}
+                </Text>
+                <Text style={[styles.playerRunsInactive, { color: colors.textTertiary, flex: 1, textAlign: 'right' }]}>
+                  {((currentMatch?.scorecard?.batting[currentMatch?.current?.nonStrikerId]?.runs || 0) / Math.max(1, currentMatch?.scorecard?.batting[currentMatch?.current?.nonStrikerId]?.balls || 1) * 100).toFixed(1)}
                 </Text>
               </View>
             </View>
@@ -146,15 +175,35 @@ const SpectatorView = ({
 
             <View style={styles.bowlerInfo}>
               <Text style={[styles.sectionTitleSmall, { color: colors.accent }]}>BOWLING</Text>
+              <View style={[styles.playerRow, { paddingBottom: 4, borderBottomWidth: 1, borderBottomColor: colors.divider }]}>
+                <Text style={[styles.playerNameActive, { color: colors.textSecondary, flex: 3, fontSize: 11 }]}>BOWLER</Text>
+                <Text style={[styles.playerRunsActive, { color: colors.textSecondary, flex: 1, textAlign: 'center', fontSize: 11 }]}>O</Text>
+                <Text style={[styles.playerRunsActive, { color: colors.textSecondary, flex: 1, textAlign: 'center', fontSize: 11 }]}>M</Text>
+                <Text style={[styles.playerRunsActive, { color: colors.textSecondary, flex: 1, textAlign: 'center', fontSize: 11 }]}>R</Text>
+                <Text style={[styles.playerRunsActive, { color: colors.textSecondary, flex: 1, textAlign: 'center', fontSize: 11 }]}>W</Text>
+                <Text style={[styles.playerRunsActive, { color: colors.textSecondary, flex: 1, textAlign: 'right', fontSize: 11 }]}>ECO</Text>
+              </View>
               <View style={styles.playerRow}>
-                <View style={styles.playerNameCol}>
+                <View style={[styles.playerNameCol, { flex: 3 }]}>
                   <MaterialCommunityIcons name="baseball" size={14} color={colors.accent} />
-                  <Text style={[styles.playerNameActive, { color: colors.textPrimary }]}>{currentMatch?.current?.bowlerName || 'Bowler'}</Text>
+                  <Text style={[styles.playerNameActive, { color: colors.textPrimary }]} numberOfLines={1}>
+                    {currentMatch?.current?.bowlerName || 'Bowler'}
+                  </Text>
                 </View>
-                <Text style={[styles.playerRunsActive, { color: colors.accent }]}>
-                  {currentMatch?.scorecard?.bowling[currentMatch?.current?.bowlerId]?.wickets || 0}/
-                  {currentMatch?.scorecard?.bowling[currentMatch?.current?.bowlerId]?.runs || 0} 
-                  ({formatOvers(currentMatch?.scorecard?.bowling[currentMatch?.current?.bowlerId]?.balls || 0)})
+                <Text style={[styles.playerRunsActive, { color: colors.textPrimary, flex: 1, textAlign: 'center' }]}>
+                  {formatOvers(currentMatch?.scorecard?.bowling[currentMatch?.current?.bowlerId]?.balls || 0)}
+                </Text>
+                <Text style={[styles.playerRunsInactive, { color: colors.textPrimary, flex: 1, textAlign: 'center' }]}>
+                  {currentMatch?.scorecard?.bowling[currentMatch?.current?.bowlerId]?.maidens || 0}
+                </Text>
+                <Text style={[styles.playerRunsInactive, { color: colors.textPrimary, flex: 1, textAlign: 'center' }]}>
+                  {currentMatch?.scorecard?.bowling[currentMatch?.current?.bowlerId]?.runs || 0}
+                </Text>
+                <Text style={[styles.playerRunsActive, { color: colors.accent, flex: 1, textAlign: 'center' }]}>
+                  {currentMatch?.scorecard?.bowling[currentMatch?.current?.bowlerId]?.wickets || 0}
+                </Text>
+                <Text style={[styles.playerRunsInactive, { color: colors.textPrimary, flex: 1, textAlign: 'right' }]}>
+                  {((currentMatch?.scorecard?.bowling[currentMatch?.current?.bowlerId]?.runs || 0) / Math.max(1, (currentMatch?.scorecard?.bowling[currentMatch?.current?.bowlerId]?.balls || 0) / 6)).toFixed(1)}
                 </Text>
               </View>
             </View>
@@ -203,37 +252,55 @@ const SpectatorView = ({
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.lineupScroll}>
             <View style={styles.lineupTable}>
               <View style={[styles.tableHeader, { borderBottomColor: colors.divider }]}>
-                <Text style={[styles.headerText, { flex: 3, color: colors.textSecondary }]}>PLAYER</Text>
-                <Text style={[styles.headerText, { flex: 1, textAlign: 'center', color: colors.textSecondary }]}>R</Text>
-                <Text style={[styles.headerText, { flex: 1, textAlign: 'center', color: colors.textSecondary }]}>B</Text>
-                <Text style={[styles.headerText, { flex: 2, textAlign: 'right', color: colors.textSecondary }]}>STATUS</Text>
+                <Text style={[styles.headerText, { width: 150, color: colors.textSecondary }]}>PLAYER</Text>
+                <Text style={[styles.headerText, { width: 35, textAlign: 'center', color: colors.textSecondary }]}>R</Text>
+                <Text style={[styles.headerText, { width: 35, textAlign: 'center', color: colors.textSecondary }]}>B</Text>
+                <Text style={[styles.headerText, { width: 35, textAlign: 'center', color: colors.textSecondary }]}>4s</Text>
+                <Text style={[styles.headerText, { width: 35, textAlign: 'center', color: colors.textSecondary }]}>6s</Text>
+                <Text style={[styles.headerText, { width: 45, textAlign: 'center', color: colors.textSecondary }]}>SR</Text>
+                <Text style={[styles.headerText, { width: 80, textAlign: 'right', color: colors.textSecondary }]}>STATUS</Text>
               </View>
               
               {(currentMatch?.teams[selectedTeamTab]?.players || []).map((p, idx) => {
                 const pId = p.playerId?._id || p.playerId || p.nameSnapshot;
                 const stats = currentMatch?.scorecard?.batting[pId];
+                const bowlStats = currentMatch?.scorecard?.bowling[pId];
                 const isOut = stats?.status !== 'not out' && stats?.status !== 'yet to bat' && stats;
                 
                 return (
                   <View key={idx} style={[styles.tableRow, { borderBottomColor: colors.divider }]}>
-                    <View style={[styles.playerNameCol, { flex: 3 }]}>
+                    <View style={[styles.playerNameCol, { width: 150 }]}>
                       <View style={[styles.avatarSmall, { backgroundColor: colors.primary + '10' }, isOut && { backgroundColor: colors.surfaceVariant }]}>
                         <Text style={[styles.avatarTextSmall, { color: colors.primary }, isOut && { color: colors.textDisabled }]}>{p.nameSnapshot?.[0]}</Text>
                       </View>
-                      <View>
-                        <Text style={[styles.lineupPlayerName, { color: colors.textPrimary }, isOut && { color: colors.textDisabled }]}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.lineupPlayerName, { color: colors.textPrimary }, isOut && { color: colors.textDisabled }]} numberOfLines={1}>
                           {p.playerId?.displayName || p.nameSnapshot}
                         </Text>
-                        <Text style={[styles.lineupPlayerRole, { color: colors.textTertiary }]}>{p.playerId?.role || 'All-Rounder'}</Text>
+                        <Text style={[styles.lineupPlayerRole, { color: colors.textTertiary }]} numberOfLines={1}>{p.playerId?.role || 'Player'}</Text>
+                        {bowlStats ? (
+                          <Text style={{ color: colors.accent, fontSize: 9, fontWeight: '700', marginTop: 1 }}>
+                            Bowl: {formatOvers(bowlStats.balls)}-{bowlStats.maidens}-{bowlStats.runs}-{bowlStats.wickets}
+                          </Text>
+                        ) : null}
                       </View>
                     </View>
-                    <Text style={[styles.lineupStat, { flex: 1, textAlign: 'center', color: colors.textPrimary }, isOut && { color: colors.textDisabled }]}>
+                    <Text style={[styles.lineupStat, { width: 35, textAlign: 'center', color: colors.textPrimary }, isOut && { color: colors.textDisabled }]}>
                       {stats?.runs || 0}
                     </Text>
-                    <Text style={[styles.lineupStat, { flex: 1, textAlign: 'center', color: colors.textPrimary }, isOut && { color: colors.textDisabled }]}>
+                    <Text style={[styles.lineupStat, { width: 35, textAlign: 'center', color: colors.textPrimary }, isOut && { color: colors.textDisabled }]}>
                       {stats?.balls || 0}
                     </Text>
-                    <Text style={[styles.lineupStatus, { flex: 2, textAlign: 'right', color: colors.primary }, isOut && { color: colors.danger }]}>
+                    <Text style={[styles.lineupStat, { width: 35, textAlign: 'center', color: colors.textPrimary }, isOut && { color: colors.textDisabled }]}>
+                      {stats?.fours || 0}
+                    </Text>
+                    <Text style={[styles.lineupStat, { width: 35, textAlign: 'center', color: colors.textPrimary }, isOut && { color: colors.textDisabled }]}>
+                      {stats?.sixes || 0}
+                    </Text>
+                    <Text style={[styles.lineupStat, { width: 45, textAlign: 'center', color: colors.textPrimary }, isOut && { color: colors.textDisabled }]}>
+                      {((stats?.runs || 0) / Math.max(1, stats?.balls || 1) * 100).toFixed(0)}
+                    </Text>
+                    <Text style={[styles.lineupStatus, { width: 80, textAlign: 'right', color: colors.primary }, isOut && { color: colors.danger }]}>
                       {isOut ? stats.status.toUpperCase() : (pId === currentMatch?.current?.strikerId || pId === currentMatch?.current?.nonStrikerId ? 'BATTING' : 'NOT OUT')}
                     </Text>
                   </View>

@@ -13,6 +13,7 @@ const {
   replacePlayer,
   updateToss,
   deleteMatch,
+  setCurrentPlayers,
 } = require('../controllers/matchController');
 
 const { protect } = require('../middleware/auth');
@@ -42,6 +43,7 @@ router.post('/:id/request-scorer', requestScorer);
 router.patch('/:id/scorer-response', scorerResponse);
 router.patch('/:id/replace-player', replacePlayer);
 router.patch('/:matchId/toss', canScoreMatch, updateToss);
+router.patch('/:matchId/set-players', canScoreMatch, setCurrentPlayers);
 router.delete('/:matchId', isMatchCreator, deleteMatch);
 
 module.exports = router;
