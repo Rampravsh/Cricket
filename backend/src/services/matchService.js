@@ -96,6 +96,7 @@ const matchService = {
       wicket = false, 
       wicketType = null,
       fielderId = null,
+      outPlayerId = null,
       strikerId, 
       bowlerId 
     } = ballData;
@@ -134,9 +135,14 @@ const matchService = {
       }
 
       match.score.wickets += 1;
-      // Striker is out unless it's a run out of the non-striker
-      // For now, assume striker is out
-      match.current.strikerId = null;
+      // Striker is out unless a specific outPlayerId is provided (e.g. non-striker run out)
+      const playerOutId = outPlayerId || currentStrikerId;
+      
+      if (match.current.strikerId === playerOutId) {
+        match.current.strikerId = null;
+      } else if (match.current.nonStrikerId === playerOutId) {
+        match.current.nonStrikerId = null;
+      }
       
       if (match.score.wickets >= (match.maxPlayers || 11) - 1) {
         if (match.innings === 1) {

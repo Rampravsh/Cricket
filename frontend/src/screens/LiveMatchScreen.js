@@ -125,6 +125,7 @@ function LiveMatchScreen() {
   const [wicketModal, setWicketModal] = useState({ 
     visible: false, 
     type: null, // 'caught', 'bowled', etc.
+    extra: null, // 'wide' or 'noBall' if applicable
     fielderId: null,
     outPlayerId: null,
     step: 1 // 1: Type, 2: Fielder, 3: OutPlayer (for run out)
@@ -137,10 +138,11 @@ function LiveMatchScreen() {
       // Direct wicket (bowled, lbw, hitWicket, retired)
       handleAddBall({
         runs: 0,
+        extra: wicketModal.extra,
         wicket: true,
         wicketType: type
       });
-      setWicketModal({ visible: false, type: null, fielderId: null, outPlayerId: null, step: 1 });
+      setWicketModal({ visible: false, type: null, extra: null, fielderId: null, outPlayerId: null, step: 1 });
     }
   };
 
@@ -151,25 +153,26 @@ function LiveMatchScreen() {
     } else {
       handleAddBall({
         runs: 0,
+        extra: wicketModal.extra,
         wicket: true,
         wicketType: wicketModal.type,
         fielderId: fid
       });
-      setWicketModal({ visible: false, type: null, fielderId: null, outPlayerId: null, step: 1 });
+      setWicketModal({ visible: false, type: null, extra: null, fielderId: null, outPlayerId: null, step: 1 });
     }
   };
 
-  const handleOutPlayerSelect = (player) => {
-    const pid = getPlayerId(player);
+  const handleOutPlayerSelect = (role) => {
+    const outPlayerId = role === 'striker' ? currentMatch?.current?.strikerId : currentMatch?.current?.nonStrikerId;
     handleAddBall({
       runs: 0,
+      extra: wicketModal.extra,
       wicket: true,
       wicketType: wicketModal.type,
       fielderId: wicketModal.fielderId,
-      // Note: We might need a way to pass who is out if not the striker.
-      // For now, if pid is nonStrikerId, we can handle it in backend or here.
+      outPlayerId: outPlayerId
     });
-    setWicketModal({ visible: false, type: null, fielderId: null, outPlayerId: null, step: 1 });
+    setWicketModal({ visible: false, type: null, extra: null, fielderId: null, outPlayerId: null, step: 1 });
   };
 
   // Effect to automatically prompt for player selection on wicket or over completion
@@ -490,7 +493,7 @@ function LiveMatchScreen() {
                       )}
                       {!isCurrent && onField && !isOut && (
                         <Text style={{ color: colors.accent, fontSize: 11, fontWeight: '700' }}>
-                          • on field
+                         ⚡ Stirker
                         </Text>
                       )}
                       {isOut && (
@@ -615,15 +618,15 @@ function LiveMatchScreen() {
                 <TouchableOpacity 
                   style={[styles.extraRunBtn, { backgroundColor: colors.danger, borderColor: colors.danger, width: '100%', aspectRatio: undefined, paddingVertical: 15 }]}
                   onPress={() => {
-                    // Default to Run Out for No-Ball, or normal wicket for Wide (though rare)
-                    const wType = extraBallModal.type === 'noBall' ? 'runOut' : 'stumped';
-                    handleAddBall({ 
-                      runs: 0, 
-                      extra: extraBallModal.type, 
-                      wicket: true,
-                      wicketType: wType
-                    });
                     setExtraBallModal({ visible: false, type: null });
+                    // Open wicket modal specifically for this extra type
+                    const wType = extraBallModal.type === 'noBall' ? 'runOut' : 'stumped';
+                    setWicketModal({ 
+                      visible: true, 
+                      type: wType, 
+                      extra: extraBallModal.type, 
+                      step: 2 // Go straight to fielder selection
+                    });
                   }}
                 >
                   <Text style={[styles.extraRunText, { color: '#fff', fontSize: 14 }]}>
@@ -697,15 +700,15 @@ function LiveMatchScreen() {
               <View style={{ gap: 15 }}>
                 <TouchableOpacity 
                   style={[styles.playerItem, { borderBottomColor: colors.divider }]}
-                  onPress={() => handleOutPlayerSelect({ nameSnapshot: 'Striker' })}
+                  onPress={() => handleOutPlayerSelect('striker')}
                 >
-                  <Text style={[styles.playerName, { color: colors.textPrimary }]}>STRIKER</Text>
+                  <Text style={[styles.playerName, { color: colors.textPrimary }]}>STRIKER ({currentMatch?.current?.strikerName})</Text>
                 </TouchableOpacity>
                 <TouchableOpacity 
                   style={[styles.playerItem, { borderBottomColor: colors.divider }]}
-                  onPress={() => handleOutPlayerSelect({ nameSnapshot: 'Non-Striker' })}
+                  onPress={() => handleOutPlayerSelect('nonStriker')}
                 >
-                  <Text style={[styles.playerName, { color: colors.textPrimary }]}>NON-STRIKER</Text>
+                  <Text style={[styles.playerName, { color: colors.textPrimary }]}>NON-STRIKER ({currentMatch?.current?.nonStrikerName})</Text>
                 </TouchableOpacity>
               </View>
             )}
