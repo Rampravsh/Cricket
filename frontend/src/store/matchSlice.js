@@ -227,6 +227,13 @@ const matchSlice = createSlice({
         state.score.teamA.balls = matchData.score.balls || 0;
         state.score.teamA.overs = matchData.score.overs || 0;
       }
+
+      if (matchData.current && state.currentMatch) {
+        state.currentMatch.current = {
+          ...state.currentMatch.current,
+          freeHit: matchData.current.freeHit || false
+        };
+      }
       
       if (matchData.balls && matchData.balls.length > 0) {
         const currentOverNumber = matchData.balls[matchData.balls.length - 1].over;

@@ -109,6 +109,18 @@ function LiveMatchScreen() {
   const [actionModal, setActionModal] = useState({ visible: false, type: null, title: '', message: '', icon: '', color: '' });
   const [lastPromptedOver, setLastPromptedOver] = useState(-1);
 
+  // Extra ball (Wide/No-Ball) state
+  const [extraBallModal, setExtraBallModal] = useState({ visible: false, type: null });
+
+  const handleExtraBallSelect = (runs, isWicket = false) => {
+    handleAddBall({ 
+      runs: runs, 
+      extra: extraBallModal.type, 
+      wicket: isWicket 
+    });
+    setExtraBallModal({ visible: false, type: null });
+  };
+
   // Effect to automatically prompt for player selection on wicket or over completion
   useEffect(() => {
     if (viewMode === 'scoring' && currentMatch?.status === 'live') {
@@ -321,6 +333,7 @@ function LiveMatchScreen() {
             lastPressed={lastPressed}
             isLoading={isLoading}
             onAddBall={handleAddBall}
+            onExtraPress={(type) => setExtraBallModal({ visible: true, type })}
             onStartMatch={handleStartMatch}
             onReplacePlayer={setReplacingPlayer}
             onTakeBreak={handleTakeBreak}
@@ -475,6 +488,101 @@ function LiveMatchScreen() {
         }}
         onClose={() => setActionModal({ ...actionModal, visible: false })}
       />
+
+      {/* Extra Ball Runs Selection Modal (Wide/No-Ball) */}
+      <Modal
+        visible={extraBallModal.visible}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setExtraBallModal({ visible: false, type: null })}
+      >
+        <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.7)' }]}>
+          <View style={[styles.modalContent, { backgroundColor: colors.surface, height: 'auto', paddingBottom: 40 }]}>
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={[styles.modalTitle, { color: colors.warning, fontSize: 18 }]}>
+                  ⚠️ {extraBallModal.type?.toUpperCase()} RECORDED
+                </Text>
+                <Text style={[styles.modalTeamLabel, { color: colors.textSecondary }]}>
+                  Select the additional runs or action for this delivery.
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => setExtraBallModal({ visible: false, type: null })}>
+                <Ionicons name="close" size={24} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={{ gap: 20 }}>
+              {/* Batted Runs - Only for No Balls */}
+              {extraBallModal.type === 'noBall' && (
+                <View>
+                  <Text style={[styles.modalSectionTitle, { color: colors.textSecondary }]}>BATTED RUNS (Striker gets credit)</Text>
+                  <View style={styles.extraRunsGrid}>
+                    {[0, 1, 2, 3, 4, 6].map((r) => (
+                      <TouchableOpacity 
+                        key={`bat-${r}`}
+                        style={[styles.extraRunBtn, { backgroundColor: colors.primary + '10', borderColor: colors.primary + '30' }]}
+                        onPress={() => handleExtraBallSelect(r, false)}
+                      >
+                        <Text style={[styles.extraRunText, { color: colors.primary }]}>{r}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              {/* Byes / Wides Additional Runs */}
+              <View>
+                <Text style={[styles.modalSectionTitle, { color: colors.textSecondary }]}>
+                  {extraBallModal.type === 'noBall' ? 'BYES / EXTRAS (No striker credit)' : 'WIDE + ADDITIONAL RUNS'}
+                </Text>
+                <View style={styles.extraRunsGrid}>
+                  {[0, 1, 2, 3, 4].map((r) => (
+                    <TouchableOpacity 
+                      key={`extra-${r}`}
+                      style={[styles.extraRunBtn, { backgroundColor: colors.surfaceVariant, borderColor: colors.divider }]}
+                      onPress={() => {
+                        // For byes on No-Ball, we send them as extraRuns
+                        handleAddBall({ 
+                          runs: 0, 
+                          extra: extraBallModal.type, 
+                          extraRuns: r,
+                          wicket: false 
+                        });
+                        setExtraBallModal({ visible: false, type: null });
+                      }}
+                    >
+                      <Text style={[styles.extraRunText, { color: colors.textPrimary }]}>{r}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {/* Wicket Section */}
+              <View>
+                <TouchableOpacity 
+                  style={[styles.extraRunBtn, { backgroundColor: colors.danger, borderColor: colors.danger, width: '100%', aspectRatio: undefined, paddingVertical: 15 }]}
+                  onPress={() => {
+                    // Default to Run Out for No-Ball, or normal wicket for Wide (though rare)
+                    const wType = extraBallModal.type === 'noBall' ? 'runOut' : 'stumped';
+                    handleAddBall({ 
+                      runs: 0, 
+                      extra: extraBallModal.type, 
+                      wicket: true,
+                      wicketType: wType
+                    });
+                    setExtraBallModal({ visible: false, type: null });
+                  }}
+                >
+                  <Text style={[styles.extraRunText, { color: '#fff', fontSize: 14 }]}>
+                    WICKET ({extraBallModal.type === 'noBall' ? 'RUN OUT' : 'STUMPED/RUN OUT'})
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -563,6 +671,31 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 8,
     fontSize: 14,
+  },
+  modalSectionTitle: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    marginBottom: 10,
+    textTransform: 'uppercase',
+  },
+  extraRunsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginTop: 10,
+  },
+  extraRunBtn: {
+    width: '30%',
+    aspectRatio: 1,
+    borderRadius: 15,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  extraRunText: {
+    fontSize: 18,
+    fontWeight: '900',
   },
 });
 

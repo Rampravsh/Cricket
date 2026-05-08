@@ -43,6 +43,7 @@ const matchSchema = new mongoose.Schema(
       strikerId: { type: String },
       nonStrikerId: { type: String },
       bowlerId: { type: String },
+      freeHit: { type: Boolean, default: false },
     },
     score: {
       runs: { type: Number, default: 0 },

@@ -166,6 +166,11 @@ const SpectatorView = ({
                   <Text style={[styles.playerNameActive, { color: colors.textPrimary }]} numberOfLines={1}>
                     {currentMatch?.current?.strikerName || 'Striker'}
                   </Text>
+                  {currentMatch?.current?.freeHit && (
+                    <Animated.View style={[styles.freeHitBadge, { opacity: blinkAnim, backgroundColor: colors.danger }]}>
+                      <Text style={styles.freeHitText}>FREE HIT</Text>
+                    </Animated.View>
+                  )}
                 </View>
                 <Text style={[styles.playerRunsActive, { color: colors.primary, flex: 1, textAlign: 'center' }]}>
                   {currentMatch?.scorecard?.batting[currentMatch?.current?.strikerId]?.runs || 0}
@@ -361,7 +366,7 @@ const SpectatorView = ({
                         <MaterialCommunityIcons name="tennis-ball" size={14} color={colors.accent} style={styles.statIcon} />
                         <Text style={[styles.statText, { color: colors.textPrimary }]}>
                           <Text style={{ fontWeight: '800', color: colors.accent }}>{bowlStats.wickets || 0}</Text>/{bowlStats.runs || 0}
-                          <Text style={{ color: colors.textTertiary }}> • {formatOvers(bowlStats.balls)} O • {bowlStats.maidens || 0} M • Econ: {((bowlStats.runs || 0) / Math.max(1, bowlStats.balls / 6)).toFixed(1)}</Text>
+                          <Text style={{ color: colors.textTertiary }}> • {formatOvers(bowlStats.balls)} O • {bowlStats.maidens || 0} M • {bowlStats.wides || 0}wd • {bowlStats.noBalls || 0}nb • Econ: {((bowlStats.runs || 0) / Math.max(1, bowlStats.balls / 6)).toFixed(1)}</Text>
                         </Text>
                       </View>
                     )}
@@ -628,6 +633,17 @@ const styles = StyleSheet.create({
   lineupStatus: {
     fontSize: 11,
     fontWeight: '800',
+  },
+  freeHitBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginLeft: 4,
+  },
+  freeHitText: {
+    color: '#fff',
+    fontSize: 8,
+    fontWeight: '900',
   },
 });
 

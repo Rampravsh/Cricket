@@ -126,6 +126,13 @@ const matchService = {
 
     // 3. Handle wicket
     if (wicket) {
+      // Cricket Rule: On a No-Ball, a batter can only be out Run Out, Retired, or Obstructing the Field.
+      // We block standard bowler wickets (Caught, Bowled, etc.) on No-Balls.
+      const isBowlerWicket = ['bowled', 'caught', 'lbw', 'stumped', 'hitWicket'].includes(wicketType);
+      if (extra === 'noBall' && isBowlerWicket) {
+        throw new AppError('Batter cannot be out ' + wicketType + ' on a No-Ball', 400);
+      }
+
       match.score.wickets += 1;
       // Striker is out unless it's a run out of the non-striker
       // For now, assume striker is out
@@ -230,7 +237,16 @@ const matchService = {
       match.currentOver = [];
     }
 
-    // 8. Increment lastEventId
+    // 8. Handle Free Hit logic
+    // A free hit is awarded after a no-ball. It remains a free hit if the next ball is also a no-ball or wide.
+    if (extra === 'noBall') {
+      match.current.freeHit = true;
+    } else if (isLegalDelivery) {
+      match.current.freeHit = false;
+    }
+    // If it's a wide, freeHit remains true if it was already true
+
+    // 9. Increment lastEventId
     match.lastEventId = (match.lastEventId || 0) + 1;
     ballRecord.eventId = match.lastEventId;
 
@@ -297,7 +313,15 @@ const matchService = {
 
       const bowlingBalls = match.balls.filter(b => b.bowlerId && b.bowlerId.toString() === playerId);
       const wickets = bowlingBalls.filter(b => b.wicket).length;
-      const runsGiven = bowlingBalls.reduce((sum, b) => sum + (b.runs || 0) + (b.extra === 'wide' || b.extra === 'noBall' ? 1 : 0), 0);
+      const runsGiven = bowlingBalls.reduce((sum, b) => {
+        const isExtraConceded = b.extra === 'wide' || b.extra === 'noBall';
+        const penalty = isExtraConceded ? 1 : 0;
+        // Bowler only charged for runs if not byes/leg-byes (unless it's a wide/no-ball)
+        if (b.extra !== 'bye' && b.extra !== 'legBye') {
+          return sum + penalty + (b.runs || 0) + (b.extraRuns || 0);
+        }
+        return sum + penalty; // Should only happen if wide/no-ball had byes (already handled)
+      }, 0);
       const legalBowledBalls = bowlingBalls.filter(b => b.extra !== 'wide' && b.extra !== 'noBall').length;
       const overs = Math.floor(legalBowledBalls / 6) + (legalBowledBalls % 6) / 10;
 
@@ -453,7 +477,7 @@ const matchService = {
     if (!match.balls) return scorecard;
 
     match.balls.forEach(ball => {
-      const { strikerId, bowlerId, runs, extra, wicket, wicketType, fielderId } = ball;
+      const { strikerId, bowlerId, runs, extra, extraRuns = 0, wicket, wicketType, fielderId } = ball;
 
       // 1. Batting Stats
       if (!scorecard.batting[strikerId]) {
@@ -476,18 +500,22 @@ const matchService = {
 
       // 2. Bowling Stats
       if (!scorecard.bowling[bowlerId]) {
-        scorecard.bowling[bowlerId] = { runs: 0, balls: 0, wickets: 0, maidens: 0, dots: 0 };
+        scorecard.bowling[bowlerId] = { runs: 0, balls: 0, wickets: 0, maidens: 0, dots: 0, wides: 0, noBalls: 0 };
       }
       
-      if (isLegal) {
+      const isBowlerLegal = extra !== 'wide' && extra !== 'noBall';
+      if (isBowlerLegal) {
         scorecard.bowling[bowlerId].balls += 1;
       }
+
+      if (extra === 'wide') scorecard.bowling[bowlerId].wides += 1;
+      if (extra === 'noBall') scorecard.bowling[bowlerId].noBalls += 1;
       
       // Runs conceded by bowler (wide and no-ball runs count, but byes/leg-byes don't)
       const isExtraConceded = extra === 'wide' || extra === 'noBall';
       const penalty = isExtraConceded ? 1 : 0;
       if (extra !== 'bye' && extra !== 'legBye') {
-        scorecard.bowling[bowlerId].runs += penalty + runs;
+        scorecard.bowling[bowlerId].runs += penalty + runs + extraRuns;
       }
 
       if (wicket && wicketType !== 'runOut' && wicketType !== 'retired') {
@@ -500,8 +528,14 @@ const matchService = {
 
       // 3. Extras
       if (extra) {
-        scorecard.extras[extra] = (scorecard.extras[extra] || 0) + 1;
-        scorecard.extras.total += 1;
+        if (extra === 'wide') {
+          scorecard.extras.wide += 1 + runs + extraRuns;
+        } else if (extra === 'noBall') {
+          scorecard.extras.noBall += 1 + extraRuns; // 1 penalty + byes. Batted 'runs' are already on batter.
+        } else {
+          scorecard.extras[extra] = (scorecard.extras[extra] || 0) + (runs + extraRuns);
+        }
+        scorecard.extras.total = scorecard.extras.wide + scorecard.extras.noBall + scorecard.extras.bye + scorecard.extras.legBye;
       }
     });
 

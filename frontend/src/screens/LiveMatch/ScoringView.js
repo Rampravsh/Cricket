@@ -21,6 +21,7 @@ const ScoringView = ({
   lastPressed,
   isLoading,
   onAddBall,
+  onExtraPress,
   onStartMatch,
   onReplacePlayer,
   onTakeBreak,
@@ -118,6 +119,11 @@ const ScoringView = ({
             <View style={[styles.miniLiveBadge, { backgroundColor: colors.danger + '20' }]}>
               <Text style={[styles.miniLiveText, { color: colors.danger }]}>SCORING LIVE</Text>
             </View>
+            {currentMatch?.current?.freeHit && (
+              <View style={[styles.miniLiveBadge, { backgroundColor: colors.danger, marginTop: 8 }]}>
+                <Text style={[styles.miniLiveText, { color: '#fff' }]}>FREE HIT ACTIVE</Text>
+              </View>
+            )}
           </View>
         </View>
 
@@ -180,14 +186,14 @@ const ScoringView = ({
       <View style={styles.specialGrid}>
         <TouchableOpacity 
           style={[styles.specialBtn, { borderColor: colors.warning }]} 
-          onPress={() => onAddBall({ runs: 0, extra: 'wide', wicket: false })}
+          onPress={() => onExtraPress('wide')}
           disabled={isLoading}
         >
           <Text style={[styles.specialBtnText, { color: colors.warning }]}>WIDE</Text>
         </TouchableOpacity>
         <TouchableOpacity 
           style={[styles.specialBtn, { borderColor: colors.warning }]} 
-          onPress={() => onAddBall({ runs: 0, extra: 'noBall', wicket: false })}
+          onPress={() => onExtraPress('noBall')}
           disabled={isLoading}
         >
           <Text style={[styles.specialBtnText, { color: colors.warning }]}>NO BALL</Text>
