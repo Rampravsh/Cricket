@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { View, Text, ScrollView, StyleSheet, StatusBar, TouchableOpacity, Animated, Dimensions, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, StatusBar, TouchableOpacity, Animated, Dimensions, ActivityIndicator, ImageBackground } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -80,43 +81,6 @@ function HomeScreen() {
     }, [fetchMatches])
   );
 
-  const handleGoToLiveMatch = async () => {
-    try {
-      const matchId = 'match-' + Date.now();
-      const matchData = {
-        matchId,
-        teams: [
-          { 
-            name: 'India', 
-            players: [
-              { playerId: '000000000000000000000001', nameSnapshot: 'Batter 1' }, 
-              { playerId: '000000000000000000000002', nameSnapshot: 'Batter 2' }
-            ] 
-          },
-          { 
-            name: 'Australia', 
-            players: [
-              { playerId: '000000000000000000000003', nameSnapshot: 'Bowler 1' }
-            ] 
-          }
-        ],
-        players: [
-          { playerId: '000000000000000000000001', name: 'Batter 1', status: 'accepted' },
-          { playerId: '000000000000000000000002', name: 'Batter 2', status: 'accepted' },
-          { playerId: '000000000000000000000003', name: 'Bowler 1', status: 'accepted' }
-        ],
-        isPublic: true,
-        toss: { winner: 'India', decision: 'bat' }
-      };
-      
-      await dispatch(createMatchThunk(matchData)).unwrap();
-      await dispatch(startMatchThunk(matchId)).unwrap();
-      
-      navigation.navigate(SCREENS.LIVE_MATCH, { matchId });
-    } catch (error) {
-      console.error('[HomeScreen] Error starting live match:', error);
-    }
-  };
 
   const handleMatchPress = (match) => {
     if (match.matchId) {
@@ -140,7 +104,7 @@ function HomeScreen() {
 
       {/* Header */}
       <Header 
-        title="Cricket Live" 
+        title="CRICKET LIVE" 
         showNotification
       />
 
@@ -150,7 +114,7 @@ function HomeScreen() {
         showsVerticalScrollIndicator={false}
       >
 
-        {/* Hero Section with Gradient */}
+        {/* Hero Section: Modern Local Vibe */}
         <Animated.View
           style={[
             styles.heroContainer,
@@ -160,56 +124,27 @@ function HomeScreen() {
             },
           ]}
         >
-          <LinearGradient
-            colors={[colors.gradientStart, colors.gradientMid, colors.gradientEnd]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.heroGradient}
+          <ImageBackground
+            source={{ uri: 'https://images.unsplash.com/photo-1589801258277-5074520423f1?q=80&w=1000&auto=format&fit=crop' }}
+            style={styles.heroImage}
+            imageStyle={{ borderRadius: borderRadius['2xl'] }}
           >
-            {/* Floating Decoration Dots */}
-            <Animated.View
-              style={[
-                styles.floatingDot,
-                styles.dot1,
-                {
-                  opacity: dot1.interpolate({ inputRange: [0, 1], outputRange: [0.2, 0.6] }),
-                  transform: [
-                    { translateY: dot1.interpolate({ inputRange: [0, 1], outputRange: [0, -15] }) },
-                  ],
-                },
-              ]}
-            />
-            <Animated.View
-              style={[
-                styles.floatingDot,
-                styles.dot2,
-                {
-                  opacity: dot2.interpolate({ inputRange: [0, 1], outputRange: [0.15, 0.5] }),
-                  transform: [
-                    { translateY: dot2.interpolate({ inputRange: [0, 1], outputRange: [0, -20] }) },
-                  ],
-                },
-              ]}
-            />
-            <Animated.View
-              style={[
-                styles.floatingDot,
-                styles.dot3,
-                {
-                  opacity: dot3.interpolate({ inputRange: [0, 1], outputRange: [0.1, 0.45] }),
-                  transform: [
-                    { translateY: dot3.interpolate({ inputRange: [0, 1], outputRange: [0, -12] }) },
-                  ],
-                },
-              ]}
-            />
-
-            <Text style={styles.heroEmoji}>🏏</Text>
-            <Text style={styles.heroTitle}>Cricket{'\n'}Scoring</Text>
-            <Text style={styles.heroSubtitle}>
-              Real-time match scoring, live commentary & stats — all in your pocket.
-            </Text>
-          </LinearGradient>
+            <LinearGradient
+              colors={['rgba(0,0,0,0.2)', 'rgba(0,0,0,0.9)']}
+              style={styles.heroOverlay}
+            >
+              <View style={styles.heroContentModern}>
+                <View style={styles.heroBadgeModern}>
+                  <Feather name="zap" size={10} color="#FFD600" />
+                  <Text style={styles.heroBadgeTextModern}>STREET LEGENDS</Text>
+                </View>
+                <Text style={styles.heroTitleModern}>BATTING{'\n'}STREETS</Text>
+                <Text style={styles.heroSubtitleModern}>
+                  Professional scoring for every street and gully. Track your journey to the top.
+                </Text>
+              </View>
+            </LinearGradient>
+          </ImageBackground>
         </Animated.View>
 
         {/* Quick Actions */}
@@ -219,25 +154,26 @@ function HomeScreen() {
         </View>
         <View style={styles.actionRow}>
           <Button
-            title={isLoading ? "Starting..." : "⚡ Start Live Match"}
-            onPress={handleGoToLiveMatch}
-            disabled={isLoading}
+            title="Start Match"
+            onPress={() => navigation.navigate(SCREENS.QUICK_MATCH)}
             variant="primary"
-            size="lg"
+            size="md"
             style={styles.primaryAction}
+            leftIcon={<Feather name="plus-circle" size={18} color="#fff" />}
           />
           <Button
-            title="📊 View Scorecard"
-            onPress={() => {}}
+            title="Scorecards"
+            onPress={() => navigation.navigate(SCREENS.HISTORY)}
             variant="secondary"
-            size="lg"
+            size="md"
             style={styles.secondaryAction}
+            leftIcon={<Feather name="list" size={18} color={colors.primary} />}
           />
         </View>
 
-        {/* Matches from API */}
+        {/* horizontal Match Cards */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Matches</Text>
+          <Text style={styles.sectionTitle}>Featured Matches</Text>
           <View style={styles.sectionLine} />
         </View>
 
@@ -248,35 +184,43 @@ function HomeScreen() {
           </View>
         ) : matches.length === 0 ? (
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyEmoji}>🏟️</Text>
-            <Text style={styles.emptyText}>No matches yet. Start one!</Text>
+            <Feather name="calendar" size={32} color={colors.textTertiary} />
+            <Text style={styles.emptyText}>No matches scheduled yet.</Text>
           </View>
         ) : (
-          matches.map((match, index) => (
-            <MatchQuickCard
-              key={`match-${match.matchId || match._id || index}-${index}`}
-
-              teamA={match.teams?.[0]?.name || 'Team A'}
-              teamB={match.teams?.[1]?.name || 'Team B'}
-              status={
-                (match.status === 'completed' && (match.innings === 1 || !match.innings))
-                  ? 'INNINGS BREAK'
-                  : match.status?.toUpperCase() || 'WAITING'
-              }
-              score={
-                match.status === 'live' || (match.status === 'completed' && (match.innings === 1 || !match.innings))
-                  ? `${match.score?.runs || 0}/${match.score?.wickets || 0} (${match.score?.overs || 0}.${match.score?.balls || 0} Ov)`
-                  : match.status === 'completed'
-                    ? `Completed`
-                    : 'Waiting to start'
-              }
-              onPress={() => handleMatchPress(match)}
-              colors={colors}
-              spacing={spacing}
-              borderRadius={borderRadius}
-              isDark={isDark}
-            />
-          ))
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            snapToInterval={SCREEN_WIDTH - spacing[4] * 2 + spacing[3]}
+            decelerationRate="fast"
+            contentContainerStyle={styles.horizontalScrollContent}
+          >
+            {matches.map((match, index) => (
+              <MatchQuickCard
+                key={`match-${match.matchId || match._id || index}-${index}`}
+                teamA={match.teams?.[0]?.name || 'Team A'}
+                teamB={match.teams?.[1]?.name || 'Team B'}
+                status={
+                  (match.status === 'completed' && (match.innings === 1 || !match.innings))
+                    ? 'BREAK'
+                    : match.status?.toUpperCase() || 'WAITING'
+                }
+                score={
+                  match.status === 'live' || (match.status === 'completed' && (match.innings === 1 || !match.innings))
+                    ? `${match.score?.runs || 0}/${match.score?.wickets || 0}`
+                    : match.status === 'completed'
+                      ? 'Final Result'
+                      : 'Not Started'
+                }
+                overs={match.score?.overs ? `${match.score.overs}.${match.score.balls || 0} Ov` : null}
+                onPress={() => handleMatchPress(match)}
+                colors={colors}
+                spacing={spacing}
+                borderRadius={borderRadius}
+                isDark={isDark}
+              />
+            ))}
+          </ScrollView>
         )}
 
         {/* Quick Stats from Real Data */}
@@ -285,10 +229,52 @@ function HomeScreen() {
           <View style={styles.sectionLine} />
         </View>
         <View style={styles.statsGrid}>
-          <QuickStatCard icon="🏟️" label="Total" value={String(totalMatches)} colors={colors} spacing={spacing} borderRadius={borderRadius} />
-          <QuickStatCard icon="🔴" label="Live" value={String(liveMatches)} colors={colors} spacing={spacing} borderRadius={borderRadius} />
-          <QuickStatCard icon="✅" label="Done" value={String(completedMatches)} colors={colors} spacing={spacing} borderRadius={borderRadius} />
-          <QuickStatCard icon="⏳" label="Waiting" value={String(waitingMatches)} colors={colors} spacing={spacing} borderRadius={borderRadius} />
+          <QuickStatCard icon="activity" label="Total" value={String(totalMatches)} colors={colors} spacing={spacing} borderRadius={borderRadius} />
+          <QuickStatCard icon="play-circle" label="Live" value={String(liveMatches)} colors={colors} spacing={spacing} borderRadius={borderRadius} />
+          <QuickStatCard icon="check-circle" label="Done" value={String(completedMatches)} colors={colors} spacing={spacing} borderRadius={borderRadius} />
+          <QuickStatCard icon="clock" label="Waiting" value={String(waitingMatches)} colors={colors} spacing={spacing} borderRadius={borderRadius} />
+        </View>
+
+        {/* Daily Stats Section */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Daily Stats</Text>
+          <View style={styles.sectionLine} />
+        </View>
+        <View style={styles.dailyStatsContainer}>
+          <LinearGradient
+            colors={isDark ? ['rgba(255, 214, 0, 0.1)', 'rgba(255, 214, 0, 0.02)'] : ['#FFFDE7', '#FFFFFF']}
+            style={styles.dailyStatsCard}
+          >
+            <View style={styles.statItem}>
+              <View style={styles.statIconContainer}>
+                <Feather name="award" size={18} color={colors.primary} />
+              </View>
+              <View>
+                <Text style={styles.statLabel}>Top Scorer</Text>
+                <Text style={styles.statValue}>Aryan Sharma (42 runs)</Text>
+              </View>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <View style={styles.statIconContainer}>
+                <Feather name="target" size={18} color={colors.primary} />
+              </View>
+              <View>
+                <Text style={styles.statLabel}>Best Spell</Text>
+                <Text style={styles.statValue}>Rohit V. (3/12)</Text>
+              </View>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <View style={styles.statIconContainer}>
+                <Feather name="trending-up" size={18} color={colors.primary} />
+              </View>
+              <View>
+                <Text style={styles.statLabel}>Runs Today</Text>
+                <Text style={styles.statValue}>842 Runs Today</Text>
+              </View>
+            </View>
+          </LinearGradient>
         </View>
 
         {/* Bottom spacer for floating tab bar */}
@@ -299,7 +285,7 @@ function HomeScreen() {
 }
 
 // ── Inline sub-component: Match Card ─────────────────────────────────────────
-function MatchQuickCard({ teamA, teamB, status, score, onPress, colors, spacing, borderRadius, isDark }) {
+function MatchQuickCard({ teamA, teamB, status, score, overs, onPress, colors, spacing, borderRadius, isDark }) {
   const isLive = status === 'LIVE';
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
@@ -307,8 +293,8 @@ function MatchQuickCard({ teamA, teamB, status, score, onPress, colors, spacing,
     if (isLive) {
       Animated.loop(
         Animated.sequence([
-          Animated.timing(pulseAnim, { toValue: 0.5, duration: 800, useNativeDriver: true }),
-          Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 0.4, duration: 1000, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 1000, useNativeDriver: true }),
         ])
       ).start();
     }
@@ -316,82 +302,170 @@ function MatchQuickCard({ teamA, teamB, status, score, onPress, colors, spacing,
 
   const cardStyles = StyleSheet.create({
     card: {
-      backgroundColor: colors.glassBg,
-      borderRadius: borderRadius.xl,
-      padding: spacing[4],
-      marginBottom: spacing[3],
-      borderWidth: 1,
-      borderColor: isLive
-        ? (isDark ? 'rgba(255, 59, 92, 0.30)' : 'rgba(229, 57, 80, 0.20)')
-        : colors.glassBorder,
+      width: SCREEN_WIDTH * 0.82,
+      backgroundColor: isDark ? 'rgba(30, 30, 30, 0.8)' : '#FFFFFF',
+      borderRadius: borderRadius['2xl'],
+      padding: spacing[5],
+      marginRight: spacing[4],
+      borderWidth: 1.5,
+      borderColor: isLive ? colors.danger + '40' : colors.glassBorder,
+      shadowColor: isLive ? colors.danger : '#000',
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: isLive ? 0.25 : 0.1,
+      shadowRadius: 15,
+      elevation: 8,
+      overflow: 'hidden',
+    },
+    statusHeader: {
       flexDirection: 'row',
-      alignItems: 'center',
       justifyContent: 'space-between',
-      shadowColor: isLive ? colors.danger : 'transparent',
-      shadowOffset: { width: 0, height: 0 },
-      shadowOpacity: isLive ? (isDark ? 0.3 : 0.1) : 0,
-      shadowRadius: isLive ? 16 : 0,
-      elevation: isLive ? 4 : 2,
+      alignItems: 'center',
+      marginBottom: spacing[4],
     },
-    accentStrip: {
-      position: 'absolute',
-      left: 0,
-      top: spacing[3],
-      bottom: spacing[3],
-      width: 3,
-      borderRadius: 2,
-      backgroundColor: isLive ? colors.danger : colors.primary,
-    },
-    teams: {
-      flex: 1,
-      marginLeft: spacing[3],
-    },
-    matchTitle: {
-      fontSize: 15,
-      fontWeight: '700',
-      color: colors.textPrimary,
-      letterSpacing: 0.2,
-    },
-    matchScore: {
-      fontSize: 12,
-      color: colors.textSecondary,
-      marginTop: 3,
-    },
-    badge: {
-      paddingHorizontal: spacing[3],
-      paddingVertical: spacing[1],
-      borderRadius: borderRadius.full,
-      backgroundColor: isLive ? colors.dangerContainer : colors.primaryContainer,
+    liveBadge: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 5,
+      backgroundColor: colors.danger + '15',
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 6,
+      gap: 6,
     },
-    badgeDot: {
+    liveDot: {
       width: 6,
       height: 6,
       borderRadius: 3,
-      backgroundColor: isLive ? colors.danger : colors.primary,
+      backgroundColor: colors.danger,
     },
-    badgeText: {
-      fontSize: 11,
+    statusText: {
+      fontSize: 10,
+      fontWeight: '900',
+      color: isLive ? colors.danger : colors.textSecondary,
+      letterSpacing: 1.5,
+    },
+    formatText: {
+      fontSize: 10,
+      fontWeight: '700',
+      color: colors.textTertiary,
+      textTransform: 'uppercase',
+    },
+    teamsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: spacing[4],
+    },
+    teamBlock: {
+      alignItems: 'center',
+      flex: 1,
+    },
+    teamInitialContainer: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: colors.surfaceVariant,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 8,
+      borderWidth: 1,
+      borderColor: colors.glassBorder,
+    },
+    teamInitial: {
+      fontSize: 18,
+      fontWeight: '900',
+      color: colors.textPrimary,
+    },
+    teamName: {
+      fontSize: 12,
       fontWeight: '800',
-      color: isLive ? colors.danger : colors.primary,
-      letterSpacing: 0.8,
+      color: colors.textPrimary,
+      textAlign: 'center',
+    },
+    vsContainer: {
+      paddingHorizontal: 12,
+    },
+    vsText: {
+      fontSize: 14,
+      fontWeight: '900',
+      color: colors.textTertiary,
+      fontStyle: 'italic',
+    },
+    scoreContainer: {
+      alignItems: 'center',
+      paddingTop: spacing[2],
+      borderTopWidth: 1,
+      borderTopColor: colors.glassBorder,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+    },
+    scoreText: {
+      fontSize: 22,
+      fontWeight: '900',
+      color: colors.primary,
+      letterSpacing: -0.5,
+    },
+    oversText: {
+      fontSize: 12,
+      fontWeight: '700',
+      color: colors.textSecondary,
+    },
+    venueRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      marginTop: 12,
+    },
+    venueText: {
+      fontSize: 10,
+      color: colors.textTertiary,
+      fontWeight: '600',
     },
   });
 
+  const initials = (name) => (name || '?').substring(0, 2).toUpperCase();
+
   return (
-    <TouchableOpacity style={cardStyles.card} onPress={onPress} activeOpacity={0.75}>
-      <View style={cardStyles.accentStrip} />
-      <View style={cardStyles.teams}>
-        <Text style={cardStyles.matchTitle}>{teamA} vs {teamB}</Text>
-        <Text style={cardStyles.matchScore}>{score}</Text>
-      </View>
-      <View style={cardStyles.badge}>
-        {isLive && (
-          <Animated.View style={[cardStyles.badgeDot, { opacity: pulseAnim }]} />
+    <TouchableOpacity style={cardStyles.card} onPress={onPress} activeOpacity={0.9}>
+      <View style={cardStyles.statusHeader}>
+        {isLive ? (
+          <View style={cardStyles.liveBadge}>
+            <Animated.View style={[cardStyles.liveDot, { opacity: pulseAnim }]} />
+            <Text style={cardStyles.statusText}>LIVE</Text>
+          </View>
+        ) : (
+          <Text style={cardStyles.statusText}>{status}</Text>
         )}
-        <Text style={cardStyles.badgeText}>{status}</Text>
+        <Text style={cardStyles.formatText}>T20 GULLY</Text>
+      </View>
+
+      <View style={cardStyles.teamsRow}>
+        <View style={cardStyles.teamBlock}>
+          <View style={cardStyles.teamInitialContainer}>
+            <Text style={cardStyles.teamInitial}>{initials(teamA)}</Text>
+          </View>
+          <Text style={cardStyles.teamName} numberOfLines={1}>{teamA}</Text>
+        </View>
+
+        <View style={cardStyles.vsContainer}>
+          <Text style={cardStyles.vsText}>VS</Text>
+        </View>
+
+        <View style={cardStyles.teamBlock}>
+          <View style={cardStyles.teamInitialContainer}>
+            <Text style={cardStyles.teamInitial}>{initials(teamB)}</Text>
+          </View>
+          <Text style={cardStyles.teamName} numberOfLines={1}>{teamB}</Text>
+        </View>
+      </View>
+
+      <View style={cardStyles.scoreContainer}>
+        <Text style={cardStyles.scoreText}>{score}</Text>
+        {overs && <Text style={cardStyles.oversText}>{overs}</Text>}
+      </View>
+
+      <View style={cardStyles.venueRow}>
+        <Feather name="map-pin" size={10} color={colors.textTertiary} />
+        <Text style={cardStyles.venueText}>Street Arena • Sector 42</Text>
       </View>
     </TouchableOpacity>
   );
@@ -431,7 +505,7 @@ function QuickStatCard({ icon, label, value, colors, spacing, borderRadius }) {
 
   return (
     <View style={s.card}>
-      <Text style={s.icon}>{icon}</Text>
+      <Feather name={icon} size={22} color={colors.primary} style={{marginBottom: 6}} />
       <Text style={s.value}>{value}</Text>
       <Text style={s.label}>{label}</Text>
     </View>
@@ -451,65 +525,88 @@ function createStyles(colors, spacing, borderRadius, isDark) {
     scrollContent: {
       paddingHorizontal: spacing[4],
       paddingTop: spacing[4],
+      paddingBottom: spacing[4],
+    },
+    horizontalScrollContent: {
+      paddingLeft: 0,
+      paddingRight: spacing[4],
+      paddingBottom: spacing[4],
+      paddingTop: spacing[2],
     },
 
-    // ── Hero ──────────────────────────────────────────────────────────────────
+    // ── Hero (Ultra Modern Edition) ──────────────────────────────────────────
     heroContainer: {
       marginBottom: spacing[6],
+      height: 280,
     },
-    heroGradient: {
-      borderRadius: borderRadius['2xl'],
+    heroImage: {
+      flex: 1,
+      justifyContent: 'flex-end',
+    },
+    heroOverlay: {
+      ...StyleSheet.absoluteFillObject,
+      justifyContent: 'flex-end',
       padding: spacing[6],
-      paddingTop: spacing[8],
-      paddingBottom: spacing[8],
-      overflow: 'hidden',
-      position: 'relative',
     },
-    heroEmoji: {
+    heroContentModern: {
+      paddingBottom: spacing[2],
+    },
+    heroBadgeModern: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      alignSelf: 'flex-start',
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: 20,
+      marginBottom: 12,
+      borderWidth: 1,
+      borderColor: 'rgba(255, 255, 255, 0.1)',
+      gap: 6,
+    },
+    heroBadgeTextModern: {
+      color: '#FFD600',
+      fontSize: 10,
+      fontWeight: '800',
+      letterSpacing: 1.2,
+    },
+    heroTitleModern: {
       fontSize: 48,
-      marginBottom: spacing[3],
-    },
-    heroTitle: {
-      fontSize: 38,
       fontWeight: '900',
       color: '#FFFFFF',
-      lineHeight: 42,
-      marginBottom: spacing[3],
-      letterSpacing: -0.5,
-      textShadowColor: 'rgba(0, 0, 0, 0.3)',
-      textShadowOffset: { width: 0, height: 2 },
-      textShadowRadius: 8,
+      lineHeight: 46,
+      marginBottom: spacing[2],
+      letterSpacing: -1,
     },
-    heroSubtitle: {
+    heroSubtitleModern: {
       fontSize: 14,
-      color: 'rgba(255, 255, 255, 0.85)',
+      color: 'rgba(255, 255, 255, 0.7)',
       lineHeight: 20,
       fontWeight: '500',
+      maxWidth: '85%',
     },
 
-    // Floating decoration dots
-    floatingDot: {
-      position: 'absolute',
-      borderRadius: 999,
-      backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    // ── Venue Row ────────────────────────────────────────────────────────────
+    venueRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      marginTop: 4,
     },
-    dot1: { width: 80, height: 80, top: -20, right: -10 },
-    dot2: { width: 50, height: 50, bottom: 20, right: 40 },
-    dot3: { width: 35, height: 35, top: 30, right: 80 },
 
     // ── Sections ──────────────────────────────────────────────────────────────
     sectionHeader: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginBottom: spacing[3],
-      marginTop: spacing[2],
-      gap: spacing[2],
+      marginBottom: spacing[4],
+      marginTop: spacing[4],
+      gap: spacing[3],
     },
     sectionTitle: {
-      fontSize: 13,
-      fontWeight: '800',
-      color: colors.primary,
-      letterSpacing: 1.2,
+      fontSize: 12,
+      fontWeight: '900',
+      color: colors.textSecondary,
+      letterSpacing: 2,
       textTransform: 'uppercase',
     },
     sectionLine: {
@@ -520,15 +617,61 @@ function createStyles(colors, spacing, borderRadius, isDark) {
 
     // ── Actions ───────────────────────────────────────────────────────────────
     actionRow: {
-      flexDirection: 'column',
+      flexDirection: 'row',
       gap: spacing[3],
       marginBottom: spacing[6],
     },
     primaryAction: {
-      width: '100%',
+      flex: 1.2,
     },
     secondaryAction: {
-      width: '100%',
+      flex: 1,
+    },
+
+    // ── Daily Stats ───────────────────────────────────────────────────────────
+    dailyStatsContainer: {
+      marginBottom: spacing[4],
+    },
+    dailyStatsCard: {
+      borderRadius: borderRadius.xl,
+      padding: spacing[4],
+      borderWidth: 1,
+      borderColor: colors.glassBorder,
+    },
+    statItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing[3],
+    },
+    statIconContainer: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    statIcon: {
+      fontSize: 18,
+    },
+    statLabel: {
+      fontSize: 10,
+      fontWeight: '700',
+      color: colors.textTertiary,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    statValue: {
+      fontSize: 14,
+      fontWeight: '800',
+      color: colors.textPrimary,
+      marginTop: 2,
+    },
+    statDivider: {
+      height: 1,
+      backgroundColor: colors.glassBorder,
+      marginVertical: spacing[3],
+      marginLeft: 50,
     },
 
     // ── Loading / Empty ──────────────────────────────────────────────────────
@@ -568,7 +711,7 @@ function createStyles(colors, spacing, borderRadius, isDark) {
 
     // Extra bottom padding so content doesn't hide behind floating tab bar
     bottomSpacer: {
-      height: 100,
+      height: 120,
     },
   });
 }
