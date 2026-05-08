@@ -568,8 +568,17 @@ const matchService = {
     // Map scorecard IDs to names for easier display
     const enrichedBatting = {};
     Object.keys(matchObj.scorecard.batting).forEach(id => {
+      const bStats = matchObj.scorecard.batting[id];
       const name = playerMap.get(id) || id;
-      enrichedBatting[id] = { ...matchObj.scorecard.batting[id], name };
+      const dismissedByName = playerMap.get(bStats.dismissedBy) || bStats.dismissedBy;
+      const fielderName = playerMap.get(bStats.fielder) || bStats.fielder;
+      
+      enrichedBatting[id] = { 
+        ...bStats, 
+        name,
+        dismissedByName,
+        fielderName
+      };
     });
     matchObj.scorecard.batting = enrichedBatting;
 

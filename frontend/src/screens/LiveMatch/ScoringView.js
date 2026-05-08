@@ -22,6 +22,7 @@ const ScoringView = ({
   isLoading,
   onAddBall,
   onExtraPress,
+  onWicketPress,
   onStartMatch,
   onReplacePlayer,
   onTakeBreak,
@@ -200,7 +201,7 @@ const ScoringView = ({
         </TouchableOpacity>
         <TouchableOpacity 
           style={[styles.specialBtn, { backgroundColor: colors.danger, borderColor: colors.danger }]} 
-          onPress={() => onAddBall({ runs: 0, extra: null, wicket: true })}
+          onPress={onWicketPress}
           disabled={isLoading}
         >
           <Text style={[styles.specialBtnText, { color: '#fff' }]}>WICKET</Text>

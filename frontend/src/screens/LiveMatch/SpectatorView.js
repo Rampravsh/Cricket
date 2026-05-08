@@ -44,6 +44,22 @@ const SpectatorView = ({
     return (innings === 2) ? (firstBattingIdx === 0 ? 1 : 0) : firstBattingIdx;
   };
 
+  const renderDismissal = (stats) => {
+    if (!stats || stats.status === 'not out' || stats.status === 'yet to bat') return '';
+    
+    const { status, dismissedByName, fielderName } = stats;
+    switch (status) {
+      case 'bowled': return `b ${dismissedByName}`;
+      case 'caught': return `c ${fielderName} b ${dismissedByName}`;
+      case 'lbw': return `lbw b ${dismissedByName}`;
+      case 'stumped': return `st ${fielderName} b ${dismissedByName}`;
+      case 'runOut': return `run out (${fielderName})`;
+      case 'hitWicket': return `hit wicket b ${dismissedByName}`;
+      case 'retired': return 'retired';
+      default: return status.toUpperCase();
+    }
+  };
+
   const battingIdx = getBattingTeamIdx();
   const bowlingIdx = battingIdx === 0 ? 1 : 0;
 
@@ -315,7 +331,7 @@ const SpectatorView = ({
                 statusText = 'BOWLING';
                 statusColor = colors.accent;
               } else if (isOut) {
-                statusText = stats.status.toUpperCase();
+                statusText = renderDismissal(stats);
                 statusColor = colors.danger;
               } else if (stats && stats.status === 'not out' && stats.balls > 0) {
                 statusText = 'NOT OUT';

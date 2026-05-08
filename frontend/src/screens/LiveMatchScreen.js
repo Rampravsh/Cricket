@@ -121,6 +121,57 @@ function LiveMatchScreen() {
     setExtraBallModal({ visible: false, type: null });
   };
 
+  // Wicket details state
+  const [wicketModal, setWicketModal] = useState({ 
+    visible: false, 
+    type: null, // 'caught', 'bowled', etc.
+    fielderId: null,
+    outPlayerId: null,
+    step: 1 // 1: Type, 2: Fielder, 3: OutPlayer (for run out)
+  });
+
+  const handleWicketSelect = (type) => {
+    if (['caught', 'stumped', 'runOut'].includes(type)) {
+      setWicketModal({ ...wicketModal, type, step: 2 });
+    } else {
+      // Direct wicket (bowled, lbw, hitWicket, retired)
+      handleAddBall({
+        runs: 0,
+        wicket: true,
+        wicketType: type
+      });
+      setWicketModal({ visible: false, type: null, fielderId: null, outPlayerId: null, step: 1 });
+    }
+  };
+
+  const handleFielderSelect = (fielder) => {
+    const fid = getPlayerId(fielder);
+    if (wicketModal.type === 'runOut') {
+      setWicketModal({ ...wicketModal, fielderId: fid, step: 3 });
+    } else {
+      handleAddBall({
+        runs: 0,
+        wicket: true,
+        wicketType: wicketModal.type,
+        fielderId: fid
+      });
+      setWicketModal({ visible: false, type: null, fielderId: null, outPlayerId: null, step: 1 });
+    }
+  };
+
+  const handleOutPlayerSelect = (player) => {
+    const pid = getPlayerId(player);
+    handleAddBall({
+      runs: 0,
+      wicket: true,
+      wicketType: wicketModal.type,
+      fielderId: wicketModal.fielderId,
+      // Note: We might need a way to pass who is out if not the striker.
+      // For now, if pid is nonStrikerId, we can handle it in backend or here.
+    });
+    setWicketModal({ visible: false, type: null, fielderId: null, outPlayerId: null, step: 1 });
+  };
+
   // Effect to automatically prompt for player selection on wicket or over completion
   useEffect(() => {
     if (viewMode === 'scoring' && currentMatch?.status === 'live') {
@@ -334,6 +385,7 @@ function LiveMatchScreen() {
             isLoading={isLoading}
             onAddBall={handleAddBall}
             onExtraPress={(type) => setExtraBallModal({ visible: true, type })}
+            onWicketPress={() => setWicketModal({ ...wicketModal, visible: true, step: 1 })}
             onStartMatch={handleStartMatch}
             onReplacePlayer={setReplacingPlayer}
             onTakeBreak={handleTakeBreak}
@@ -583,6 +635,83 @@ function LiveMatchScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Wicket Details Modal */}
+      <Modal
+        visible={wicketModal.visible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setWicketModal({ ...wicketModal, visible: false })}
+      >
+        <View style={[styles.modalOverlay, { backgroundColor: 'rgba(0,0,0,0.7)' }]}>
+          <View style={[styles.modalContent, { backgroundColor: colors.surface, height: '80%' }]}>
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={[styles.modalTitle, { color: colors.danger, fontSize: 18 }]}>
+                  ☝️ WICKET RECORDED
+                </Text>
+                <Text style={[styles.modalTeamLabel, { color: colors.textSecondary }]}>
+                  {wicketModal.step === 1 ? 'Select Dismissal Type' : 
+                   wicketModal.step === 2 ? 'Select Fielder' : 'Select Out Player'}
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => setWicketModal({ ...wicketModal, visible: false })}>
+                <Ionicons name="close" size={24} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            {wicketModal.step === 1 && (
+              <View style={styles.wicketGrid}>
+                {['bowled', 'caught', 'lbw', 'stumped', 'runOut', 'hitWicket', 'retired'].map((type) => (
+                  <TouchableOpacity 
+                    key={type}
+                    style={[styles.wicketTypeBtn, { backgroundColor: colors.surfaceVariant, borderColor: colors.divider }]}
+                    onPress={() => handleWicketSelect(type)}
+                  >
+                    <Text style={[styles.wicketTypeText, { color: colors.textPrimary }]}>{type.toUpperCase()}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
+            {wicketModal.step === 2 && (
+              <FlatList
+                data={getPlayersForRole('bowler')}
+                keyExtractor={(item) => getPlayerId(item)}
+                renderItem={({ item }) => (
+                  <TouchableOpacity 
+                    style={[styles.playerItem, { borderBottomColor: colors.divider }]}
+                    onPress={() => handleFielderSelect(item)}
+                  >
+                    <View style={[styles.avatar, { backgroundColor: colors.surfaceVariant }]}>
+                      <Text style={{ color: colors.textSecondary, fontWeight: '800' }}>{(item.nameSnapshot || '?')[0]}</Text>
+                    </View>
+                    <Text style={[styles.playerName, { color: colors.textPrimary }]}>{item.nameSnapshot}</Text>
+                    <Ionicons name="chevron-forward" size={18} color={colors.textDisabled} />
+                  </TouchableOpacity>
+                )}
+              />
+            )}
+
+            {wicketModal.step === 3 && (
+              <View style={{ gap: 15 }}>
+                <TouchableOpacity 
+                  style={[styles.playerItem, { borderBottomColor: colors.divider }]}
+                  onPress={() => handleOutPlayerSelect({ nameSnapshot: 'Striker' })}
+                >
+                  <Text style={[styles.playerName, { color: colors.textPrimary }]}>STRIKER</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.playerItem, { borderBottomColor: colors.divider }]}
+                  onPress={() => handleOutPlayerSelect({ nameSnapshot: 'Non-Striker' })}
+                >
+                  <Text style={[styles.playerName, { color: colors.textPrimary }]}>NON-STRIKER</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -696,6 +825,24 @@ const styles = StyleSheet.create({
   extraRunText: {
     fontSize: 18,
     fontWeight: '900',
+  },
+  wicketGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  wicketTypeBtn: {
+    width: '45%',
+    paddingVertical: 15,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  wicketTypeText: {
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 0.5,
   },
 });
 
