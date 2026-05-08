@@ -125,6 +125,24 @@ export const setCurrentPlayersThunk = createAsyncThunk('match/setCurrentPlayers'
   }
 });
 
+export const startSecondInningsThunk = createAsyncThunk('match/startSecondInnings', async (matchId, { rejectWithValue }) => {
+  try {
+    const res = await matchApi.startSecondInnings(matchId);
+    return res.data;
+  } catch (err) {
+    return rejectWithValue(err.message || 'Failed to start second innings');
+  }
+});
+
+export const takeBreakThunk = createAsyncThunk('match/takeBreak', async (matchId, { rejectWithValue }) => {
+  try {
+    const res = await matchApi.takeBreak(matchId);
+    return res.data;
+  } catch (err) {
+    return rejectWithValue(err.message || 'Failed to toggle break');
+  }
+});
+
 const matchSlice = createSlice({
   name: 'match',
   initialState,

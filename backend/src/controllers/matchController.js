@@ -608,6 +608,87 @@ const setCurrentPlayers = catchAsync(async (req, res) => {
   res.status(200).json(sendResponse(true, 'Player updated successfully', enrichedMatch));
 });
 
+/**
+ * @desc    Start second innings
+ * @route   PATCH /api/v1/matches/:matchId/start-second-innings
+ * @access  Private (Scorer/Creator)
+ */
+const startSecondInnings = catchAsync(async (req, res) => {
+  const match = req.match || await Match.findOne({ matchId: req.params.matchId });
+
+  if (!match) {
+    return res.status(404).json(sendResponse(false, 'Match not found'));
+  }
+
+  const isOldCompleted = match.status === 'completed' && (match.innings === 1 || !match.innings);
+  if (match.status !== 'break' && !isOldCompleted) {
+    return res.status(400).json(sendResponse(false, 'Match must be in a break to start second innings'));
+  }
+
+  // Ensure target is set if it was completed by the old logic
+  if (!match.target) {
+    match.target = match.score.runs + 1;
+  }
+
+  // Store first innings score
+  if (!match.pastInnings) match.pastInnings = [];
+  match.pastInnings.push({
+    innings: match.innings || 1,
+    runs: match.score.runs,
+    wickets: match.score.wickets,
+    overs: match.score.overs,
+    balls: match.score.balls,
+  });
+
+  match.status = 'live';
+  match.innings = 2;
+  
+  // reset scores for new innings
+  match.score.runs = 0;
+  match.score.wickets = 0;
+  match.score.overs = 0;
+  match.score.balls = 0;
+  match.current.strikerId = null;
+  match.current.nonStrikerId = null;
+  match.current.bowlerId = null;
+  match.currentOver = [];
+
+  await match.save();
+
+  const enrichedMatch = matchService.enrichMatchWithNames(match);
+  const io = req.app.get('io');
+  if (io) io.to(match.matchId).emit('score-updated', enrichedMatch);
+
+  res.status(200).json(sendResponse(true, 'Second innings started', enrichedMatch));
+});
+
+/**
+ * @desc    Take a team break
+ * @route   PATCH /api/v1/matches/:matchId/break
+ * @access  Private (Scorer/Creator)
+ */
+const takeBreak = catchAsync(async (req, res) => {
+  const match = req.match || await Match.findOne({ matchId: req.params.matchId });
+
+  if (!match) return res.status(404).json(sendResponse(false, 'Match not found'));
+  
+  if (match.status === 'live') {
+    match.status = 'break';
+  } else if (match.status === 'break') {
+    match.status = 'live';
+  } else {
+    return res.status(400).json(sendResponse(false, 'Cannot toggle break in current status'));
+  }
+
+  await match.save();
+
+  const enrichedMatch = matchService.enrichMatchWithNames(match);
+  const io = req.app.get('io');
+  if (io) io.to(match.matchId).emit('score-updated', enrichedMatch);
+
+  res.status(200).json(sendResponse(true, `Match is now ${match.status}`, enrichedMatch));
+});
+
 module.exports = {
   checkHealth,
   createMatch,
@@ -624,4 +705,6 @@ module.exports = {
   updateToss,
   deleteMatch,
   setCurrentPlayers,
+  startSecondInnings,
+  takeBreak,
 };

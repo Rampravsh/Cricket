@@ -30,14 +30,28 @@ const SpectatorView = ({
   const [selectedTeamTab, setSelectedTeamTab] = useState(0); // 0 for Team A, 1 for Team B
 
   const isLive = currentMatch?.status === 'live';
+  const isBreak = currentMatch?.status === 'break';
   const isCompleted = currentMatch?.status === 'completed';
-  
-  const teamAScore = score.teamA;
-  const teamBScore = score.teamB;
+  const getBattingTeamIdx = () => {
+    if (!currentMatch?.teams || currentMatch.teams.length < 2) return 0;
+    const { toss, teams, innings } = currentMatch;
+    let firstBattingIdx = 0;
+    if (toss?.winner && toss?.decision) {
+      const isWinnerBatting = toss.decision === 'bat';
+      if (teams[1].name === toss.winner) firstBattingIdx = isWinnerBatting ? 1 : 0;
+      else firstBattingIdx = isWinnerBatting ? 0 : 1;
+    }
+    return (innings === 2) ? (firstBattingIdx === 0 ? 1 : 0) : firstBattingIdx;
+  };
 
-  // Determine batting team for live view
-  const battingTeamScore = currentMatch?.battingTeam === 'teamB' ? teamBScore : teamAScore;
-  const bowlingTeamScore = currentMatch?.battingTeam === 'teamB' ? teamAScore : teamBScore;
+  const battingIdx = getBattingTeamIdx();
+  const bowlingIdx = battingIdx === 0 ? 1 : 0;
+
+  const battingTeamName = currentMatch?.teams?.[battingIdx]?.name || 'Batting Team';
+  const bowlingTeamName = currentMatch?.teams?.[bowlingIdx]?.name || 'Bowling Team';
+
+  const currentRuns = currentMatch?.score?.runs || 0;
+  const currentWickets = currentMatch?.score?.wickets || 0;
 
   // Read pre-computed rates from the backend engine snapshot
   const crr = currentMatch?.computed?.crr ?? 0;
@@ -70,7 +84,7 @@ const SpectatorView = ({
         >
           <View style={styles.proTopRow}>
             <View style={styles.proTeamInfo}>
-              <Text style={[styles.proTeamName, { color: colors.textPrimary }]}>{battingTeamScore.name}</Text>
+              <Text style={[styles.proTeamName, { color: colors.textPrimary }]}>{battingTeamName}</Text>
               <View style={styles.liveIndicatorRow}>
                 <Animated.View style={[styles.liveDot, { opacity: blinkAnim, backgroundColor: colors.danger }]} />
                 <Text style={[styles.liveText, { color: colors.textSecondary }]}>BATTING</Text>
@@ -78,7 +92,7 @@ const SpectatorView = ({
             </View>
             <View style={styles.proScoreContainer}>
               <Text style={[styles.proScoreMain, { color: colors.primary }]}>
-                {battingTeamScore.runs}<Text style={[styles.proWicketText, { color: colors.textPrimary }]}>/{battingTeamScore.wickets}</Text>
+                {currentRuns}<Text style={[styles.proWicketText, { color: colors.textPrimary }]}>/{currentWickets}</Text>
               </Text>
               <Text style={[styles.proOversText, { color: colors.textSecondary }]}>({currentMatch?.computed?.overs || '0.0'} Ov)</Text>
             </View>
@@ -101,11 +115,26 @@ const SpectatorView = ({
             )}
             <View style={styles.proStatItem}>
               <Text style={[styles.proStatLabel, { color: colors.textSecondary }]}>OPPONENT</Text>
-              <Text style={[styles.proStatValue, { color: colors.textPrimary }]}>{bowlingTeamScore.name}</Text>
+              <Text style={[styles.proStatValue, { color: colors.textPrimary }]}>{bowlingTeamName}</Text>
             </View>
           </View>
         </LinearGradient>
       </Card>
+
+      {/* Break Banner */}
+      {isBreak && (
+        <Card style={[styles.proScoreCard, { borderColor: colors.primary, padding: 20, alignItems: 'center', backgroundColor: colors.surface }]}>
+          <MaterialCommunityIcons name="coffee" size={40} color={colors.primary} />
+          <Text style={{ color: colors.textPrimary, fontSize: 18, fontWeight: '800', marginTop: 10 }}>
+            {currentMatch?.innings === 1 && currentMatch?.target ? 'INNINGS BREAK' : 'MATCH PAUSED (TEAM BREAK)'}
+          </Text>
+          {currentMatch?.innings === 1 && currentMatch?.target && (
+            <Text style={{ color: colors.primary, fontSize: 16, fontWeight: '700', marginTop: 5 }}>
+              Target: {currentMatch.target}
+            </Text>
+          )}
+        </Card>
+      )}
 
       {/* 2. Current Players & Bowler (Live Data) */}
       {isLive && (
@@ -238,13 +267,13 @@ const SpectatorView = ({
             style={[styles.tab, selectedTeamTab === 0 && { backgroundColor: colors.primary + '20' }]} 
             onPress={() => setSelectedTeamTab(0)}
           >
-            <Text style={[styles.tabText, selectedTeamTab === 0 && { color: colors.primary }]}>{teamAScore.name}</Text>
+            <Text style={[styles.tabText, selectedTeamTab === 0 && { color: colors.primary }]}>{currentMatch?.teams?.[0]?.name || 'Team 1'}</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.tab, selectedTeamTab === 1 && { backgroundColor: colors.primary + '20' }]} 
             onPress={() => setSelectedTeamTab(1)}
           >
-            <Text style={[styles.tabText, selectedTeamTab === 1 && { color: colors.primary }]}>{teamBScore.name}</Text>
+            <Text style={[styles.tabText, selectedTeamTab === 1 && { color: colors.primary }]}>{currentMatch?.teams?.[1]?.name || 'Team 2'}</Text>
           </TouchableOpacity>
         </View>
 

@@ -31,6 +31,8 @@ import {
   selectCurrentMatch, 
   selectIsLoading,
   setCurrentPlayersThunk,
+  takeBreakThunk,
+  startSecondInningsThunk,
 } from '~/store/matchSlice';
 import Header from '~/components/Header';
 import NotificationIcon from '~/components/NotificationIcon';
@@ -152,13 +154,14 @@ function LiveMatchScreen() {
   // battingTeam index is derived from toss (same as backend logic)
   const getBattingTeamIdx = () => {
     if (!currentMatch?.teams || currentMatch.teams.length < 2) return 0;
-    const { toss, teams } = currentMatch;
+    const { toss, teams, innings } = currentMatch;
+    let firstBattingIdx = 0;
     if (toss?.winner && toss?.decision) {
       const isWinnerBatting = toss.decision === 'bat';
-      if (teams[1].name === toss.winner) return isWinnerBatting ? 1 : 0;
-      return isWinnerBatting ? 0 : 1; // teams[0] is winner
+      if (teams[1].name === toss.winner) firstBattingIdx = isWinnerBatting ? 1 : 0;
+      else firstBattingIdx = isWinnerBatting ? 0 : 1;
     }
-    return 0; // default: teams[0] bats
+    return (innings === 2) ? (firstBattingIdx === 0 ? 1 : 0) : firstBattingIdx;
   };
 
   const getPlayersForRole = (role) => {
@@ -248,6 +251,16 @@ function LiveMatchScreen() {
     }
   };
 
+  const handleTakeBreak = async () => {
+    if (!matchId) return;
+    await dispatch(takeBreakThunk(matchId));
+  };
+
+  const handleStartSecondInnings = async () => {
+    if (!matchId) return;
+    await dispatch(startSecondInningsThunk(matchId));
+  };
+
   if (isLoading && !currentMatch) {
     return (
       <View style={[styles.safeArea, styles.centered]}>
@@ -310,6 +323,8 @@ function LiveMatchScreen() {
             onAddBall={handleAddBall}
             onStartMatch={handleStartMatch}
             onReplacePlayer={setReplacingPlayer}
+            onTakeBreak={handleTakeBreak}
+            onStartSecondInnings={handleStartSecondInnings}
             colors={colors}
             spacing={spacing}
             borderRadius={borderRadius}

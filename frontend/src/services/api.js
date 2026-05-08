@@ -87,6 +87,10 @@ export const matchApi = {
   deleteMatch: (matchId) => apiClient.delete(`/matches/${matchId}`),
   /** Set current striker/non-striker/bowler from team roster */
   setCurrentPlayers: (matchId, payload) => apiClient.patch(`/matches/${matchId}/set-players`, payload),
+  /** Start second innings */
+  startSecondInnings: (matchId) => apiClient.patch(`/matches/${matchId}/start-second-innings`),
+  /** Take/resume team break */
+  takeBreak: (matchId) => apiClient.patch(`/matches/${matchId}/break`),
 };
 
 // ─── Player API ───────────────────────────────────────────────────────────────

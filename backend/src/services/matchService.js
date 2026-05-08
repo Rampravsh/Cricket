@@ -119,6 +119,11 @@ const matchService = {
       match.score.runs += runs + extraRuns;
     }
 
+    // Check if second team chased the target
+    if (match.innings === 2 && match.target && match.score.runs >= match.target) {
+      match.status = 'completed';
+    }
+
     // 3. Handle wicket
     if (wicket) {
       match.score.wickets += 1;
@@ -127,7 +132,14 @@ const matchService = {
       match.current.strikerId = null;
       
       if (match.score.wickets >= (match.maxPlayers || 11) - 1) {
-        match.status = 'completed';
+        if (match.innings === 1) {
+          if (match.status !== 'completed') {
+            match.status = 'break';
+            match.target = match.score.runs + 1;
+          }
+        } else {
+          match.status = 'completed';
+        }
       }
     }
 
@@ -148,7 +160,14 @@ const matchService = {
       
       // Check if match completed by overs
       if (match.score.overs >= (match.overs || 20)) {
-        match.status = 'completed';
+        if (match.innings === 1) {
+          if (match.status !== 'completed') {
+            match.status = 'break';
+            match.target = match.score.runs + 1;
+          }
+        } else {
+          match.status = 'completed';
+        }
       }
     }
 
@@ -190,6 +209,7 @@ const matchService = {
       wicketType,
       fielderId,
       ts: Date.now(),
+      innings: match.innings || 1,
     };
 
     match.balls.push(ballRecord);
@@ -522,8 +542,9 @@ const matchService = {
     // ── Attach computed engine snapshot (CRR / RRR) ──
     // target is only relevant in 2nd innings — read from match if stored, else null
     const target = matchObj.target ?? null;
+    const currentInningsBalls = (match.balls || []).filter(b => (b.innings || 1) === (match.innings || 1));
     matchObj.computed = computeMatchState(
-      match.balls || [],
+      currentInningsBalls,
       match.overs || 20,
       match.maxPlayers || 11,
       target

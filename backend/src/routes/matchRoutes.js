@@ -14,6 +14,8 @@ const {
   updateToss,
   deleteMatch,
   setCurrentPlayers,
+  startSecondInnings,
+  takeBreak,
 } = require('../controllers/matchController');
 
 const { protect } = require('../middleware/auth');
@@ -44,6 +46,8 @@ router.patch('/:id/scorer-response', scorerResponse);
 router.patch('/:id/replace-player', replacePlayer);
 router.patch('/:matchId/toss', canScoreMatch, updateToss);
 router.patch('/:matchId/set-players', canScoreMatch, setCurrentPlayers);
+router.patch('/:matchId/start-second-innings', canScoreMatch, startSecondInnings);
+router.patch('/:matchId/break', canScoreMatch, takeBreak);
 router.delete('/:matchId', isMatchCreator, deleteMatch);
 
 module.exports = router;

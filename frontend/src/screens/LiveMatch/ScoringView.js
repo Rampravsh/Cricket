@@ -23,6 +23,8 @@ const ScoringView = ({
   onAddBall,
   onStartMatch,
   onReplacePlayer,
+  onTakeBreak,
+  onStartSecondInnings,
   colors,
   spacing,
   borderRadius,
@@ -30,6 +32,8 @@ const ScoringView = ({
 }) => {
   const isWaiting = currentMatch?.status === 'waiting';
   const isLive = currentMatch?.status === 'live';
+  const isBreak = currentMatch?.status === 'break';
+  const isCompleted = currentMatch?.status === 'completed';
 
   // Rate metrics from the backend engine (single source of truth)
   const crr = currentMatch?.computed?.crr ?? 0;
@@ -48,6 +52,42 @@ const ScoringView = ({
             disabled={isLoading}
           >
             {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.startBtnText}>START MATCH</Text>}
+          </TouchableOpacity>
+        </Card>
+      </View>
+    );
+  }
+
+  if (isCompleted) {
+    return (
+      <View style={styles.waitingContainer}>
+        <Card style={styles.waitingCard}>
+          <MaterialCommunityIcons name="trophy" size={60} color={colors.accent} />
+          <Text style={[styles.waitingTitle, { color: colors.textPrimary }]}>Match Completed!</Text>
+          <Text style={[styles.waitingSubtitle, { color: colors.textSecondary }]}>The match has ended.</Text>
+        </Card>
+      </View>
+    );
+  }
+
+  if (isBreak) {
+    const isInningsBreak = currentMatch?.innings === 1 && currentMatch?.target;
+    return (
+      <View style={styles.waitingContainer}>
+        <Card style={styles.waitingCard}>
+          <MaterialCommunityIcons name="coffee" size={60} color={colors.primary} />
+          <Text style={[styles.waitingTitle, { color: colors.textPrimary }]}>
+            {isInningsBreak ? 'Innings Break' : 'Team Break'}
+          </Text>
+          <Text style={[styles.waitingSubtitle, { color: colors.textSecondary }]}>
+            {isInningsBreak ? 'The first innings is over. Ready to start the second innings?' : 'The match is currently paused.'}
+          </Text>
+          <TouchableOpacity 
+            style={[styles.startBtn, { backgroundColor: colors.primary }]}
+            onPress={isInningsBreak ? onStartSecondInnings : onTakeBreak}
+            disabled={isLoading}
+          >
+            {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.startBtnText}>{isInningsBreak ? 'START 2ND INNINGS' : 'RESUME MATCH'}</Text>}
           </TouchableOpacity>
         </Card>
       </View>
@@ -109,7 +149,17 @@ const ScoringView = ({
 
       {/* Main Scoring Grid */}
       <Card style={styles.scoringCard}>
-        <Text style={[styles.cardTitle, { color: colors.primary }]}>QUICK SCORE</Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
+          <Text style={[styles.cardTitle, { color: colors.primary, marginBottom: 0 }]}>QUICK SCORE</Text>
+          <TouchableOpacity 
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.surfaceVariant, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}
+            onPress={onTakeBreak}
+            disabled={isLoading}
+          >
+            <MaterialCommunityIcons name="coffee" size={14} color={colors.textSecondary} />
+            <Text style={{ fontSize: 10, fontWeight: '800', color: colors.textSecondary }}>TAKE BREAK</Text>
+          </TouchableOpacity>
+        </View>
         <View style={styles.scoreGrid}>
           {[0, 1, 2, 3, 4, 6].map((val) => (
             <ScoreButton

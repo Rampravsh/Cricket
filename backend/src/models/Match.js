@@ -11,7 +11,7 @@ const matchSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['waiting', 'live', 'completed'],
+      enum: ['waiting', 'live', 'break', 'completed'],
       default: 'waiting',
       index: true,
     },
@@ -50,6 +50,23 @@ const matchSchema = new mongoose.Schema(
       overs: { type: Number, default: 0 },
       balls: { type: Number, default: 0 },
     },
+    pastInnings: [
+      {
+        innings: { type: Number },
+        runs: { type: Number },
+        wickets: { type: Number },
+        overs: { type: Number },
+        balls: { type: Number },
+      }
+    ],
+    innings: {
+      type: Number,
+      default: 1, // 1 or 2
+    },
+    target: {
+      type: Number,
+      default: null,
+    },
     balls: [
       {
         over: { type: Number, required: true },
@@ -63,6 +80,7 @@ const matchSchema = new mongoose.Schema(
         wicketType: { type: String, enum: ['bowled', 'caught', 'lbw', 'runOut', 'stumped', 'hitWicket', 'retired', null], default: null },
         fielderId: { type: String }, // Id or name of the fielder involved
         ts: { type: Number, default: Date.now },
+        innings: { type: Number, default: 1 },
       },
     ],
     format: {
