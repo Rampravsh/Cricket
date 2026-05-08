@@ -80,7 +80,7 @@ const SpectatorView = ({
               <Text style={[styles.proScoreMain, { color: colors.primary }]}>
                 {battingTeamScore.runs}<Text style={[styles.proWicketText, { color: colors.textPrimary }]}>/{battingTeamScore.wickets}</Text>
               </Text>
-              <Text style={[styles.proOversText, { color: colors.textSecondary }]}>({formatOvers(battingTeamScore.balls)})</Text>
+              <Text style={[styles.proOversText, { color: colors.textSecondary }]}>({currentMatch?.computed?.overs || '0.0'} Ov)</Text>
             </View>
           </View>
 
@@ -185,7 +185,7 @@ const SpectatorView = ({
               </View>
               <View style={styles.playerRow}>
                 <View style={[styles.playerNameCol, { flex: 3 }]}>
-                  <MaterialCommunityIcons name="baseball" size={14} color={colors.accent} />
+                  <MaterialCommunityIcons name="tennis-ball" size={14} color={colors.accent} />
                   <Text style={[styles.playerNameActive, { color: colors.textPrimary }]} numberOfLines={1}>
                     {currentMatch?.current?.bowlerName || 'Bowler'}
                   </Text>
@@ -248,66 +248,87 @@ const SpectatorView = ({
           </TouchableOpacity>
         </View>
 
-        <Card style={styles.lineupCard}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.lineupScroll}>
-            <View style={styles.lineupTable}>
-              <View style={[styles.tableHeader, { borderBottomColor: colors.divider }]}>
-                <Text style={[styles.headerText, { width: 150, color: colors.textSecondary }]}>PLAYER</Text>
-                <Text style={[styles.headerText, { width: 35, textAlign: 'center', color: colors.textSecondary }]}>R</Text>
-                <Text style={[styles.headerText, { width: 35, textAlign: 'center', color: colors.textSecondary }]}>B</Text>
-                <Text style={[styles.headerText, { width: 35, textAlign: 'center', color: colors.textSecondary }]}>4s</Text>
-                <Text style={[styles.headerText, { width: 35, textAlign: 'center', color: colors.textSecondary }]}>6s</Text>
-                <Text style={[styles.headerText, { width: 45, textAlign: 'center', color: colors.textSecondary }]}>SR</Text>
-                <Text style={[styles.headerText, { width: 80, textAlign: 'right', color: colors.textSecondary }]}>STATUS</Text>
-              </View>
+        <Card style={[styles.lineupCard, { padding: 0 }]}>
+          <View style={styles.lineupList}>
+            {(currentMatch?.teams[selectedTeamTab]?.players || []).map((p, idx) => {
+              const pId = p.playerId?._id || p.playerId || p.nameSnapshot;
+              const stats = currentMatch?.scorecard?.batting[pId];
+              const bowlStats = currentMatch?.scorecard?.bowling[pId];
               
-              {(currentMatch?.teams[selectedTeamTab]?.players || []).map((p, idx) => {
-                const pId = p.playerId?._id || p.playerId || p.nameSnapshot;
-                const stats = currentMatch?.scorecard?.batting[pId];
-                const bowlStats = currentMatch?.scorecard?.bowling[pId];
-                const isOut = stats?.status !== 'not out' && stats?.status !== 'yet to bat' && stats;
-                
-                return (
-                  <View key={idx} style={[styles.tableRow, { borderBottomColor: colors.divider }]}>
-                    <View style={[styles.playerNameCol, { width: 150 }]}>
+              const isBatting = pId === currentMatch?.current?.strikerId || pId === currentMatch?.current?.nonStrikerId;
+              const isBowling = pId === currentMatch?.current?.bowlerId;
+              const isOut = stats?.status && stats.status !== 'not out' && stats.status !== 'yet to bat';
+              
+              let statusText = '';
+              let statusColor = colors.textSecondary;
+              
+              if (isBatting) {
+                statusText = 'BATTING';
+                statusColor = colors.primary;
+              } else if (isBowling) {
+                statusText = 'BOWLING';
+                statusColor = colors.accent;
+              } else if (isOut) {
+                statusText = stats.status.toUpperCase();
+                statusColor = colors.danger;
+              } else if (stats && stats.status === 'not out' && stats.balls > 0) {
+                statusText = 'NOT OUT';
+                statusColor = colors.textPrimary;
+              } else if (stats && stats.status === 'yet to bat') {
+                statusText = 'YET TO BAT';
+                statusColor = colors.textDisabled;
+              }
+              
+              return (
+                <View key={idx} style={[styles.playerCardRow, { borderBottomColor: colors.divider, paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: 1 }]}>
+                  <View style={styles.playerCardHeader}>
+                    <View style={styles.playerNameCol}>
                       <View style={[styles.avatarSmall, { backgroundColor: colors.primary + '10' }, isOut && { backgroundColor: colors.surfaceVariant }]}>
                         <Text style={[styles.avatarTextSmall, { color: colors.primary }, isOut && { color: colors.textDisabled }]}>{p.nameSnapshot?.[0]}</Text>
                       </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={[styles.lineupPlayerName, { color: colors.textPrimary }, isOut && { color: colors.textDisabled }]} numberOfLines={1}>
+                      <View>
+                        <Text style={[styles.lineupPlayerName, { color: colors.textPrimary }, isOut && { color: colors.textDisabled }]}>
                           {p.playerId?.displayName || p.nameSnapshot}
                         </Text>
-                        <Text style={[styles.lineupPlayerRole, { color: colors.textTertiary }]} numberOfLines={1}>{p.playerId?.role || 'Player'}</Text>
-                        {bowlStats ? (
-                          <Text style={{ color: colors.accent, fontSize: 9, fontWeight: '700', marginTop: 1 }}>
-                            Bowl: {formatOvers(bowlStats.balls)}-{bowlStats.maidens}-{bowlStats.runs}-{bowlStats.wickets}
-                          </Text>
-                        ) : null}
+                        <Text style={[styles.lineupPlayerRole, { color: colors.textTertiary }]}>{p.playerId?.role || 'Player'}</Text>
                       </View>
                     </View>
-                    <Text style={[styles.lineupStat, { width: 35, textAlign: 'center', color: colors.textPrimary }, isOut && { color: colors.textDisabled }]}>
-                      {stats?.runs || 0}
-                    </Text>
-                    <Text style={[styles.lineupStat, { width: 35, textAlign: 'center', color: colors.textPrimary }, isOut && { color: colors.textDisabled }]}>
-                      {stats?.balls || 0}
-                    </Text>
-                    <Text style={[styles.lineupStat, { width: 35, textAlign: 'center', color: colors.textPrimary }, isOut && { color: colors.textDisabled }]}>
-                      {stats?.fours || 0}
-                    </Text>
-                    <Text style={[styles.lineupStat, { width: 35, textAlign: 'center', color: colors.textPrimary }, isOut && { color: colors.textDisabled }]}>
-                      {stats?.sixes || 0}
-                    </Text>
-                    <Text style={[styles.lineupStat, { width: 45, textAlign: 'center', color: colors.textPrimary }, isOut && { color: colors.textDisabled }]}>
-                      {((stats?.runs || 0) / Math.max(1, stats?.balls || 1) * 100).toFixed(0)}
-                    </Text>
-                    <Text style={[styles.lineupStatus, { width: 80, textAlign: 'right', color: colors.primary }, isOut && { color: colors.danger }]}>
-                      {isOut ? stats.status.toUpperCase() : (pId === currentMatch?.current?.strikerId || pId === currentMatch?.current?.nonStrikerId ? 'BATTING' : 'NOT OUT')}
-                    </Text>
+                    {statusText ? (
+                      <View style={styles.playerStatusBadge}>
+                        <Text style={[styles.lineupStatus, { color: statusColor }]}>
+                          {statusText}
+                        </Text>
+                      </View>
+                    ) : null}
                   </View>
-                );
-              })}
-            </View>
-          </ScrollView>
+
+                  <View style={styles.playerCardStats}>
+                    {/* Batting Stats */}
+                    {stats && (stats.balls > 0 || stats.runs > 0 || isBatting || isOut) && (
+                      <View style={styles.statRow}>
+                        <MaterialCommunityIcons name="cricket" size={14} color={colors.textSecondary} style={styles.statIcon} />
+                        <Text style={[styles.statText, { color: colors.textPrimary }]}>
+                          <Text style={{ fontWeight: '800' }}>{stats.runs || 0}</Text> ({stats.balls || 0}) 
+                          <Text style={{ color: colors.textTertiary }}> • 4s: {stats.fours || 0} • 6s: {stats.sixes || 0} • SR: {((stats.runs || 0) / Math.max(1, stats.balls || 1) * 100).toFixed(1)}</Text>
+                        </Text>
+                      </View>
+                    )}
+
+                    {/* Bowling Stats */}
+                    {bowlStats && (bowlStats.balls > 0) && (
+                      <View style={[styles.statRow, { marginTop: 4 }]}>
+                        <MaterialCommunityIcons name="tennis-ball" size={14} color={colors.accent} style={styles.statIcon} />
+                        <Text style={[styles.statText, { color: colors.textPrimary }]}>
+                          <Text style={{ fontWeight: '800', color: colors.accent }}>{bowlStats.wickets || 0}</Text>/{bowlStats.runs || 0}
+                          <Text style={{ color: colors.textTertiary }}> • {formatOvers(bowlStats.balls)} O • {bowlStats.maidens || 0} M • Econ: {((bowlStats.runs || 0) / Math.max(1, bowlStats.balls / 6)).toFixed(1)}</Text>
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+              );
+            })}
+          </View>
         </Card>
       </View>
     </View>
@@ -510,54 +531,58 @@ const styles = StyleSheet.create({
     padding: 0,
     overflow: 'hidden',
   },
-  lineupScroll: {
-    padding: 12,
+  lineupList: {
+    paddingBottom: 8,
   },
-  lineupTable: {
-    minWidth: '100%',
+  playerCardRow: {
+    flexDirection: 'column',
   },
-  tableHeader: {
+  playerCardHeader: {
     flexDirection: 'row',
-    paddingBottom: 10,
-    borderBottomWidth: 1,
-    marginBottom: 10,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
   },
-  headerText: {
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 1,
+  playerStatusBadge: {
+    alignItems: 'flex-end',
   },
-  tableRow: {
+  playerCardStats: {
+    paddingLeft: 42,
+    gap: 4,
+  },
+  statRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
+  },
+  statIcon: {
+    marginRight: 6,
+    width: 16,
+    textAlign: 'center',
+  },
+  statText: {
+    fontSize: 13,
   },
   avatarSmall: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarTextSmall: {
     fontWeight: '800',
-    fontSize: 12,
+    fontSize: 14,
   },
   lineupPlayerName: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '700',
   },
   lineupPlayerRole: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '600',
   },
-  lineupStat: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
   lineupStatus: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '800',
   },
 });

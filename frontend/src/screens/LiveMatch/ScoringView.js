@@ -70,7 +70,7 @@ const ScoringView = ({
           </View>
           <View style={styles.miniOversInfo}>
             <Text style={[styles.miniOversText, { color: colors.textPrimary }]}>
-              Overs: {formatOvers(currentMatch?.battingTeam === 'teamB' ? score.teamB.balls : score.teamA.balls)}
+              Overs: {currentMatch?.computed?.overs || '0.0'} Ov
             </Text>
             <View style={[styles.miniLiveBadge, { backgroundColor: colors.danger + '20' }]}>
               <Text style={[styles.miniLiveText, { color: colors.danger }]}>SCORING LIVE</Text>

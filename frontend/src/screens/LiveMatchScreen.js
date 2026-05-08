@@ -34,10 +34,12 @@ import {
 } from '~/store/matchSlice';
 import Header from '~/components/Header';
 import NotificationIcon from '~/components/NotificationIcon';
+import { formatOvers } from '~/utils/helpers';
 
 // Modular Views
 import ScoringView from './LiveMatch/ScoringView';
 import SpectatorView from './LiveMatch/SpectatorView';
+import ActionRequiredModal from '~/components/ActionRequiredModal';
 
 /**
  * LiveMatchScreen — Controller for live cricket match
@@ -102,6 +104,49 @@ function LiveMatchScreen() {
 
   // Player replacement state
   const [replacingPlayer, setReplacingPlayer] = useState(null); // { role: 'striker' | 'nonStriker' | 'bowler' }
+  const [actionModal, setActionModal] = useState({ visible: false, type: null, title: '', message: '', icon: '', color: '' });
+  const [lastPromptedOver, setLastPromptedOver] = useState(-1);
+
+  // Effect to automatically prompt for player selection on wicket or over completion
+  useEffect(() => {
+    if (viewMode === 'scoring' && currentMatch?.status === 'live') {
+      const legalBalls = currentMatch?.computed?.legalBalls || 0;
+      const totalOvers = currentMatch?.overs || 20;
+      const isMatchOver = currentMatch.status === 'completed';
+
+      if (isMatchOver) {
+        if (actionModal.visible) setActionModal({ ...actionModal, visible: false });
+        return;
+      }
+
+      // 1. Wicket fallen - Striker is null
+      if (!currentMatch?.current?.strikerId && !actionModal.visible && replacingPlayer?.role !== 'striker') {
+        setActionModal({
+          visible: true,
+          type: 'striker',
+          title: 'WICKET FALLEN!',
+          message: 'Please choose the next batter to continue the innings.',
+          icon: 'account-alert',
+          color: colors.danger,
+        });
+      }
+      // 2. Over completed
+      else if (legalBalls > 0 && legalBalls % 6 === 0 && legalBalls < totalOvers * 6) {
+        const currentCompletedOvers = legalBalls / 6;
+        if (lastPromptedOver !== currentCompletedOvers && !actionModal.visible && replacingPlayer?.role !== 'bowler') {
+          setLastPromptedOver(currentCompletedOvers);
+          setActionModal({
+            visible: true,
+            type: 'bowler',
+            title: 'OVER COMPLETED!',
+            message: 'Great over! Please choose the bowler for the next over.',
+            icon: 'tennis-ball',
+            color: colors.accent,
+          });
+        }
+      }
+    }
+  }, [currentMatch?.current?.strikerId, currentMatch?.computed?.legalBalls, viewMode, currentMatch?.status]);
 
   // Get team players for the modal based on role
   // battingTeam index is derived from toss (same as backend logic)
@@ -157,6 +202,21 @@ function LiveMatchScreen() {
 
   const handleAddBall = async (ballData) => {
     if (!matchId) return;
+
+    if (currentMatch?.status === 'live') {
+      if (!currentMatch?.current?.strikerId) {
+        setActionModal({
+          visible: true,
+          type: 'striker',
+          title: 'ACTION REQUIRED',
+          message: 'Please choose the next batter before continuing the match.',
+          icon: 'account-alert',
+          color: colors.danger,
+        });
+        return;
+      }
+    }
+
     setLastPressed(ballData.wicket ? 'WICKET' : ballData.extra ? ballData.extra.toUpperCase() : ballData.runs);
     await dispatch(addBallThunk({ matchId, payload: ballData }));
   };
@@ -301,15 +361,27 @@ function LiveMatchScreen() {
                 const pid = getPlayerId(item);
                 const isCurrent = isCurrentPlayer(item, replacingPlayer?.role);
                 const onField = isOnField(item);
+                
+                // Check if player is already out
+                const stats = currentMatch?.scorecard?.batting[pid];
+                const isOut = (replacingPlayer?.role === 'striker' || replacingPlayer?.role === 'nonStriker') && 
+                              stats?.status && stats.status !== 'not out' && stats.status !== 'yet to bat';
+                
+                const isDisabled = isCurrent || isOut;
+
+                // Check bowling stats
+                const bowlStats = currentMatch?.scorecard?.bowling[pid];
+
                 return (
                   <TouchableOpacity 
                     style={[
                       styles.playerItem, 
                       { borderBottomColor: colors.divider },
                       isCurrent && { backgroundColor: colors.primary + '15' },
+                      isOut && { opacity: 0.6 }
                     ]}
-                    onPress={() => !isCurrent && handleReplace(item)}
-                    disabled={isCurrent}
+                    onPress={() => !isDisabled && handleReplace(item)}
+                    disabled={isDisabled}
                   >
                     <View style={[
                       styles.avatar, 
@@ -324,7 +396,11 @@ function LiveMatchScreen() {
                       </Text>
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={[styles.playerName, { color: isCurrent ? colors.primary : colors.textPrimary }]}>
+                      <Text style={[
+                        styles.playerName, 
+                        { color: isCurrent ? colors.primary : isOut ? colors.textDisabled : colors.textPrimary },
+                        isOut && { textDecorationLine: 'line-through' }
+                      ]}>
                         {item.nameSnapshot || 'Unknown'}
                       </Text>
                       {isCurrent && (
@@ -332,16 +408,26 @@ function LiveMatchScreen() {
                           ✓ {replacingPlayer?.role === 'striker' ? 'Striker' : replacingPlayer?.role === 'nonStriker' ? 'Non-Striker' : 'Bowler'}
                         </Text>
                       )}
-                      {!isCurrent && onField && (
+                      {!isCurrent && onField && !isOut && (
                         <Text style={{ color: colors.accent, fontSize: 11, fontWeight: '700' }}>
                           • on field
+                        </Text>
+                      )}
+                      {isOut && (
+                        <Text style={{ color: colors.danger, fontSize: 11, fontWeight: '700' }}>
+                          • {stats.status.toUpperCase()}
+                        </Text>
+                      )}
+                      {replacingPlayer?.role === 'bowler' && bowlStats && bowlStats.balls > 0 && (
+                        <Text style={{ color: colors.textSecondary, fontSize: 11, fontWeight: '600' }}>
+                          Bowled: {formatOvers(bowlStats.balls)} O • {bowlStats.wickets}W / {bowlStats.runs}R
                         </Text>
                       )}
                     </View>
                     {isCurrent && (
                       <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
                     )}
-                    {!isCurrent && (
+                    {!isCurrent && !isOut && (
                       <Ionicons name="chevron-forward" size={18} color={colors.textDisabled} />
                     )}
                   </TouchableOpacity>
@@ -359,6 +445,21 @@ function LiveMatchScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Action Required Modal (Wickets / Over Completion) */}
+      <ActionRequiredModal
+        visible={actionModal.visible}
+        title={actionModal.title}
+        message={actionModal.message}
+        iconName={actionModal.icon}
+        iconColor={actionModal.color}
+        buttonText={actionModal.type === 'striker' ? 'CHOOSE BATTER' : 'CHOOSE BOWLER'}
+        onAction={() => {
+          setActionModal({ ...actionModal, visible: false });
+          setReplacingPlayer({ role: actionModal.type });
+        }}
+        onClose={() => setActionModal({ ...actionModal, visible: false })}
+      />
     </SafeAreaView>
   );
 }
