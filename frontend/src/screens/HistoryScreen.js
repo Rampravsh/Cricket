@@ -198,7 +198,9 @@ function HistoryScreen() {
           <View>
             <Text style={styles.matchTitle}>{item.matchId}</Text>
             <Text style={styles.matchOwner}>Owner: {item.createdByUserId?.name || 'Unknown'}</Text>
-            <Text style={styles.matchStatus}>Status: {item.status?.toUpperCase()}</Text>
+            <Text style={styles.matchStatus}>
+              Status: {(item.status === 'completed' && (item.innings === 1 || !item.innings)) ? 'INNINGS BREAK' : item.status?.toUpperCase()}
+            </Text>
           </View>
           <View style={styles.rolesContainer}>
             {item.roles?.map(role => (

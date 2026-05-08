@@ -648,9 +648,27 @@ const startSecondInnings = catchAsync(async (req, res) => {
   match.score.wickets = 0;
   match.score.overs = 0;
   match.score.balls = 0;
-  match.current.strikerId = null;
-  match.current.nonStrikerId = null;
-  match.current.bowlerId = null;
+  let firstBattingTeam = match.teams[0];
+  let firstBowlingTeam = match.teams[1];
+
+  if (match.toss && match.toss.winner && match.toss.decision) {
+    const isWinnerBatting = match.toss.decision === 'bat';
+    if (match.teams[0].name === match.toss.winner) {
+      firstBattingTeam = isWinnerBatting ? match.teams[0] : match.teams[1];
+      firstBowlingTeam = isWinnerBatting ? match.teams[1] : match.teams[0];
+    } else if (match.teams[1].name === match.toss.winner) {
+      firstBattingTeam = isWinnerBatting ? match.teams[1] : match.teams[0];
+      firstBowlingTeam = isWinnerBatting ? match.teams[0] : match.teams[1];
+    }
+  }
+
+  // For 2nd innings, swap the teams
+  const secondBattingTeam = firstBowlingTeam;
+  const secondBowlingTeam = firstBattingTeam;
+
+  match.current.strikerId = secondBattingTeam.players[0]?.playerId || secondBattingTeam.players[0]?.nameSnapshot || null;
+  match.current.nonStrikerId = secondBattingTeam.players[1]?.playerId || secondBattingTeam.players[1]?.nameSnapshot || null;
+  match.current.bowlerId = secondBowlingTeam.players[0]?.playerId || secondBowlingTeam.players[0]?.nameSnapshot || null;
   match.currentOver = [];
 
   await match.save();

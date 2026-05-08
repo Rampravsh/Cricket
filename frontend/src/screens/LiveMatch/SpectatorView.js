@@ -114,8 +114,14 @@ const SpectatorView = ({
               </View>
             )}
             <View style={styles.proStatItem}>
-              <Text style={[styles.proStatLabel, { color: colors.textSecondary }]}>OPPONENT</Text>
-              <Text style={[styles.proStatValue, { color: colors.textPrimary }]}>{bowlingTeamName}</Text>
+              <Text style={[styles.proStatLabel, { color: colors.textSecondary }]}>
+                {currentMatch?.pastInnings?.length > 0 ? `${bowlingTeamName} (1ST INN)` : 'OPPONENT'}
+              </Text>
+              <Text style={[styles.proStatValue, { color: colors.textPrimary }]}>
+                {currentMatch?.pastInnings?.length > 0 
+                  ? `${currentMatch.pastInnings[0].runs}/${currentMatch.pastInnings[0].wickets}` 
+                  : bowlingTeamName}
+              </Text>
             </View>
           </View>
         </LinearGradient>

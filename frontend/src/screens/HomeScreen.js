@@ -258,9 +258,13 @@ function HomeScreen() {
 
               teamA={match.teams?.[0]?.name || 'Team A'}
               teamB={match.teams?.[1]?.name || 'Team B'}
-              status={match.status?.toUpperCase() || 'WAITING'}
+              status={
+                (match.status === 'completed' && (match.innings === 1 || !match.innings))
+                  ? 'INNINGS BREAK'
+                  : match.status?.toUpperCase() || 'WAITING'
+              }
               score={
-                match.status === 'live'
+                match.status === 'live' || (match.status === 'completed' && (match.innings === 1 || !match.innings))
                   ? `${match.score?.runs || 0}/${match.score?.wickets || 0} (${match.score?.overs || 0}.${match.score?.balls || 0} Ov)`
                   : match.status === 'completed'
                     ? `Completed`

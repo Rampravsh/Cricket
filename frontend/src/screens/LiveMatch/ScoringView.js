@@ -58,7 +58,10 @@ const ScoringView = ({
     );
   }
 
-  if (isCompleted) {
+  const isOldCompleted = isCompleted && (currentMatch?.innings === 1 || !currentMatch?.innings);
+  const showCompleted = isCompleted && !isOldCompleted;
+
+  if (showCompleted) {
     return (
       <View style={styles.waitingContainer}>
         <Card style={styles.waitingCard}>
@@ -70,8 +73,8 @@ const ScoringView = ({
     );
   }
 
-  if (isBreak) {
-    const isInningsBreak = currentMatch?.innings === 1 && currentMatch?.target;
+  if (isBreak || isOldCompleted) {
+    const isInningsBreak = (currentMatch?.innings === 1 || !currentMatch?.innings) && (currentMatch?.target || isOldCompleted);
     return (
       <View style={styles.waitingContainer}>
         <Card style={styles.waitingCard}>
