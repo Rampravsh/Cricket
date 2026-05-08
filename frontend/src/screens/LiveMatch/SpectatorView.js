@@ -250,17 +250,23 @@ const SpectatorView = ({
               <Text style={[styles.sectionTitle, { color: colors.accent }]}>THIS OVER</Text>
               <Text style={[styles.overSummary, { color: colors.textPrimary }]}>Runs: {currentOver.reduce((a, b) => a + (parseInt(b) || 0), 0)}</Text>
             </View>
-            <View style={styles.ballList}>
-              {[...Array(6)].map((_, i) => {
-                const ball = currentOver[i];
-                return (
+            <View style={styles.ballListWrapper}>
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={[
+                  styles.ballList,
+                  currentOver.length <= 6 && { flexGrow: 1, justifyContent: 'space-between' }
+                ]}
+              >
+                {(currentOver.length > 6 ? currentOver : [...currentOver, ...Array(6 - currentOver.length).fill(null)]).map((ball, i) => (
                   <View key={i} style={[styles.ballCircle, ball ? getBallStyle(ball) : [styles.ballEmpty, { backgroundColor: colors.surfaceVariant, borderColor: colors.divider }]]}>
                     <Text style={[styles.ballText, ball ? getBallTextStyle(ball) : { color: colors.textDisabled }]}>
                       {ball || ''}
                     </Text>
                   </View>
-                );
-              })}
+                ))}
+              </ScrollView>
             </View>
           </Card>
         </View>
@@ -523,10 +529,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
   },
+  ballListWrapper: {
+    marginHorizontal: -4, // Slight negative margin to allow balls to reach edges if scrolling
+  },
   ballList: {
     flexDirection: 'row',
     gap: 8,
-    justifyContent: 'space-between',
+    paddingHorizontal: 4,
   },
   ballCircle: {
     width: 36,
